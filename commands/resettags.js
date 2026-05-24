@@ -1,12 +1,12 @@
 const connectDB = require("../database");
 
-const OWNER_ID = "YOUR_DISCORD_ID_HERE";
+const OWNER_ID = "859803575995727872";
 
 module.exports = {
   name: "resettags",
 
   async execute(message) {
-    if (message.author.id !== 859803575995727872) {
+    if (message.author.id !== OWNER_ID) {
       return message.reply("❌ Only owner can use this.");
     }
 
