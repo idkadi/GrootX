@@ -30,7 +30,7 @@ module.exports = {
         "**Examples:**\n" +
         "`!search n: iron man`\n" +
         "`!search s: daredevil`\n" +
-        "`!search t: burn`"
+        "`!search t: spider`"
       );
     }
 
@@ -60,11 +60,26 @@ module.exports = {
     }
 
     const db = await connectDB();
+
     const collectionsCol = db.collection("collections");
+    const cardTagsCol = db.collection("cardtags");
 
     const userCollection = await collectionsCol
       .find({ userId })
       .toArray();
+
+    const userCardTags = await cardTagsCol
+      .find({ userId })
+      .toArray();
+
+    const tagMap = {};
+
+    for (const tag of userCardTags) {
+      tagMap[String(tag.code).toLowerCase()] = {
+        tagName: tag.tagName,
+        emoji: tag.emoji
+      };
+    }
 
     const matchingCards = userCollection.filter(entry => {
       const card = cards.find(
@@ -88,9 +103,12 @@ module.exports = {
       }
 
       if (searchType === "tag") {
+        const savedTag = tagMap[String(entry.code).toLowerCase()];
+
         return (
-          entry.tag &&
-          entry.tag.toLowerCase() === searchValue
+          savedTag &&
+          savedTag.tagName &&
+          savedTag.tagName.toLowerCase() === searchValue
         );
       }
 
@@ -122,8 +140,10 @@ module.exports = {
 
         const emoji = rarityEmojis[card.tier] || "🎴";
 
-        const tagText = entry.tag
-          ? `🏷️ ${entry.tag} • `
+        const savedTag = tagMap[String(entry.code).toLowerCase()];
+
+        const tagText = savedTag?.emoji
+          ? `${savedTag.emoji} • `
           : "";
 
         return (

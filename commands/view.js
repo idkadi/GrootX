@@ -38,7 +38,7 @@ module.exports = {
     const db = await connectDB();
 
     const collectionsCol = db.collection("collections");
-    const tagsCol = db.collection("tags");
+    const cardTagsCol = db.collection("cardtags");
 
     let searchCode;
 
@@ -92,16 +92,12 @@ module.exports = {
       ownerName = user.username;
     } catch (err) {}
 
-    let tagDisplay = "No Tag";
+    const tagDoc = await cardTagsCol.findOne({
+      userId: ownerId,
+      code: foundCard.code
+    });
 
-    if (foundCard.tag) {
-      const tagDoc = await tagsCol.findOne({
-        userId: ownerId,
-        cardCode: foundCard.code
-      });
-
-      tagDisplay = tagDoc?.tag || foundCard.tag || "No Tag";
-    }
+    const tagDisplay = tagDoc?.emoji || "No Tag";
 
     const embed = new EmbedBuilder()
       .setColor(getColor(card.tier))
