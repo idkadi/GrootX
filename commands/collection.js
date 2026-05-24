@@ -97,8 +97,10 @@ module.exports = {
 
         if (!card) return "❌ Unknown Card";
 
-        const tagText = entry.tag
-          ? `🏷️ ${entry.tag} • `
+        const savedTag = userTags[entry.code];
+
+        const tagText = savedTag
+          ? `🏷️ ${savedTag} • `
           : "";
 
         return (
