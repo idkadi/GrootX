@@ -2245,6 +2245,84 @@ module.exports = [
     image: "epic/thort.jpeg"
   },
 
+   {
+    id: 250,
+    name: "Nick Fury",
+    aka: [],
+    appearance: "The Avengers",
+    tier: "common",
+    image: "common/nickfuryav.jpeg"
+  },
+
+   {
+    id: 251,
+    name: "Phil Coulson",
+    aka: [],
+    appearance: "The Avengers",
+    tier: "common",
+    image: "common/philav.jpeg"
+  },
+
+   {
+    id: 252,
+    name: "Maria Hill",
+    aka: [],
+    appearance: "The Avengers",
+    tier: "common",
+    image: "common/mariaav.jpeg"
+  },
+
+   {
+    id: 253,
+    name: "Chitauri",
+    aka: [],
+    appearance: "The Avengers",
+    tier: "common",
+    image: "common/chitauriav.jpeg"
+  },
+
+  {
+    id: 254,
+    name: "Black Widow",
+    aka: ["Natasha Romanoff"],
+    appearance: "The Avengers",
+    tier: "rare",
+    image: "rare/blackwidowav.jpeg"
+  },
+
+  {
+    id: 255,
+    name: "Hawkeye",
+    aka: ["Clint Barton"],
+    appearance: "The Avengers",
+    tier: "rare",
+    image: "rare/hawkeyeav.jpeg"
+  },
+
+   {
+    id: 256,
+    name: "Loki",
+    aka: [],
+    appearance: "The Avengers",
+    tier: "epic",
+    image: "epic/lokiav.jpeg"
+  },
+
+  {
+    id: 257,
+    name: "Hulk",
+    aka: ["Bruce Banner"],
+    appearance: "The Avengers",
+    tier: "epic",
+    image: "epic/hulkav.jpeg"
+  },
+
+  
+
+  
+
+
+
 
 
 
