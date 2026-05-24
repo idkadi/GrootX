@@ -4,13 +4,8 @@ module.exports = {
   name: "tag",
 
   async execute(message, args) {
-    if (!args[0]) {
-      return message.reply("❌ Provide a card code.");
-    }
-
-    if (!args[1]) {
-      return message.reply("❌ Provide a tag name.");
-    }
+    if (!args[0]) return message.reply("❌ Provide a card code.");
+    if (!args[1]) return message.reply("❌ Provide a tag name.");
 
     const code = args[0].toLowerCase();
     const tagName = args[1].toLowerCase();
@@ -18,7 +13,8 @@ module.exports = {
     const db = await connectDB();
 
     const collectionsCol = db.collection("collections");
-    const tagsCol = db.collection("tags");
+    const createdTagsCol = db.collection("createdtags");
+    const cardTagsCol = db.collection("cardtags");
 
     const userId = message.author.id;
 
@@ -32,32 +28,33 @@ module.exports = {
     }
 
     if (tagName === "remove") {
-      await tagsCol.deleteOne({
+      await cardTagsCol.deleteOne({
         userId,
-        cardCode: code
+        code
       });
 
       return message.reply(`✅ Removed tag from **${code}**`);
     }
 
-    const createdTag = await tagsCol.findOne({
+    const createdTag = await createdTagsCol.findOne({
       userId,
-      tag: tagName,
-      cardCode: null
+      name: tagName
     });
 
     if (!createdTag) {
       return message.reply("❌ That tag does not exist.");
     }
 
-    await tagsCol.updateOne(
+    await cardTagsCol.updateOne(
       {
         userId,
-        cardCode: code
+        code
       },
       {
         $set: {
-          tag: createdTag.emoji
+          tagName,
+          emoji: createdTag.emoji,
+          updatedAt: new Date()
         }
       },
       {

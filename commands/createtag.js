@@ -1,82 +1,36 @@
-const connectDB =
-  require("../database");
+const connectDB = require("../database");
 
 module.exports = {
-
   name: "createtag",
 
   async execute(message, args) {
+    if (!args[0]) return message.reply("❌ Provide a tag name.");
+    if (!args[1]) return message.reply("❌ Provide a tag emoji.");
 
-    if (!args[0]) {
+    const tagName = args[0].toLowerCase();
+    const emoji = args[1];
 
-      return message.reply(
-        "❌ Provide a tag name."
-      );
+    const db = await connectDB();
+    const createdTagsCol = db.collection("createdtags");
 
-    }
+    const userId = message.author.id;
 
-    if (!args[1]) {
-
-      return message.reply(
-        "❌ Provide a tag emoji."
-      );
-
-    }
-
-    const tagName =
-      args[0]
-        .toLowerCase();
-
-    const emoji =
-      args[1];
-
-    const db =
-      await connectDB();
-
-    const tagsCol =
-      db.collection("tags");
-
-    const userId =
-      message.author.id;
-
-    const existing =
-      await tagsCol.findOne({
-
-        userId,
-
-        tag: tagName
-
-      });
-
-    if (existing) {
-
-      return message.reply(
-        "❌ Tag already exists."
-      );
-
-    }
-
-    await tagsCol.insertOne({
-
+    const existing = await createdTagsCol.findOne({
       userId,
-
-      tag:
-        tagName,
-
-      emoji,
-
-      cardCode: null
-
+      name: tagName
     });
 
-    message.reply(
+    if (existing) {
+      return message.reply("❌ Tag already exists.");
+    }
 
-      `✅ Created tag ` +
+    await createdTagsCol.insertOne({
+      userId,
+      name: tagName,
+      emoji,
+      createdAt: new Date()
+    });
 
-      `**${tagName}** ${emoji}`
-
-    );
-
+    return message.reply(`✅ Created tag **${tagName}** ${emoji}`);
   }
-
 };
