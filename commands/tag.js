@@ -32,9 +32,6 @@ module.exports = {
     const tagsCol =
       db.collection("tags");
 
-    const userTagsCol =
-      db.collection("usertags");
-
     const userId =
       message.author.id;
 
@@ -54,17 +51,6 @@ module.exports = {
 
     if (tagName === "remove") {
 
-      await collectionsCol.updateOne(
-        {
-          _id: card._id
-        },
-        {
-          $set: {
-            tag: null
-          }
-        }
-      );
-
       await tagsCol.deleteOne({
         userId,
         cardCode: code
@@ -76,11 +62,15 @@ module.exports = {
 
     }
 
+    // FIND CREATED TAG TEMPLATE
     const existingTag =
-      await userTagsCol.findOne({
+      await tagsCol.findOne({
 
         userId,
-        name: tagName
+
+        tag: tagName,
+
+        cardCode: null
 
       });
 
@@ -92,37 +82,34 @@ module.exports = {
 
     }
 
-    const emoji =
-      existingTag.emoji;
-
-    await collectionsCol.updateOne(
-      {
-        _id: card._id
-      },
-      {
-        $set: {
-          tag: emoji
-        }
-      }
-    );
-
+    // APPLY EMOJI
     await tagsCol.updateOne(
+
       {
         userId,
         cardCode: code
       },
+
       {
         $set: {
-          tag: emoji
+
+          tag:
+            existingTag.emoji
+
         }
+
       },
+
       {
         upsert: true
       }
+
     );
 
     return message.reply(
-      `✅ Applied ${emoji} to **${code}**`
+
+      `✅ Applied ${existingTag.emoji} to **${code}**`
+
     );
 
   }
