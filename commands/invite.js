@@ -12,8 +12,7 @@ module.exports = {
       message.client.user.id;
 
     const inviteLink =
-
-      `https://discord.com/oauth2/authorize?client_id=${clientId}&permissions=8&scope=bot%20applications.commands`;
+`https://discord.com/oauth2/authorize?client_id=${clientId}&permissions=274878221376&scope=bot%20applications.commands`;
 
     const embed =
       new EmbedBuilder()
