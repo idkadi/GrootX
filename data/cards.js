@@ -2119,6 +2119,137 @@ module.exports = [
     image: "legendary/milessv.jpeg"
   },
 
+   {
+    id: 236,
+    name: "Jane Foster",
+    aka: [],
+    appearance: "Thor",
+    tier: "common",
+    image: "common/janet.jpeg"
+  },
+
+  {
+    id: 237,
+    name: "Darcy Lewis",
+    aka: [],
+    appearance: "Thor",
+    tier: "common",
+    image: "common/darcyt.jpeg"
+  },
+
+  {
+    id: 238,
+    name: "Erik Selvig",
+    aka: [],
+    appearance: "Thor",
+    tier: "common",
+    image: "common/erikt.jpeg"
+  },
+
+  {
+    id: 239,
+    name: "Loki Laufeyson",
+    aka: [],
+    appearance: "Thor",
+    tier: "uncommon",
+    image: "uncommon/lokit.jpeg"
+  },
+
+  {
+    id: 240,
+    name: "Laufey",
+    aka: [],
+    appearance: "Thor",
+    tier: "uncommon",
+    image: "uncommon/laufeyt.jpeg"
+  },
+
+  {
+    id: 241,
+    name: "Fandral",
+    aka: [],
+    appearance: "Thor",
+    tier: "uncommon",
+    image: "uncommon/fandralt.jpeg"
+  },
+
+    {
+    id: 242,
+    name: "Hogun",
+    aka: [],
+    appearance: "Thor",
+    tier: "uncommon",
+    image: "uncommon/hogunt.jpeg"
+  },
+
+    {
+    id: 243,
+    name: "Sif",
+    aka: [],
+    appearance: "Thor",
+    tier: "uncommon",
+    image: "uncommon/sift.jpeg"
+  },
+
+    {
+    id: 244,
+    name: "Volstagg",
+    aka: [],
+    appearance: "Thor",
+    tier: "uncommon",
+    image: "uncommon/volstaggt.jpeg"
+  },
+
+   {
+    id: 245,
+    name: "Frigga",
+    aka: [],
+    appearance: "Thor",
+    tier: "uncommon",
+    image: "uncommon/friggat.jpeg"
+  },
+
+  {
+    id: 246,
+    name: "Heimdallt",
+    aka: [],
+    appearance: "Thor",
+    tier: "rare",
+    image: "rare/heimdallt.jpeg"
+  },
+
+   {
+    id: 247,
+    name: "Odin",
+    aka: [],
+    appearance: "Thor",
+    tier: "rare",
+    image: "rare/odint.jpeg"
+  },
+
+  {
+    id: 248,
+    name: "The Destroyer",
+    aka: [],
+    appearance: "Thor",
+    tier: "rare",
+    image: "rare/destroyert.jpeg"
+  },
+
+  {
+    id: 249,
+    name: "Thor Odinson",
+    aka: [],
+    appearance: "Thor",
+    tier: "epic",
+    image: "epic/thort.jpeg"
+  },
+
+
+
+
+
+
 
 
 
