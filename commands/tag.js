@@ -4,113 +4,69 @@ module.exports = {
   name: "tag",
 
   async execute(message, args) {
-
     if (!args[0]) {
-      return message.reply(
-        "❌ Provide a card code."
-      );
+      return message.reply("❌ Provide a card code.");
     }
 
     if (!args[1]) {
-      return message.reply(
-        "❌ Provide a tag name."
-      );
+      return message.reply("❌ Provide a tag name.");
     }
 
-    const code =
-      args[0].toLowerCase();
+    const code = args[0].toLowerCase();
+    const tagName = args[1].toLowerCase();
 
-    const tagName =
-      args[1].toLowerCase();
+    const db = await connectDB();
 
-    const db =
-      await connectDB();
+    const collectionsCol = db.collection("collections");
+    const tagsCol = db.collection("tags");
 
-    const collectionsCol =
-      db.collection("collections");
+    const userId = message.author.id;
 
-    const tagsCol =
-      db.collection("tags");
-
-    const userId =
-      message.author.id;
-
-    const card =
-      await collectionsCol.findOne({
-        userId,
-        code
-      });
+    const card = await collectionsCol.findOne({
+      userId,
+      code
+    });
 
     if (!card) {
-
-      return message.reply(
-        "❌ Card not found."
-      );
-
+      return message.reply("❌ Card not found.");
     }
 
     if (tagName === "remove") {
-
       await tagsCol.deleteOne({
         userId,
         cardCode: code
       });
 
-      return message.reply(
-        `✅ Removed tag from **${code}**`
-      );
-
+      return message.reply(`✅ Removed tag from **${code}**`);
     }
 
-    // FIND CREATED TAG TEMPLATE
-    const existingTag =
-      await tagsCol.findOne({
+    const createdTag = await tagsCol.findOne({
+      userId,
+      tag: tagName,
+      cardCode: null
+    });
 
-        userId,
-
-        tag: tagName,
-
-        cardCode: null
-
-      });
-
-    if (!existingTag) {
-
-      return message.reply(
-        "❌ That tag does not exist."
-      );
-
+    if (!createdTag) {
+      return message.reply("❌ That tag does not exist.");
     }
 
-    // APPLY EMOJI
     await tagsCol.updateOne(
-
       {
         userId,
         cardCode: code
       },
-
       {
         $set: {
-
-          tag:
-            existingTag.emoji
-
+          tag: createdTag.emoji
         }
-
       },
-
       {
         upsert: true
       }
-
     );
 
     return message.reply(
-
-      `✅ Applied ${existingTag.emoji} to **${code}**`
-
+      `✅ Applied ${createdTag.emoji} **${tagName}** to **${code}**`
     );
-
   }
 };
