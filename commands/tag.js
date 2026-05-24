@@ -4,6 +4,7 @@ module.exports = {
   name: "tag",
 
   async execute(message, args) {
+
     if (!args[0]) {
       return message.reply(
         "❌ Provide a card code."
@@ -16,28 +17,43 @@ module.exports = {
       );
     }
 
-    const code = args[0].toLowerCase();
-    const tagName = args[1].toLowerCase();
+    const code =
+      args[0].toLowerCase();
 
-    const db = await connectDB();
+    const tagName =
+      args[1].toLowerCase();
 
-    const collectionsCol = db.collection("collections");
-    const tagsCol = db.collection("tags");
+    const db =
+      await connectDB();
 
-    const userId = message.author.id;
+    const collectionsCol =
+      db.collection("collections");
 
-    const card = await collectionsCol.findOne({
-      userId,
-      code
-    });
+    const tagsCol =
+      db.collection("tags");
+
+    const userTagsCol =
+      db.collection("usertags");
+
+    const userId =
+      message.author.id;
+
+    const card =
+      await collectionsCol.findOne({
+        userId,
+        code
+      });
 
     if (!card) {
+
       return message.reply(
         "❌ Card not found."
       );
+
     }
 
     if (tagName === "remove") {
+
       await collectionsCol.updateOne(
         {
           _id: card._id
@@ -57,18 +73,27 @@ module.exports = {
       return message.reply(
         `✅ Removed tag from **${code}**`
       );
+
     }
 
-    const existingTag = await tagsCol.findOne({
-      userId,
-      tag: tagName
-    });
+    const existingTag =
+      await userTagsCol.findOne({
+
+        userId,
+        name: tagName
+
+      });
 
     if (!existingTag) {
+
       return message.reply(
         "❌ That tag does not exist."
       );
+
     }
+
+    const emoji =
+      existingTag.emoji;
 
     await collectionsCol.updateOne(
       {
@@ -76,7 +101,7 @@ module.exports = {
       },
       {
         $set: {
-          tag: tagName
+          tag: emoji
         }
       }
     );
@@ -88,7 +113,7 @@ module.exports = {
       },
       {
         $set: {
-          tag: tagName
+          tag: emoji
         }
       },
       {
@@ -96,8 +121,9 @@ module.exports = {
       }
     );
 
-    message.reply(
-      `✅ Applied tag **${tagName}** to **${code}**`
+    return message.reply(
+      `✅ Applied ${emoji} to **${code}**`
     );
+
   }
 };
