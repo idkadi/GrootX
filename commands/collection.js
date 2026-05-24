@@ -32,7 +32,7 @@ module.exports = {
 
     const userId = message.author.id;
 
-    let userCards = await collectionsCol
+    const userCards = await collectionsCol
       .find({ userId })
       .sort({ serial: 1 })
       .toArray();
@@ -48,7 +48,7 @@ module.exports = {
     const userTags = {};
 
     for (const tag of userTagsDocs) {
-      userTags[tag.cardCode] = tag.tag;
+      userTags[String(tag.cardCode).toLowerCase()] = tag.tag;
     }
 
     const validTiers = [
@@ -97,10 +97,11 @@ module.exports = {
 
         if (!card) return "❌ Unknown Card";
 
-        const savedTag = userTags[entry.code];
+        const savedTag =
+          userTags[String(entry.code).toLowerCase()];
 
         const tagText = savedTag
-          ? `🏷️ ${savedTag} • `
+          ? `${savedTag} • `
           : "";
 
         return (
