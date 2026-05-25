@@ -51,7 +51,7 @@ const backgrounds = [
   {
     id: 5,
     name: "Daredevil",
-    file: "Daredevilbg.jpeg",
+    file: "daredevilbg.jpeg",
     free: false
   }
 
