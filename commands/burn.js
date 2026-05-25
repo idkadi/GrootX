@@ -9,6 +9,10 @@ const {
 
 const connectDB = require("../database");
 
+const {
+  removeCardFromAlbums
+} = require("../utils/albumUtils");
+
 function random(min, max) {
   return Math.floor(
     Math.random() * (max - min + 1)
@@ -181,6 +185,12 @@ module.exports = {
         await collectionsCol.deleteOne({
           _id: burnedEntry._id
         });
+
+        await removeCardFromAlbums(
+  db,
+  userId,
+  burnedEntry.code
+);
 
         await balancesCol.updateOne(
           { userId },

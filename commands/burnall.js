@@ -2,6 +2,10 @@ const cards =
   require("../data/cards");
 
 const {
+  removeCardFromAlbums
+} = require("../utils/albumUtils");
+
+const {
   EmbedBuilder
 } = require("discord.js");
 
@@ -338,6 +342,16 @@ module.exports = {
           }
 
         });
+
+        for (const entry of burnableCards) {
+
+  await removeCardFromAlbums(
+    db,
+    userId,
+    entry.code
+  );
+
+}
 
         const shardText =
           Object.entries(totalShards)

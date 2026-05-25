@@ -1,5 +1,9 @@
 const connectDB = require("../database");
 
+const {
+  removeCardFromAlbums
+} = require("../utils/albumUtils");
+
 module.exports = {
   name: "give",
 
@@ -74,6 +78,12 @@ module.exports = {
         }
       }
     );
+
+    await removeCardFromAlbums(
+  db,
+  giverId,
+  code
+);
 
     message.reply(
       `✅ Gave \`${code}\` to ${target}.`

@@ -1,6 +1,10 @@
 const connectDB =
   require("../database");
 
+const {
+  removeCardFromAlbums
+} = require("../utils/albumUtils");
+
 module.exports = {
 
   name: "confirmtrade",
@@ -112,6 +116,10 @@ module.exports = {
         }
 
       );
+
+      const {
+  removeCardFromAlbums
+} = require("../utils/albumUtils");
 
     }
 
