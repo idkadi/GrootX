@@ -17,7 +17,10 @@ const layouts = [
   { id: 2, name: "2 Cards Side by Side" },
   { id: 3, name: "3 Cards Row" },
   { id: 4, name: "4 Cards Grid" },
-  { id: 5, name: "5 Cards Showcase" }
+  { id: 5, name: "5 Cards Showcase" },
+  { id: 6, name: "6 Cards Grid" },
+  { id: 7, name: "7 Cards Showcase" },
+  { id: 8, name: "8 Cards Full Page" }
 
 ];
 
