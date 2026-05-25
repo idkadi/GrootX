@@ -4,7 +4,8 @@ const {
   EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
-  ButtonStyle
+  ButtonStyle,
+  StringSelectMenuBuilder
 } = require("discord.js");
 
 const connectDB = require("../database");
@@ -32,9 +33,9 @@ module.exports = {
 
     const userId = message.author.id;
 
-    const userCards = await collectionsCol
+    let userCards = await collectionsCol
       .find({ userId })
-      .sort({ serial: 1 })
+      .sort({ _id: -1 })
       .toArray();
 
     if (!userCards || userCards.length === 0) {
@@ -59,7 +60,7 @@ module.exports = {
       "legendary"
     ];
 
-    let filteredCards = userCards;
+    let filteredCards = [...userCards];
 
     if (args[0]) {
       const tier = args[0].toLowerCase();
@@ -81,10 +82,71 @@ module.exports = {
 
     const perPage = 10;
     let page = 0;
+    let currentSort = "latest";
 
-    const totalPages = Math.ceil(filteredCards.length / perPage);
+    function applySort(sortType) {
+      currentSort = sortType;
+
+      switch (sortType) {
+        case "latest":
+          filteredCards.sort((a, b) =>
+            b._id.toString().localeCompare(
+              a._id.toString()
+            )
+          );
+          break;
+
+        case "name":
+          filteredCards.sort((a, b) => {
+            const cardA = cards.find(
+              c => Number(c.id) === Number(a.cardId)
+            );
+
+            const cardB = cards.find(
+              c => Number(c.id) === Number(b.cardId)
+            );
+
+            return (cardA?.name || "").localeCompare(
+              cardB?.name || ""
+            );
+          });
+          break;
+
+        case "serial_low":
+          filteredCards.sort((a, b) =>
+            a.serial - b.serial
+          );
+          break;
+
+        case "serial_high":
+          filteredCards.sort((a, b) =>
+            b.serial - a.serial
+          );
+          break;
+
+        case "tag":
+          filteredCards.sort((a, b) => {
+            const tagA =
+              userTags[String(a.code).toLowerCase()] || "";
+
+            const tagB =
+              userTags[String(b.code).toLowerCase()] || "";
+
+            return tagA.localeCompare(tagB);
+          });
+          break;
+      }
+    }
+
+    applySort("latest");
+
+    function getTotalPages() {
+      return Math.ceil(filteredCards.length / perPage);
+    }
 
     function generateEmbed() {
+      const totalPages = getTotalPages();
+
       const start = page * perPage;
       const end = start + perPage;
 
@@ -117,33 +179,77 @@ module.exports = {
       return new EmbedBuilder()
         .setColor(0x00aeff)
         .setTitle(`${message.author.username}'s Collection`)
-        .setDescription(description)
+        .setDescription(description || "No cards found.")
         .setFooter({
           text:
             `Page ${page + 1}/${totalPages} • ` +
-            `Total Cards: ${filteredCards.length}`
+            `Total Cards: ${filteredCards.length} • ` +
+            `Sort: ${currentSort}`
         })
         .setTimestamp();
     }
 
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId("col_prev")
-        .setLabel("⬅️")
-        .setStyle(ButtonStyle.Primary),
+    function makeSelectRow() {
+      const selectMenu =
+        new StringSelectMenuBuilder()
+          .setCustomId("col_sort")
+          .setPlaceholder("Sort Collection")
+          .addOptions([
+            {
+              label: "Latest",
+              value: "latest",
+              description: "Newest collected first"
+            },
+            {
+              label: "Name",
+              value: "name",
+              description: "Sort alphabetically"
+            },
+            {
+              label: "Serial Low",
+              value: "serial_low",
+              description: "Lowest serial first"
+            },
+            {
+              label: "Serial High",
+              value: "serial_high",
+              description: "Highest serial first"
+            },
+            {
+              label: "Tag",
+              value: "tag",
+              description: "Sort by tag"
+            }
+          ]);
 
-      new ButtonBuilder()
-        .setCustomId("col_next")
-        .setLabel("➡️")
-        .setStyle(ButtonStyle.Primary)
-    );
+      return new ActionRowBuilder().addComponents(selectMenu);
+    }
+
+    function makeButtonRow() {
+      const totalPages = getTotalPages();
+
+      return new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId("col_prev")
+          .setLabel("⬅️")
+          .setStyle(ButtonStyle.Primary)
+          .setDisabled(totalPages <= 1),
+
+        new ButtonBuilder()
+          .setCustomId("col_next")
+          .setLabel("➡️")
+          .setStyle(ButtonStyle.Primary)
+          .setDisabled(totalPages <= 1)
+      );
+    }
 
     const msg = await message.reply({
       embeds: [generateEmbed()],
-      components: totalPages > 1 ? [row] : []
+      components: [
+        makeSelectRow(),
+        makeButtonRow()
+      ]
     });
-
-    if (totalPages <= 1) return;
 
     const collector = msg.createMessageComponentCollector({
       time: 120000
@@ -159,20 +265,34 @@ module.exports = {
         });
       }
 
+      if (interaction.customId === "col_sort") {
+        applySort(interaction.values[0]);
+        page = 0;
+      }
+
       if (interaction.customId === "col_next") {
         page++;
-        if (page >= totalPages) page = 0;
+        if (page >= getTotalPages()) page = 0;
       }
 
       if (interaction.customId === "col_prev") {
         page--;
-        if (page < 0) page = totalPages - 1;
+        if (page < 0) page = getTotalPages() - 1;
       }
 
       await interaction.update({
         embeds: [generateEmbed()],
-        components: [row]
+        components: [
+          makeSelectRow(),
+          makeButtonRow()
+        ]
       });
+    });
+
+    collector.on("end", async () => {
+      await msg.edit({
+        components: []
+      }).catch(() => {});
     });
   }
 };
