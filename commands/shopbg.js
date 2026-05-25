@@ -45,7 +45,7 @@ const backgrounds = [
     id: 5,
     name: "Daredevil",
     price: 2500,
-    file: "Daredevilbg.jpeg"
+    file: "daredevilbg.jpeg"
   }
 
 ];
