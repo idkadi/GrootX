@@ -2317,6 +2317,115 @@ module.exports = [
     image: "epic/hulkav.jpeg"
   },
 
+  {
+    id: 258,
+    name: "Peggy Carter",
+    aka: [],
+    appearance: "Captain America : The Winter Soldier",
+    tier: "common",
+    image: "common/peggycaws.jpeg"
+  },
+
+    {
+    id: 259,
+    name: "Arnim Zola",
+    aka: [],
+    appearance: "Captain America : The Winter Soldier",
+    tier: "common",
+    image: "common/zolacaws.jpeg"
+  },
+
+  {
+    id: 260,
+    name: "Sharon Carter",
+    aka: [],
+    appearance: "Captain America : The Winter Soldier",
+    tier: "common",
+    image: "common/sharoncaws.jpeg"
+  },
+
+  {
+    id: 261,
+    name: "Alexander Pierce",
+    aka: [],
+    appearance: "Captain America : The Winter Soldier",
+    tier: "common",
+    image: "common/alexandercaws.jpeg"
+  },
+
+  {
+    id: 262,
+    name: "Brock Rumlow",
+    aka: ["Crossbones"],
+    appearance: "Captain America : The Winter Soldier",
+    tier: "common",
+    image: "common/rumlowcaws.jpeg"
+  },
+
+  {
+    id: 263,
+    name: "Yen",
+    aka: [],
+    appearance: "Captain America : The Winter Soldier",
+    tier: "common",
+    image: "common/yencaws.jpeg"
+  },
+
+  {
+    id: 264,
+    name: "Georges Batroc",
+    aka: [],
+    appearance: "Captain America : The Winter Soldier",
+    tier: "common",
+    image: "common/georgescaws.jpeg"
+  },
+
+  {
+    id: 265,
+    name: "Jasper Sitwell",
+    aka: [],
+    appearance: "Captain America : The Winter Soldier",
+    tier: "common",
+    image: "common/sitwellcaws.jpeg"
+  },
+
+   {
+    id: 266,
+    name: "Falcon",
+    aka: ["Sam Wilson"],
+    appearance: "Captain America : The Winter Soldier",
+    tier: "rare",
+    image: "rare/falconcaws.jpeg"
+  },
+
+   {
+    id: 267,
+    name: "Winter Soldier",
+    aka: ["James Bucky Barnes"],
+    appearance: "Captain America : The Winter Soldier",
+    tier: "rare",
+    image: "rare/jamescaws.jpeg"
+  },
+
+   {
+    id: 268,
+    name: "Captain America",
+    aka: ["Steve Rogers"],
+    appearance: "Captain America : The Winter Soldier",
+    tier: "epic",
+    image: "epic/captaincaws.jpeg"
+  },
+
+
+
+
+
+
+
+
+
+
+
   
 
   
