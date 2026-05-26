@@ -2502,8 +2502,8 @@ module.exports = [
     name: "Venom",
     aka: ["Eddie Brock"],
     appearance: "Venom",
-    tier: "rare",
-    image: "rare/venomv.jpeg"
+    tier: "epic",
+    image: "epic/venomv.jpeg"
   },
 
    {
@@ -2612,7 +2612,7 @@ module.exports = [
     aka: [],
     appearance: "Venom : The Last Dance",
     tier: "uncommon",
-    image: "uncommon/phageld.jpeg"
+    image: "uncommon/phagevld.jpeg"
   },
 
   {
