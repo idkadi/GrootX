@@ -2416,6 +2416,415 @@ module.exports = [
     image: "epic/captaincaws.jpeg"
   },
 
+   {
+    id: 269,
+    name: "Roland Treece",
+    aka: [],
+    appearance: "Venom",
+    tier: "common",
+    image: "common/rolandv.jpeg"
+  },
+
+  {
+    id: 270,
+    name: "Issac",
+    aka: [],
+    appearance: "Venom",
+    tier: "common",
+    image: "common/issacv.jpeg"
+  },
+
+  {
+    id: 271,
+    name: "Maria",
+    aka: [],
+    appearance: "Venom",
+    tier: "common",
+    image: "common/mariav.jpeg"
+  },
+
+  {
+    id: 272,
+    name: "Dan Lewis",
+    aka: [],
+    appearance: "Venom",
+    tier: "common",
+    image: "common/danv.jpeg"
+  },
+
+  {
+    id: 273,
+    name: "Mrs. Chen",
+    aka: [],
+    appearance: "Venom",
+    tier: "common",
+    image: "common/chenv.jpeg"
+  },
+
+  {
+    id: 274,
+    name: "Dora Skirth",
+    aka: [],
+    appearance: "Venom",
+    tier: "common",
+    image: "common/dorav.jpeg"
+  },
+
+    {
+    id: 275,
+    name: "Anne Weying",
+    aka: [],
+    appearance: "Venom",
+    tier: "uncommon",
+    image: "uncommon/annev.jpeg"
+  },
+
+    {
+    id: 276,
+    name: "Riot",
+    aka: ["Carlton Drake"],
+    appearance: "Venom",
+    tier: "rare",
+    image: "rare/riotv.jpeg"
+  },
+
+   {
+    id: 277,
+    name: "She Venom",
+    aka: ["Anne Weying"],
+    appearance: "Venom",
+    tier: "rare",
+    image: "rare/shevenomv.jpeg"
+  },
+
+    {
+    id: 278,
+    name: "Venom",
+    aka: ["Eddie Brock"],
+    appearance: "Venom",
+    tier: "rare",
+    image: "rare/venomv.jpeg"
+  },
+
+   {
+    id: 279,
+    name: "Camille Pazzo",
+    aka: [],
+    appearance: "Venom : Let There Be Carnage",
+    tier: "common",
+    image: "common/pazzovc.jpeg"
+  },
+
+   {
+    id: 280,
+    name: "Patrick Mulligan",
+    aka: [],
+    appearance: "Venom : Let There Be Carnage",
+    tier: "common",
+    image: "common/patrickvc.jpeg"
+  },
+
+   {
+    id: 281,
+    name: "Shriek",
+    aka: ["Frances Louise Barrison"],
+    appearance: "Venom : Let There Be Carnage",
+    tier: "uncommon",
+    image: "uncommon/shriekvc.jpeg"
+  },
+
+  {
+    id: 282,
+    name: "Cletus Kasady",
+    aka: [],
+    appearance: "Venom : Let There Be Carnage",
+    tier: "uncommon",
+    image: "uncommon/cletusvc.jpeg"
+  },
+
+  {
+    id: 283,
+    name: "Carnage",
+    aka: [],
+    appearance: "Venom : Let There Be Carnage",
+    tier: "epic",
+    image: "epic/carnagevc.jpeg"
+  },
+
+  {
+    id: 284,
+    name: "Rex Strickland",
+    aka: [],
+    appearance: "Venom : The Last Dance",
+    tier: "common",
+    image: "common/rexvld.jpeg"
+  },
+
+    {
+    id: 285,
+    name: "Teddy Paine",
+    aka: [],
+    appearance: "Venom : The Last Dance",
+    tier: "common",
+    image: "common/teddyvld.jpeg"
+  },
+
+    {
+    id: 286,
+    name: "Martin Moon",
+    aka: [],
+    appearance: "Venom : The Last Dance",
+    tier: "common",
+    image: "common/martinvld.jpeg"
+  },
+
+    {
+    id: 287,
+    name: "Nova Moon",
+    aka: [],
+    appearance: "Venom : The Last Dance",
+    tier: "common",
+    image: "common/novavld.jpeg"
+  },
+
+    {
+    id: 288,
+    name: "Sadie Christmas",
+    aka: [],
+    appearance: "Venom : The Last Dance",
+    tier: "common",
+    image: "common/sadievld.jpeg"
+  },
+
+    {
+    id: 289,
+    name: "Venom Horse",
+    aka: [],
+    appearance: "Venom : The Last Dance",
+    tier: "uncommon",
+    image: "uncommon/horsevld.jpeg"
+  },
+
+ 
+  {
+    id: 290,
+    name: "Phage",
+    aka: [],
+    appearance: "Venom : The Last Dance",
+    tier: "uncommon",
+    image: "uncommon/phageld.jpeg"
+  },
+
+  {
+    id: 291,
+    name: "Agony",
+    aka: [],
+    appearance: "Venom : The Last Dance",
+    tier: "uncommon",
+    image: "uncommon/agonyvld.jpeg"
+  },
+
+  {
+    id: 292,
+    name: "Toxin",
+    aka: [],
+    appearance: "Venom : The Last Dance",
+    tier: "uncommon",
+    image: "uncommon/toxinvld.jpeg"
+  },
+
+   {
+    id: 293,
+    name: "Xenophage",
+    aka: [],
+    appearance: "Venom : The Last Dance",
+    tier: "uncommon",
+    image: "uncommon/xenophage.jpeg"
+  },
+
+   {
+    id: 294,
+    name: "Venom",
+    aka: [],
+    appearance: "Venom : The Last Dance",
+    tier: "legendary",
+    image: "legendary/venomvld.jpeg"
+  },
+
+   {
+    id: 295,
+    name: "Knull",
+    aka: [],
+    appearance: "Venom : The Last Dance",
+    tier: "legendary",
+    image: "legendary/knullvld.jpeg"
+  },
+
+  {
+    id: 296,
+    name: "Baron Strucker",
+    aka: [],
+    appearance: "Avengers : Age of Ultron",
+    tier: "common",
+    image: "common/baronage.jpeg"
+  },
+
+  {
+    id: 297,
+    name: "Ulysses Klaue",
+    aka: [],
+    appearance: "Avengers : Age of Ultron",
+    tier: "common",
+    image: "common/klaueage.jpeg"
+  },
+
+   {
+    id: 298,
+    name: "Laura Barton",
+    aka: [],
+    appearance: "Avengers : Age of Ultron",
+    tier: "common",
+    image: "common/lauraage.jpeg"
+  },
+
+   {
+    id: 299,
+    name: "Hellen Cho",
+    aka: [],
+    appearance: "Avengers : Age of Ultron",
+    tier: "common",
+    image: "common/helenage.jpeg"
+  },
+
+   {
+    id: 300,
+    name: "Iron Legion",
+    aka: [],
+    appearance: "Avengers : Age of Ultron",
+    tier: "common",
+    image: "common/legionage.jpeg"
+  },
+
+   {
+    id: 301,
+    name: "F.R.I.D.A.Y.",
+    aka: ["Friday"],
+    appearance: "Avengers : Age of Ultron",
+    tier: "common",
+    image: "common/fridayage.jpeg"
+  },
+
+   {
+    id: 302,
+    name: "Ultron Sentries",
+    aka: [],
+    appearance: "Avengers : Age of Ultron",
+    tier: "common",
+    image: "common/sentriesage.jpeg"
+  },
+
+  
+  {
+    id: 303,
+    name: "J.A.R.V.I.S",
+    aka: ["Jarvis"],
+    appearance: "Avengers : Age of Ultron",
+    tier: "uncommon",
+    image: "uncommon/jarvisage.jpeg"
+  },
+
+   {
+    id: 304,
+    name: "Quicksilver",
+    aka: ["Peter Maximoff"],
+    appearance: "Avengers : Age of Ultron",
+    tier: "uncommon",
+    image: "uncommon/quicksilverage.jpeg"
+  },
+
+     {
+    id: 305,
+    name: "Wanda Maximoff",
+    aka: ["Scarlet Witch"],
+    appearance: "Avengers : Age of Ultron",
+    tier: "rare",
+    image: "rare/wandaage.jpeg"
+  },
+
+   {
+    id: 306,
+    name: "Hawkeye",
+    aka: ["Clint Barton"],
+    appearance: "Avengers : Age of Ultron",
+    tier: "rare",
+    image: "rare/hawkeyeage.jpeg"
+  },
+
+   {
+    id: 307,
+    name: "Hulk Buster",
+    aka: [],
+    appearance: "Avengers : Age of Ultron",
+    tier: "rare",
+    image: "rare/hulkbusterage.jpeg"
+  },
+
+  {
+    id: 308,
+    name: "Iron Man",
+    aka: ["Tony Stark"],
+    appearance: "Avengers : Age of Ultron",
+    tier: "epic",
+    image: "epic/ironmanage.jpeg"
+  },
+
+   {
+    id: 309,
+    name: "Thor",
+    aka: [],
+    appearance: "Avengers : Age of Ultron",
+    tier: "epic",
+    image: "epic/thorage.jpeg"
+  },
+
+  {
+    id: 310,
+    name: "Captain America",
+    aka: ["Steve Rogers"],
+    appearance: "Avengers : Age of Ultron",
+    tier: "epic",
+    image: "epic/capage.jpeg"
+  },
+
+  {
+    id: 311,
+    name: "Vision",
+    aka: [],
+    appearance: "Avengers : Age of Ultron",
+    tier: "epic",
+    image: "epic/visionage.jpeg"
+  },
+
+  {
+    id: 312,
+    name: "Ultron",
+    aka: [],
+    appearance: "Avengers : Age of Ultron",
+    tier: "legendary",
+    image: "legendary/ultronage.jpeg"
+  },
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
