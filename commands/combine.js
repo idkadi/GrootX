@@ -1,230 +1,144 @@
+const path = require("path");
+
 const {
-  EmbedBuilder
+  EmbedBuilder,
+  AttachmentBuilder
 } = require("discord.js");
 
-const connectDB =
-  require("../database");
+const connectDB = require("../database");
+
+const combineGifs = {
+  space_stone: "spaceforge.gif",
+  mind_stone: "mindforge.gif",
+  reality_stone: "realityforge.gif",
+  power_stone: "powerforge.gif",
+  time_stone: "timeforge.gif",
+  soul_stone: "soulforge.gif"
+};
 
 function formatItemName(item) {
-
   return item
-
     .split("_")
-
-    .map(word =>
-
-      word.charAt(0).toUpperCase() +
-      word.slice(1)
-
-    )
-
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
-
 }
 
 function getItemEmoji(item) {
-
   switch (item) {
-
-    case "space_shard":
-      return "<:spaceshards:1504767068480995429>";
-
-    case "mind_shard":
-      return "<:mindsshards:1504767348517638195>";
-
-    case "reality_shard":
-      return "<:realityshards:1504767197883531386>";
-
-    case "power_shard":
-      return "<:powershards:1504767126462926949>";
-
-    case "time_shard":
-      return "<:timeshards:1504766994074046525>";
-
-    case "soul_shard":
-      return "<:soulshards:1504767256775757845>";
-
-    case "space_stone":
-      return "<:space:1504749742683324506>";
-
-    case "mind_stone":
-      return "<:mind:1504749347592605716>";
-
-    case "reality_stone":
-      return "<:reality:1504749391645376542>";
-
-    case "power_stone":
-      return "<:power:1504749435177930857>";
-
-    case "time_stone":
-      return "<:time:1504749635829239839>";
-
-    case "soul_stone":
-      return "<:soul:1504749686911799296>";
-
-    default:
-      return "✨";
-
+    case "space_shard": return "<:spaceshards:1504767068480995429>";
+    case "mind_shard": return "<:mindsshards:1504767348517638195>";
+    case "reality_shard": return "<:realityshards:1504767197883531386>";
+    case "power_shard": return "<:powershards:1504767126462926949>";
+    case "time_shard": return "<:timeshards:1504766994074046525>";
+    case "soul_shard": return "<:soulshards:1504767256775757845>";
+    case "space_stone": return "<:space:1504749742683324506>";
+    case "mind_stone": return "<:mind:1504749347592605716>";
+    case "reality_stone": return "<:reality:1504749391645376542>";
+    case "power_stone": return "<:power:1504749435177930857>";
+    case "time_stone": return "<:time:1504749635829239839>";
+    case "soul_stone": return "<:soul:1504749686911799296>";
+    default: return "✨";
   }
-
 }
 
 module.exports = {
-
   name: "combine",
 
   async execute(message, args) {
-
     if (!args[0]) {
-
       return message.reply(
-
         "❌ Please provide a shard type.\n" +
-
         "Example: `!combine power_shard`"
-
       );
-
     }
 
-    const shard =
-      args[0].toLowerCase();
+    const shard = args[0].toLowerCase();
 
     const validShards = [
-
       "space_shard",
       "mind_shard",
       "reality_shard",
       "power_shard",
       "time_shard",
       "soul_shard"
-
     ];
 
-    if (
-      !validShards.includes(shard)
-    ) {
-
-      return message.reply(
-        "❌ Invalid shard type."
-      );
-
+    if (!validShards.includes(shard)) {
+      return message.reply("❌ Invalid shard type.");
     }
 
-    const db =
-      await connectDB();
+    const db = await connectDB();
+    const inventoryCol = db.collection("inventory");
 
-    const inventoryCol =
-      db.collection("inventory");
+    const userId = message.author.id;
 
-    const userId =
-      message.author.id;
-
-    let inventoryDoc =
-      await inventoryCol.findOne({
-        userId
-      });
+    let inventoryDoc = await inventoryCol.findOne({
+      userId
+    });
 
     if (!inventoryDoc) {
-
       await inventoryCol.insertOne({
-
         userId,
-
         items: {}
-
       });
 
       inventoryDoc = {
-
         userId,
-
         items: {}
-
       };
-
     }
 
-    const items =
-      inventoryDoc.items || {};
-
-    const shardAmount =
-      items[shard] || 0;
+    const items = inventoryDoc.items || {};
+    const shardAmount = items[shard] || 0;
 
     if (shardAmount < 100) {
-
       return message.reply(
-
-        `❌ You need 100 ` +
-
-        `${formatItemName(shard)} ` +
-
+        `❌ You need 100 ${formatItemName(shard)} ` +
         `to combine into a stone.`
-
       );
-
     }
 
-    const stone =
-      shard.replace(
-        "_shard",
-        "_stone"
-      );
+    const stone = shard.replace("_shard", "_stone");
 
     await inventoryCol.updateOne(
-
       { userId },
-
       {
         $inc: {
-
           [`items.${shard}`]: -100,
-
           [`items.${stone}`]: 1
-
         }
       }
-
     );
 
-    const embed =
-      new EmbedBuilder()
+    const gifName = combineGifs[stone];
 
-        .setColor(0x8b5cf6)
+    const gifPath = path.join(
+      __dirname,
+      "../images/gifs",
+      gifName
+    );
 
-        .setTitle(
-          "✨ Shards Combined"
-        )
-
-        .setDescription(
-
-          `${getItemEmoji(shard)} ` +
-
-          `100 ${formatItemName(shard)}\n\n` +
-
-          `combined into\n\n` +
-
-          `${getItemEmoji(stone)} ` +
-
-          `**${formatItemName(stone)}**`
-
-        )
-
-        .setFooter({
-
-          text:
-            "The Infinity Stone has been forged."
-
-        })
-
-        .setTimestamp();
-
-    await message.reply({
-
-      embeds: [embed]
-
+    const file = new AttachmentBuilder(gifPath, {
+      name: gifName
     });
 
-  }
+    const embed = new EmbedBuilder()
+      .setColor(0x8b5cf6)
+      .setTitle("✨ Shards Combined")
+      .setDescription(
+        `${getItemEmoji(shard)} 100 ${formatItemName(shard)}\n\n` +
+        `combined into\n\n` +
+        `${getItemEmoji(stone)} **${formatItemName(stone)}**`
+      )
+      .setImage(`attachment://${gifName}`)
+      .setFooter({
+        text: "The Infinity Stone has been forged."
+      })
+      .setTimestamp();
 
+    await message.reply({
+      embeds: [embed],
+      files: [file]
+    });
+  }
 };
