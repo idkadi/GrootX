@@ -2949,6 +2949,111 @@ module.exports = [
     image: "rare/msmarvelms.jpeg"
   },
 
+  {
+    id: 328,
+    name: "Weasel",
+    aka: [],
+    appearance: "Deadpool",
+    tier: "common",
+    image: "common/weaseldp.jpeg"
+  },
+
+  {
+    id: 329,
+    name: "Buck",
+    aka: [],
+    appearance: "Deadpool",
+    tier: "common",
+    image: "common/buckdp.jpeg"
+  },
+
+  {
+    id: 330,
+    name: "Dopinder",
+    aka: [],
+    appearance: "Deadpool",
+    tier: "common",
+    image: "common/dopinderdp.jpeg"
+  },
+
+   {
+    id: 331,
+    name: "The Recruiter",
+    aka: ["Agent Smith"],
+    appearance: "Deadpool",
+    tier: "common",
+    image: "common/recruiterdp.jpeg"
+  },
+
+     {
+    id: 332,
+    name: "Jeremy",
+    aka: [],
+    appearance: "Deadpool",
+    tier: "common",
+    image: "common/jeremydp.jpeg"
+  },
+
+     {
+    id: 333,
+    name: "Blind Al",
+    aka: [],
+    appearance: "Deadpool",
+    tier: "common",
+    image: "common/blindaldp.jpeg"
+  },
+
+   {
+    id: 334,
+    name: "Venessa Carlysle",
+    aka: [],
+    appearance: "Deadpool",
+    tier: "uncommon",
+    image: "uncommon/venessadp.jpeg"
+  },
+
+  {
+    id: 335,
+    name: "Negasonic Warhead",
+    aka: [],
+    appearance: "Deadpool",
+    tier: "uncommon",
+    image: "uncommon/warheaddp.jpeg"
+  },
+
+  {
+    id: 336,
+    name: "Angel Dust",
+    aka: [],
+    appearance: "Deadpool",
+    tier: "uncommon",
+    image: "uncommon/angeldp.jpeg"
+  },
+
+   {
+    id: 337,
+    name: "Colossus",
+    aka: [],
+    appearance: "Deadpool",
+    tier: "rare",
+    image: "rare/colossusdp.jpeg"
+  },
+
+   {
+    id: 338,
+    name: "Deadpool",
+    aka: [],
+    appearance: "Deadpool",
+    tier: "legendary",
+    image: "legendary/deadpooldp.jpeg"
+  },
+
+
+
+
+
+
+
 
 
 
