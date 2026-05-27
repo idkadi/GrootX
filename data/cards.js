@@ -2814,6 +2814,147 @@ module.exports = [
     image: "legendary/ultronage.jpeg"
   },
 
+   {
+    id: 313,
+    name: "Tyesha Hillman",
+    aka: [],
+    appearance: "Ms. Marvel",
+    tier: "common",
+    image: "common/tyeshams.jpeg"
+  },
+
+   {
+    id: 314,
+    name: "Abdullah",
+    aka: [],
+    appearance: "Ms. Marvel",
+    tier: "common",
+    image: "common/abdullahms.jpeg"
+  },
+
+   {
+    id: 315,
+    name: "Aisha",
+    aka: [],
+    appearance: "Ms. Marvel",
+    tier: "common",
+    image: "common/aishams.jpeg"
+  },
+
+  {
+    id: 316,
+    name: "Sadie Deever",
+    aka: [],
+    appearance: "Ms. Marvel",
+    tier: "common",
+    image: "common/sadiems.jpeg"
+  },
+
+   {
+    id: 317,
+    name: "Zoe Zimmer",
+    aka: [],
+    appearance: "Ms. Marvel",
+    tier: "common",
+    image: "common/zoems.jpeg"
+  },
+
+    {
+    id: 318,
+    name: "Najma",
+    aka: [],
+    appearance: "Ms. Marvel",
+    tier: "common",
+    image: "common/najmams.jpeg"
+  },
+
+    {
+    id: 319,
+    name: "Aamir Khan",
+    aka: [],
+    appearance: "Ms. Marvel",
+    tier: "common",
+    image: "common/aamirms.jpeg"
+  },
+
+   {
+    id: 320,
+    name: "Yusuf Khan",
+    aka: [],
+    appearance: "Ms. Marvel",
+    tier: "common",
+    image: "common/yusufms.jpeg"
+  },
+
+    {
+    id: 321,
+    name: "Muneeba Khan",
+    aka: [],
+    appearance: "Ms. Marvel",
+    tier: "common",
+    image: "common/muneebams.jpeg"
+  },
+
+    {
+    id: 322,
+    name: "Kamran",
+    aka: [],
+    appearance: "Ms. Marvel",
+    tier: "common",
+    image: "common/kamranms.jpeg"
+  },
+
+   {
+    id: 323,
+    name: "Nakia Bahadir",
+    aka: [],
+    appearance: "Ms. Marvel",
+    tier: "common",
+    image: "common/nakiams.jpeg"
+  },
+
+   {
+    id: 324,
+    name: "Bruno Carrelli",
+    aka: [],
+    appearance: "Ms. Marvel",
+    tier: "common",
+    image: "common/brunoms.jpeg"
+  },
+
+  {
+    id: 325,
+    name: "Waleed",
+    aka: [],
+    appearance: "Ms. Marvel",
+    tier: "uncommon",
+    image: "uncommon/waleedms.jpeg"
+  },
+
+    {
+    id: 326,
+    name: "Red Dagger",
+    aka: ["Kareem"],
+    appearance: "Ms. Marvel",
+    tier: "uncommon",
+    image: "uncommon/reddaggerms.jpeg"
+  },
+
+    {
+    id: 327,
+    name: "Ms. Marvel",
+    aka: ["Kamala Khan"],
+    appearance: "Ms. Marvel",
+    tier: "rare",
+    image: "rare/msmarvelms.jpeg"
+  },
+
+
+
+
+
+
+
 
 
 
