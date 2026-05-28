@@ -3247,6 +3247,135 @@ module.exports = [
     image: "legendary/tonycw.jpeg"
   },
 
+  
+  {
+    id: 361,
+    name: "Fenris Wolf",
+    aka: [],
+    appearance: "Thor : Ragnarok",
+    tier: "common",
+    image: "common/fenristr.jpeg"
+  },
+
+  {
+    id: 362,
+    name: "Miek",
+    aka: [],
+    appearance: "Thor : Ragnarok",
+    tier: "common",
+    image: "common/miektr.jpeg"
+  },
+
+  {
+    id: 363,
+    name: "Doug",
+    aka: [],
+    appearance: "Thor : Ragnarok",
+    tier: "common",
+    image: "common/dougtr.jpeg"
+  },
+
+   {
+    id: 364,
+    name: "Topaz",
+    aka: [],
+    appearance: "Thor : Ragnarok",
+    tier: "common",
+    image: "common/topaztr.jpeg"
+  },
+
+  {
+    id: 365,
+    name: "Skurge",
+    aka: [],
+    appearance: "Thor : Ragnarok",
+    tier: "common",
+    image: "common/skurgetr.jpeg"
+  },
+
+  {
+    id: 366,
+    name: "Grandmaster",
+    aka: [],
+    appearance: "Thor : Ragnarok",
+    tier: "common",
+    image: "common/grandmastertr.jpeg"
+  },
+
+  {
+    id: 367,
+    name: "Korg",
+    aka: [],
+    appearance: "Thor : Ragnarok",
+    tier: "uncommon",
+    image: "uncommon/korgtr.jpeg"
+  },
+
+  {
+    id: 368,
+    name: "Heimdall",
+    aka: [],
+    appearance: "Thor : Ragnarok",
+    tier: "uncommon",
+    image: "uncommon/heimdalltr.jpeg"
+  },
+
+  {
+    id: 369,
+    name: "Valkrie",
+    aka: [],
+    appearance: "Thor : Ragnarok",
+    tier: "rare",
+    image: "rare/valkrietr.jpeg"
+  },
+
+   {
+    id: 370,
+    name: "Surtur",
+    aka: [],
+    appearance: "Thor : Ragnarok",
+    tier: "rare",
+    image: "rare/surturtr.jpeg"
+  },
+
+   {
+    id: 371,
+    name: "Hela",
+    aka: [],
+    appearance: "Thor : Ragnarok",
+    tier: "epic",
+    image: "epic/helatr.jpeg"
+  },
+
+   {
+    id: 372,
+    name: "Loki",
+    aka: [],
+    appearance: "Thor : Ragnarok",
+    tier: "epic",
+    image: "epic/lokitr.jpeg"
+  },
+
+  {
+    id: 373,
+    name: "Hulk",
+    aka: ["Bruce Banner"],
+    appearance: "Thor : Ragnarok",
+    tier: "legendary",
+    image: "legendary/hulktr.jpeg"
+  },
+
+   {
+    id: 374,
+    name: "Thor",
+    aka: [],
+    appearance: "Thor : Ragnarok",
+    tier: "legendary",
+    image: "legendary/thortr.jpeg"
+  },
+
+
+
 
 
 
