@@ -3048,6 +3048,220 @@ module.exports = [
     image: "legendary/deadpooldp.jpeg"
   },
 
+    {
+    id: 339,
+    name: "Everett Ross",
+    aka: [],
+    appearance: "Captain America : Civil War",
+    tier: "common",
+    image: "common/everetcw.jpeg"
+  },
+
+      {
+    id: 340,
+    name: "Miriam Sharpe",
+    aka: [],
+    appearance: "Captain America : Civil War",
+    tier: "common",
+    image: "common/sharpecw.jpeg"
+  },
+
+      {
+    id: 341,
+    name: "Thaddeus Ross",
+    aka: [],
+    appearance: "Captain America : Civil War",
+    tier: "common",
+    image: "common/thaddeuscw.jpeg"
+  },
+
+   {
+    id: 342,
+    name: "Maria Stark",
+    aka: [],
+    appearance: "Captain America : Civil War",
+    tier: "common",
+    image: "common/mariacw.jpeg"
+  },
+
+   {
+    id: 343,
+    name: "Howard Stark",
+    aka: [],
+    appearance: "Captain America : Civil War",
+    tier: "common",
+    image: "common/howardcw.jpeg"
+  },
+
+   {
+    id: 344,
+    name: "Redwing",
+    aka: [],
+    appearance: "Captain America : Civil War",
+    tier: "common",
+    image: "common/redwingcw.jpeg"
+  },
+
+   {
+    id: 345,
+    name: "Vasily Karpov",
+    aka: [],
+    appearance: "Captain America : Civil War",
+    tier: "common",
+    image: "common/vasilycw.jpeg"
+  },
+
+     {
+    id: 346,
+    name: "King T'Chaka",
+    aka: [],
+    appearance: "Captain America : Civil War",
+    tier: "uncommon",
+    image: "uncommon/kingcw.jpeg"
+  },
+
+     {
+    id: 347,
+    name: "Helmut Zemo",
+    aka: [],
+    appearance: "Captain America : Civil War",
+    tier: "uncommon",
+    image: "uncommon/zemocw.jpeg"
+  },
+
+   {
+    id: 348,
+    name: "Crossbones",
+    aka: [],
+    appearance: "Captain America : Civil War",
+    tier: "uncommon",
+    image: "uncommon/crossbonescw.jpeg"
+  },
+
+  
+   {
+    id: 349,
+    name: "Hawkeye",
+    aka: ["Clint Barton"],
+    appearance: "Captain America : Civil War",
+    tier: "rare",
+    image: "rare/hawkeyecw.jpeg"
+  },
+
+    {
+    id: 350,
+    name: "Winter Soldier",
+    aka: ["James Bucky Barnes"],
+    appearance: "Captain America : Civil War",
+    tier: "rare",
+    image: "rare/buckycw.jpeg"
+  },
+
+      {
+    id: 351,
+    name: "War Machine",
+    aka: ["James Rhoades"],
+    appearance: "Captain America : Civil War",
+    tier: "rare",
+    image: "rare/warmachinecw.jpeg"
+  },
+
+      {
+    id: 352,
+    name: "Ant Man",
+    aka: ["Scott Lang"],
+    appearance: "Captain America : Civil War",
+    tier: "rare",
+    image: "rare/antmancw.jpeg"
+  },
+
+      {
+    id: 353,
+    name: "Falcon",
+    aka: ["Sam Wilson"],
+    appearance: "Captain America : Civil War",
+    tier: "rare",
+    image: "rare/falconcw.jpeg"
+  },
+
+    {
+    id: 354,
+    name: "Vision",
+    aka: [],
+    appearance: "Captain America : Civil War",
+    tier: "epic",
+    image: "epic/visioncw.jpeg"
+  },
+
+   {
+    id: 355,
+    name: "Spider-man",
+    aka: ["Peter Parker"],
+    appearance: "Captain America : Civil War",
+    tier: "epic",
+    image: "epic/spidermancw.jpeg"
+  },
+
+     {
+    id: 356,
+    name: "Black Panther",
+    aka: ["T'Challa"],
+    appearance: "Captain America : Civil War",
+    tier: "epic",
+    image: "epic/blackpanthercw.jpeg"
+  },
+
+     {
+    id: 357,
+    name: "Black Widow",
+    aka: ["Natasha Romanoff"],
+    appearance: "Captain America : Civil War",
+    tier: "epic",
+    image: "epic/blackwidowcw.jpeg"
+  },
+
+     {
+    id: 358,
+    name: "Wanda Maximoff",
+    aka: ["Scarlet Witch"],
+    appearance: "Captain America : Civil War",
+    tier: "epic",
+    image: "epic/wandacw.jpeg"
+  },
+
+     {
+    id: 359,
+    name: "Captain America",
+    aka: ["Steve Rogers"],
+    appearance: "Captain America : Civil War",
+    tier: "legendary",
+    image: "legendary/capcw.jpeg"
+  },
+
+  {
+    id: 360,
+    name: "Iron Man",
+    aka: ["Tony Stark"],
+    appearance: "Captain America : Civil War",
+    tier: "legendary",
+    image: "legendary/tonycw.jpeg"
+  },
+
+
+
+
+
+
+
+
+  
+   
+
+  
+
+
+
+
 
 
 
