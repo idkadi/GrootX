@@ -3374,6 +3374,289 @@ module.exports = [
     image: "legendary/thortr.jpeg"
   },
 
+  {
+    id: 375,
+    name: "M'Baku",
+    aka: [],
+    appearance: "Avengers : Infinity War",
+    tier: "common",
+    image: "common/mbakuiw.jpeg"
+  },
+
+  {
+    id: 376,
+    name: "Collector",
+    aka: [],
+    appearance: "Avengers : Infinity War",
+    tier: "common",
+    image: "common/collectoriw.jpeg"
+  },
+
+   {
+    id: 377,
+    name: "Shuri",
+    aka: [],
+    appearance: "Avengers : Infinity War",
+    tier: "common",
+    image: "common/shuriiw.jpeg"
+  },
+
+   {
+    id: 378,
+    name: "Eitri",
+    aka: [],
+    appearance: "Avengers : Infinity War",
+    tier: "common",
+    image: "common/eitriiw.jpeg"
+  },
+
+  {
+    id: 379,
+    name: "Red Skull",
+    aka: [],
+    appearance: "Avengers : Infinity War",
+    tier: "uncommon",
+    image: "uncommon/redskulliw.jpeg"
+  },
+
+   {
+    id: 380,
+    name: "Okoye",
+    aka: [],
+    appearance: "Avengers : Infinity War",
+    tier: "uncommon",
+    image: "uncommon/okoyeiw.jpeg"
+  },
+
+   {
+    id: 381,
+    name: "Mantis",
+    aka: [],
+    appearance: "Avengers : Infinity War",
+    tier: "uncommon",
+    image: "uncommon/mantisiw.jpeg"
+  },
+
+   {
+    id: 382,
+    name: "Wong",
+    aka: [],
+    appearance: "Avengers : Infinity War",
+    tier: "uncommon",
+    image: "uncommon/wongiw.jpeg"
+  },
+
+  {
+    id: 383,
+    name: "Proxima Midnight",
+    aka: [],
+    appearance: "Avengers : Infinity War",
+    tier: "rare",
+    image: "rare/proximaiw.jpeg"
+  },
+
+   {
+    id: 384,
+    name: "Corvus Glavive",
+    aka: [],
+    appearance: "Avengers : Infinity War",
+    tier: "rare",
+    image: "rare/corvusiw.jpeg"
+  },
+
+  {
+    id: 385,
+    name: "Cull Obsidian",
+    aka: [],
+    appearance: "Avengers : Infinity War",
+    tier: "rare",
+    image: "rare/culliw.jpeg"
+  },
+
+  {
+    id: 386,
+    name: "Ebony Maw",
+    aka: [],
+    appearance: "Avengers : Infinity War",
+    tier: "rare",
+    image: "rare/ebonyiw.jpeg"
+  },
+
+  {
+    id: 387,
+    name: "Winter Soldier",
+    aka: ["James Bucky Barnes"],
+    appearance: "Avengers : Infinity War",
+    tier: "rare",
+    image: "rare/buckyiw.jpeg"
+  },
+
+  {
+    id: 388,
+    name: "Rocket Racoon",
+    aka: [],
+    appearance: "Avengers : Infinity War",
+    tier: "rare",
+    image: "rare/rocketiw.jpeg"
+  },
+
+   {
+    id: 389,
+    name: "Groot",
+    aka: [],
+    appearance: "Avengers : Infinity War",
+    tier: "rare",
+    image: "rare/grootiw.jpeg"
+  },
+
+   {
+    id: 390,
+    name: "Gamora",
+    aka: [],
+    appearance: "Avengers : Infinity War",
+    tier: "rare",
+    image: "rare/gamoraiw.jpeg"
+  },
+
+   {
+    id: 391,
+    name: "War Machine",
+    aka: ["James Rhoades"],
+    appearance: "Avengers : Infinity War",
+    tier: "rare",
+    image: "rare/warmachineiw.jpeg"
+  },
+
+   {
+    id: 392,
+    name: "Black Widow",
+    aka: ["Natasha Romanoff"],
+    appearance: "Avengers : Infinity War",
+    tier: "rare",
+    image: "rare/widowiw.jpeg"
+  },
+
+  {
+    id: 393,
+    name: "Hulk",
+    aka: ["Bruce Banner"],
+    appearance: "Avengers : Infinity War",
+    tier: "rare",
+    image: "rare/hulkiw.jpeg"
+  },
+
+   {
+    id: 394,
+    name: "Drax",
+    aka: [],
+    appearance: "Avengers : Infinity War",
+    tier: "rare",
+    image: "rare/draxiw.jpeg"
+  },
+
+  {
+    id: 395,
+    name: "Black Panther",
+    aka: ["T'Challa"],
+    appearance: "Avengers : Infinity War",
+    tier: "epic",
+    image: "epic/blackpantheriw.jpeg"
+  },
+
+   {
+    id: 396,
+    name: "Star Lord",
+    aka: ["Peter Quill"],
+    appearance: "Avengers : Infinity War",
+    tier: "epic",
+    image: "epic/starlordiw.jpeg"
+  },
+
+    {
+    id: 397,
+    name: "Doctor Strange",
+    aka: [],
+    appearance: "Avengers : Infinity War",
+    tier: "epic",
+    image: "epic/strangeiw.jpeg"
+  },
+
+    {
+    id: 398,
+    name: "Vision",
+    aka: [],
+    appearance: "Avengers : Infinity War",
+    tier: "epic",
+    image: "epic/visioniw.jpeg"
+  },
+
+    {
+    id: 399,
+    name: "Scarlet Witch",
+    aka: ["Wanda Maximoff"],
+    appearance: "Avengers : Infinity War",
+    tier: "epic",
+    image: "epic/wandaiw.jpeg"
+  },
+
+  {
+    id: 400,
+    name: "Spider-Man",
+    aka: ["Peter Parker"],
+    appearance: "Avengers : Infinity War",
+    tier: "epic",
+    image: "epic/spideriw.jpeg"
+  },
+
+  {
+    id: 401,
+    name: "Captain America",
+    aka: ["Steve Rogers"],
+    appearance: "Avengers : Infinity War",
+    tier: "epic",
+    image: "epic/capiw.jpeg"
+  },
+
+   {
+    id: 402,
+    name: "Iron Man",
+    aka: ["Tony Stark"],
+    appearance: "Avengers : Infinity War",
+    tier: "epic",
+    image: "epic/ironmaniw.jpeg"
+  },
+
+  {
+    id: 403,
+    name: "Thor",
+    aka: [],
+    appearance: "Avengers : Infinity War",
+    tier: "legendary",
+    image: "legendary/thoriw.jpeg"
+  },
+
+   {
+    id: 404,
+    name: "Thanos",
+    aka: [],
+    appearance: "Avengers : Infinity War",
+    tier: "legendary",
+    image: "legendary/thanosiw.jpeg"
+  },
+
+
+
+
+
+
+
+
+  
+  
+
+
+
+
 
 
 
