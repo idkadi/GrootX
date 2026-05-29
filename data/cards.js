@@ -3644,6 +3644,214 @@ module.exports = [
     image: "legendary/thanosiw.jpeg"
   },
 
+   {
+    id: 405,
+    name: "Akihiko",
+    aka: [],
+    appearance: "Avengers : Endgame",
+    tier: "common",
+    image: "common/akihikoeg.jpeg"
+  },
+
+     {
+    id: 406,
+    name: "Howard The Duck",
+    aka: [],
+    appearance: "Avengers : Endgame",
+    tier: "common",
+    image: "common/duckeg.jpeg"
+  },
+
+   {
+    id: 407,
+    name: "Howard Stark",
+    aka: [],
+    appearance: "Avengers : Endgame",
+    tier: "common",
+    image: "common/howardeg.jpeg"
+  },
+
+  {
+    id: 408,
+    name: "Edwin Jarvis",
+    aka: [],
+    appearance: "Avengers : Endgame",
+    tier: "common",
+    image: "common/jarviseg.jpeg"
+  },
+
+    {
+    id: 409,
+    name: "Nathaniel Barton",
+    aka: [],
+    appearance: "Avengers : Endgame",
+    tier: "common",
+    image: "common/nateg.jpeg"
+  },
+
+  {
+    id: 410,
+    name: "Cooper Barton",
+    aka: [],
+    appearance: "Avengers : Endgame",
+    tier: "common",
+    image: "common/coopereg.jpeg"
+  },
+
+  {
+    id: 411,
+    name: "Lila Barton",
+    aka: [],
+    appearance: "Avengers : Endgame",
+    tier: "common",
+    image: "common/lilaeg.jpeg"
+  },
+
+  {
+    id: 412,
+    name: "Laura Barton",
+    aka: [],
+    appearance: "Avengers : Endgame",
+    tier: "common",
+    image: "common/lauraeg.jpeg"
+  },
+
+    {
+    id: 413,
+    name: "Morgan Stark",
+    aka: [],
+    appearance: "Avengers : Endgame",
+    tier: "uncommon",
+    image: "uncommon/morganeg.jpeg"
+  },
+
+  {
+    id: 414,
+    name: "Valkyrie",
+    aka: [],
+    appearance: "Avengers : Endgame",
+    tier: "rare",
+    image: "rare/valkyrieeg.jpeg"
+  },
+
+    {
+    id: 415,
+    name: "Nebula",
+    aka: [],
+    appearance: "Avengers : Endgame",
+    tier: "rare",
+    image: "rare/nebulaeg.jpeg"
+  },
+
+    {
+    id: 416,
+    name: "Pepper Potts",
+    aka: [],
+    appearance: "Avengers : Endgame",
+    tier: "rare",
+    image: "rare/peppereg.jpeg"
+  },
+
+  {
+    id: 417,
+    name: "Sam Wilson",
+    aka: ["Falcon"],
+    appearance: "Avengers : Endgame",
+    tier: "rare",
+    image: "rare/sameg.jpeg"
+  },
+
+  {
+    id: 418,
+    name: "Hulk",
+    aka: ["Bruce Banner"],
+    appearance: "Avengers : Endgame",
+    tier: "rare",
+    image: "rare/hulkeg.jpeg"
+  },
+
+  {
+    id: 419,
+    name: "Thor",
+    aka: [],
+    appearance: "Avengers : Endgame",
+    tier: "rare",
+    image: "rare/thoreg.jpeg"
+  },
+
+   {
+    id: 420,
+    name: "Ant Man",
+    aka: ["Scott Lang"],
+    appearance: "Avengers : Endgame",
+    tier: "epic",
+    image: "epic/antmaneg.jpeg"
+  },
+
+   {
+    id: 421,
+    name: "Captain Marvel",
+    aka: ["Carol Denvers"],
+    appearance: "Avengers : Endgame",
+    tier: "epic",
+    image: "epic/capmarveleg.jpeg"
+  },
+
+    {
+    id: 422,
+    name: "Black Widow",
+    aka: ["Natasha Romanoff"],
+    appearance: "Avengers : Endgame",
+    tier: "legendary",
+    image: "legendary/blackwidoweg.jpeg"
+  },
+
+    {
+    id: 423,
+    name: "Hawkeye",
+    aka: ["Clint Barton"],
+    appearance: "Avengers : Endgame",
+    tier: "legendary",
+    image: "legendary/hawkeyeeg.jpeg"
+  },
+
+   {
+    id: 424,
+    name: "Iron Man",
+    aka: ["Tony Stark"],
+    appearance: "Avengers : Endgame",
+    tier: "legendary",
+    image: "legendary/ironmaneg.jpeg"
+  },
+
+   {
+    id: 425,
+    name: "Captain America",
+    aka: ["Steve Rogers"],
+    appearance: "Avengers : Endgame",
+    tier: "legendary",
+    image: "legendary/steveeg.jpeg"
+  },
+
+   {
+    id: 426,
+    name: "Thanos",
+    aka: [],
+    appearance: "Avengers : Endgame",
+    tier: "legendary",
+    image: "legendary/thanoseg.jpeg"
+  },
+
+
+
+
+
+
+
+
+
+
+
 
 
 
