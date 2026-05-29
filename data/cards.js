@@ -1417,7 +1417,7 @@ module.exports = [
     id: 158,
     name: "Iron Man Mark I",
     aka: ["Tony Stark"],
-    appearance: "Iron Man ",
+    appearance: "Iron Man",
     tier: "uncommon",
     image: "uncommon/ironmanmk1.jpeg"
   },
