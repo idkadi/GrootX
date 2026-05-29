@@ -53,7 +53,42 @@ const backgrounds = [
     name: "Daredevil",
     file: "daredevilbg.jpeg",
     free: false
-  }
+  },
+
+    {
+    id: 6,
+    name: "Deadpool",
+    file: "deadpoolbg.jpeg",
+    free: false
+  },
+
+  {
+    id: 7,
+    name: "Iron Man",
+    file: "ironmanbg.jpeg",
+    free: false
+  },
+
+  {
+    id: 8,
+    name: "Civil War",
+    file: "civilwarbg.jpeg",
+    free: false
+  },
+
+  {
+    id: 9,
+    name: "MoonKnight",
+    file: "moonknightbg.jpeg",
+    free: false
+  },
+
+  {
+    id: 10,
+    name: "The Amazing Spider-man",
+    file: "tasmbg.jpeg",
+    free: false
+  },
 
 ];
 

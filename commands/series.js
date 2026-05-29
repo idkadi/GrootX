@@ -1,8 +1,11 @@
+const path = require("path");
+
 const {
   EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
-  ButtonStyle
+  ButtonStyle,
+  AttachmentBuilder
 } = require("discord.js");
 
 const cards = require("../data/cards");
@@ -46,12 +49,14 @@ module.exports = {
 
     const query = clean(args.join(" "));
 
-    const seriesCards = cards.filter(card =>
-      clean(card.appearance) === query
-    );
+    const seriesCards = cards
+      .filter(card => clean(card.appearance) === query)
+      .sort((a, b) => a.name.localeCompare(b.name));
 
     if (seriesCards.length === 0) {
-      return message.reply("❌ Series not found. Use the exact series name.");
+      return message.reply(
+        "❌ Series not found. Use the exact series name."
+      );
     }
 
     const seriesName = seriesCards[0].appearance;
@@ -64,17 +69,27 @@ module.exports = {
 
     const userId = message.author.id;
 
-    const userCards = await collectionsCol.find({ userId }).toArray();
+    async function getOwnedIds() {
+      const userCards = await collectionsCol
+        .find({ userId })
+        .toArray();
 
-    const ownedIds = new Set(
-      userCards.map(c => Number(c.cardId))
-    );
+      return new Set(
+        userCards.map(c => Number(c.cardId))
+      );
+    }
 
-    const completed = seriesCards.every(card =>
-      ownedIds.has(Number(card.id))
-    );
+    let ownedIds = await getOwnedIds();
 
-    const alreadyClaimed = await rewardsCol.findOne({
+    function getCompleted() {
+      return seriesCards.every(card =>
+        ownedIds.has(Number(card.id))
+      );
+    }
+
+    let completed = getCompleted();
+
+    let alreadyClaimed = await rewardsCol.findOne({
       userId,
       series: seriesName
     });
@@ -83,18 +98,26 @@ module.exports = {
       return total + (rewards[card.tier] || 0);
     }, 0);
 
-    const sortedCards = seriesCards.sort((a, b) =>
-      a.name.localeCompare(b.name)
-    );
-
     const perPage = 15;
     let page = 0;
+    let imageIndex = 0;
+    let viewMode = "list";
 
-    const totalPages = Math.ceil(sortedCards.length / perPage);
+    const totalPages = Math.ceil(seriesCards.length / perPage);
 
-    function generateEmbed() {
+    function ownedCount() {
+      return seriesCards.filter(card =>
+        ownedIds.has(Number(card.id))
+      ).length;
+    }
+
+    function generateListEmbed() {
       const start = page * perPage;
-      const currentCards = sortedCards.slice(start, start + perPage);
+
+      const currentCards = seriesCards.slice(
+        start,
+        start + perPage
+      );
 
       const list = currentCards.map((card, index) => {
         const owned = ownedIds.has(Number(card.id));
@@ -113,19 +136,20 @@ module.exports = {
         .addFields(
           {
             name: "🎁 Completion Reward",
-            value: `<:grootcoin:1504742213110861834> **${totalReward} Coins**`,
+            value:
+              `<:grootcoin:1504742213110861834> ` +
+              `**${totalReward} Coins**`,
             inline: true
           },
           {
             name: "📊 Progress",
-            value:
-              `**${seriesCards.filter(c => ownedIds.has(Number(c.id))).length}/${seriesCards.length}**`,
+            value: `**${ownedCount()}/${seriesCards.length}**`,
             inline: true
           }
         )
         .setFooter({
           text:
-            `Page ${page + 1}/${totalPages} • ` +
+            `List View • Page ${page + 1}/${totalPages} • ` +
             (
               alreadyClaimed
                 ? "Reward already claimed."
@@ -137,39 +161,149 @@ module.exports = {
         .setTimestamp();
     }
 
-    function getRows() {
-      const navRow = new ActionRowBuilder().addComponents(
+    function generateImageEmbed() {
+      const card = seriesCards[imageIndex];
+      const owned = ownedIds.has(Number(card.id));
+
+      const imageName =
+        card.image.split("/").pop();
+
+      return new EmbedBuilder()
+        .setColor(owned ? 0x00ff99 : 0xff5555)
+        .setTitle(
+          `${owned ? "✅" : "☐"} ${card.name}`
+        )
+        .setDescription(
+          `${getTierEmoji(card.tier)} **${card.tier}**\n\n` +
+          `Series: **${seriesName}**\n` +
+          `Card: **${imageIndex + 1}/${seriesCards.length}**\n` +
+          `Status: **${owned ? "Owned" : "Missing"}**`
+        )
+        .addFields(
+          {
+            name: "🎁 Completion Reward",
+            value:
+              `<:grootcoin:1504742213110861834> ` +
+              `**${totalReward} Coins**`,
+            inline: true
+          },
+          {
+            name: "📊 Progress",
+            value: `**${ownedCount()}/${seriesCards.length}**`,
+            inline: true
+          }
+        )
+        .setImage(`attachment://${imageName}`)
+        .setFooter({
+          text:
+            alreadyClaimed
+              ? "Reward already claimed."
+              : completed
+                ? "Completed. Claim your reward!"
+                : "Collect all cards to claim reward."
+        })
+        .setTimestamp();
+    }
+
+    function getImageFile() {
+      const card = seriesCards[imageIndex];
+
+      const imageName =
+        card.image.split("/").pop();
+
+      const imagePath =
+        path.join(
+          __dirname,
+          "..",
+          "images",
+          card.image
+        );
+
+      return new AttachmentBuilder(imagePath, {
+        name: imageName
+      });
+    }
+
+    function makeNavRow() {
+      return new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId("series_prev")
           .setLabel("⬅️")
           .setStyle(ButtonStyle.Primary)
-          .setDisabled(totalPages <= 1),
+          .setDisabled(
+            viewMode === "list"
+              ? totalPages <= 1
+              : seriesCards.length <= 1
+          ),
+
+        new ButtonBuilder()
+          .setCustomId("series_view")
+          .setLabel(
+            viewMode === "list"
+              ? "Image View"
+              : "List View"
+          )
+          .setEmoji("🖼️")
+          .setStyle(ButtonStyle.Secondary),
 
         new ButtonBuilder()
           .setCustomId("series_next")
           .setLabel("➡️")
           .setStyle(ButtonStyle.Primary)
-          .setDisabled(totalPages <= 1)
+          .setDisabled(
+            viewMode === "list"
+              ? totalPages <= 1
+              : seriesCards.length <= 1
+          )
       );
-
-      const claimRow = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId("series_claim")
-          .setLabel(alreadyClaimed ? "Claimed" : "Claim Reward")
-          .setEmoji(alreadyClaimed ? "✅" : "🎁")
-          .setStyle(alreadyClaimed ? ButtonStyle.Secondary : ButtonStyle.Success)
-          .setDisabled(!completed || !!alreadyClaimed)
-      );
-
-      return totalPages > 1
-        ? [navRow, claimRow]
-        : [claimRow];
     }
 
-    const msg = await message.reply({
-      embeds: [generateEmbed()],
-      components: getRows()
-    });
+    function makeClaimRow() {
+      return new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId("series_claim")
+          .setLabel(
+            alreadyClaimed
+              ? "Claimed"
+              : "Claim Reward"
+          )
+          .setEmoji(
+            alreadyClaimed
+              ? "✅"
+              : "🎁"
+          )
+          .setStyle(
+            alreadyClaimed
+              ? ButtonStyle.Secondary
+              : ButtonStyle.Success
+          )
+          .setDisabled(!completed || !!alreadyClaimed)
+      );
+    }
+
+    function getPayload() {
+      if (viewMode === "image") {
+        return {
+          embeds: [generateImageEmbed()],
+          files: [getImageFile()],
+          components: [
+            makeNavRow(),
+            makeClaimRow()
+          ]
+        };
+      }
+
+      return {
+        embeds: [generateListEmbed()],
+        files: [],
+        components: [
+          makeNavRow(),
+          makeClaimRow()
+        ]
+      };
+    }
+
+    const msg = await message.reply(getPayload());
 
     const collector = msg.createMessageComponentCollector({
       time: 120000
@@ -183,52 +317,58 @@ module.exports = {
         });
       }
 
-      if (interaction.customId === "series_next") {
-        page++;
-        if (page >= totalPages) page = 0;
+      if (interaction.customId === "series_view") {
+        viewMode =
+          viewMode === "list"
+            ? "image"
+            : "list";
 
-        return interaction.update({
-          embeds: [generateEmbed()],
-          components: getRows()
-        });
+        return interaction.update(getPayload());
+      }
+
+      if (interaction.customId === "series_next") {
+        if (viewMode === "list") {
+          page++;
+          if (page >= totalPages) page = 0;
+        } else {
+          imageIndex++;
+          if (imageIndex >= seriesCards.length) imageIndex = 0;
+        }
+
+        return interaction.update(getPayload());
       }
 
       if (interaction.customId === "series_prev") {
-        page--;
-        if (page < 0) page = totalPages - 1;
+        if (viewMode === "list") {
+          page--;
+          if (page < 0) page = totalPages - 1;
+        } else {
+          imageIndex--;
+          if (imageIndex < 0) imageIndex = seriesCards.length - 1;
+        }
 
-        return interaction.update({
-          embeds: [generateEmbed()],
-          components: getRows()
-        });
+        return interaction.update(getPayload());
       }
 
       if (interaction.customId === "series_claim") {
-        const freshClaim = await rewardsCol.findOne({
+        alreadyClaimed = await rewardsCol.findOne({
           userId,
           series: seriesName
         });
 
-        if (freshClaim) {
+        if (alreadyClaimed) {
           return interaction.reply({
             content: "❌ You already claimed this reward.",
             ephemeral: true
           });
         }
 
-        const freshCards = await collectionsCol.find({ userId }).toArray();
+        ownedIds = await getOwnedIds();
+        completed = getCompleted();
 
-        const freshOwnedIds = new Set(
-          freshCards.map(c => Number(c.cardId))
-        );
-
-        const stillCompleted = seriesCards.every(card =>
-          freshOwnedIds.has(Number(card.id))
-        );
-
-        if (!stillCompleted) {
+        if (!completed) {
           return interaction.reply({
-            content: "❌ You no longer complete this series.",
+            content: "❌ You do not complete this series anymore.",
             ephemeral: true
           });
         }
@@ -250,11 +390,12 @@ module.exports = {
           claimedAt: Date.now()
         });
 
+        alreadyClaimed = true;
+
         return interaction.update({
           content:
             `🎉 You claimed **${totalReward} Coins** for completing **${seriesName}**!`,
-          embeds: [generateEmbed()],
-          components: getRows()
+          ...getPayload()
         });
       }
     });

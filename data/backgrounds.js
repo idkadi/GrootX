@@ -28,5 +28,35 @@ module.exports = [
     id: 5,
     name: "Daredevil",
     file: "daredevilbg.jpeg"
-  }
+  },
+
+  {
+    id: 6,
+    name: "Deadpool",
+    file: "deadpoolbg.jpeg"
+  },
+
+  {
+    id: 7,
+    name: "Iron Man",
+    file: "ironmanbg.jpeg"
+  },
+
+  {
+    id: 8,
+    name: "Civil War",
+    file: "civilwarbg.jpeg"
+  },
+
+  {
+    id: 9,
+    name: "MoonKnight",
+    file: "moonknightbg.jpeg"
+  },
+
+  {
+    id: 10,
+    name: "The Amazing Spider-man",
+    file: "tasmbg.jpeg"
+  },
 ];
