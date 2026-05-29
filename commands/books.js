@@ -1,5 +1,8 @@
 const {
-  EmbedBuilder
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle
 } = require("discord.js");
 
 const cards = require("../data/cards");
@@ -27,10 +30,7 @@ module.exports = {
     const seriesMap = {};
 
     for (const card of cards) {
-      const series =
-        card.show ||
-        card.appearance ||
-        "Unknown";
+      const series = card.appearance || "Unknown";
 
       if (!seriesMap[series]) {
         seriesMap[series] = {
@@ -49,29 +49,99 @@ module.exports = {
     const sortedSeries = Object.entries(seriesMap)
       .sort((a, b) => a[0].localeCompare(b[0]));
 
-    const description = sortedSeries
-      .map(([series, data], index) => {
-        const complete = data.owned === data.total;
+    const perPage = 12;
+    let page = 0;
 
-        return (
-          `${complete ? "✅" : "☐"} ` +
-          `**${index + 1}. ${series}** ` +
-          `(${data.owned}/${data.total})`
-        );
-      })
-      .join("\n");
+    const totalPages = Math.ceil(
+      sortedSeries.length / perPage
+    );
 
-    const embed = new EmbedBuilder()
-      .setColor(0x00aeff)
-      .setTitle(`📚 ${message.author.username}'s Books`)
-      .setDescription(description || "No series found.")
-      .setFooter({
-        text: "✅ means you own every card from that series."
-      })
-      .setTimestamp();
+    function generateEmbed() {
+      const start = page * perPage;
 
-    await message.reply({
-      embeds: [embed]
+      const currentSeries = sortedSeries.slice(
+        start,
+        start + perPage
+      );
+
+      const description = currentSeries
+        .map(([series, data], index) => {
+          const complete = data.owned === data.total;
+
+          return (
+            `${complete ? "✅" : "☐"} ` +
+            `**${start + index + 1}. ${series}** ` +
+            `(${data.owned}/${data.total})`
+          );
+        })
+        .join("\n");
+
+      return new EmbedBuilder()
+        .setColor(0x00aeff)
+        .setTitle(`📚 ${message.author.username}'s Books`)
+        .setDescription(description || "No series found.")
+        .setFooter({
+          text:
+            `Page ${page + 1}/${totalPages} • ` +
+            `Series: ${sortedSeries.length} • ` +
+            `✅ = completed`
+        })
+        .setTimestamp();
+    }
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId("books_prev")
+        .setLabel("⬅️")
+        .setStyle(ButtonStyle.Primary),
+
+      new ButtonBuilder()
+        .setCustomId("books_next")
+        .setLabel("➡️")
+        .setStyle(ButtonStyle.Primary)
+    );
+
+    const msg = await message.reply({
+      embeds: [generateEmbed()],
+      components: totalPages > 1 ? [row] : []
+    });
+
+    if (totalPages <= 1) return;
+
+    const collector = msg.createMessageComponentCollector({
+      time: 120000
+    });
+
+    collector.on("collect", async interaction => {
+      collector.resetTimer();
+
+      if (interaction.user.id !== message.author.id) {
+        return interaction.reply({
+          content: "❌ This is not your books menu.",
+          ephemeral: true
+        });
+      }
+
+      if (interaction.customId === "books_next") {
+        page++;
+        if (page >= totalPages) page = 0;
+      }
+
+      if (interaction.customId === "books_prev") {
+        page--;
+        if (page < 0) page = totalPages - 1;
+      }
+
+      await interaction.update({
+        embeds: [generateEmbed()],
+        components: [row]
+      });
+    });
+
+    collector.on("end", async () => {
+      await msg.edit({
+        components: []
+      }).catch(() => {});
     });
   }
 };
