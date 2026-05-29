@@ -57,7 +57,7 @@ module.exports = [
     id: 7,
     name: "Curt Connors",
     aka: [],
-    appearance: "Spider-Man 2 (2002)",
+    appearance: "Spider-Man 2 (2004)",
     tier: "common",
     image: "common/curtconnorssp.jpeg"
   },
@@ -426,7 +426,7 @@ module.exports = [
     id: 48,
     name: "Vulture",
     aka: ["Adrian Toomes"],
-    appearance: "Spiderman : Homecoming",
+    appearance: "Spider-man : Homecoming",
     tier: "uncommon",
     image: "uncommon/vulturehome.jpeg"
   },
@@ -435,7 +435,7 @@ module.exports = [
     id: 49,
     name: "Nick Fury",
     aka: [],
-    appearance: "Spiderman : Far from Home",
+    appearance: "Spider-man : Far from Home",
     tier: "uncommon",
     image: "uncommon/nickhome.jpeg"
   },
@@ -444,7 +444,7 @@ module.exports = [
     id: 50,
     name: "Air Elemental",
     aka: [],
-    appearance: "Spiderman : Far from Home",
+    appearance: "Spider-man : Far from Home",
     tier: "uncommon",
     image: "uncommon/airhome.jpeg"
   },
@@ -453,7 +453,7 @@ module.exports = [
     id: 51,
     name: "Earth Elemental",
     aka: [],
-    appearance: "Spiderman : Far from Home",
+    appearance: "Spider-man : Far from Home",
     tier: "uncommon",
     image: "uncommon/earthhome.jpeg"
   },
@@ -462,7 +462,7 @@ module.exports = [
     id: 52,
     name: "Fire Elemental",
     aka: [],
-    appearance: "Spiderman : Far from Home",
+    appearance: "Spider-man : Far from Home",
     tier: "uncommon",
     image: "uncommon/firehome.jpeg"
   },
@@ -471,7 +471,7 @@ module.exports = [
     id: 53,
     name: "Water Elemental",
     aka: [],
-    appearance: "Spiderman : Far from Home",
+    appearance: "Spider-man : Far from Home",
     tier: "uncommon",
     image: "uncommon/waterhome.jpeg"
   },
@@ -480,7 +480,7 @@ module.exports = [
     id: 54,
     name: "Tony Stark",
     aka: ["Iron Man"],
-    appearance: "Spiderman : Homecoming",
+    appearance: "Spider-man : Homecoming",
     tier: "rare",
     image: "rare/tonystarkhome.jpeg"
   },
@@ -489,7 +489,7 @@ module.exports = [
     id: 55,
     name: "Night Monkey",
     aka: ["Peter Parker"],
-    appearance: "Spiderman : Far from Home",
+    appearance: "Spider-man : Far from Home",
     tier: "rare",
     image: "rare/nightmonkeyhome.jpeg"
   },
@@ -498,7 +498,7 @@ module.exports = [
     id: 56,
     name: "Mysterio",
     aka: ["Quentin Beck"],
-    appearance: "Spiderman : Far from Home",
+    appearance: "Spider-man : Far from Home",
     tier: "rare",
     image: "rare/mysteriohome.jpeg"
   },
@@ -507,7 +507,7 @@ module.exports = [
     id: 57,
     name: "Electro",
     aka: ["Max Dillon"],
-    appearance: "Spiderman : No way Home",
+    appearance: "Spider-man : No way home",
     tier: "rare",
     image: "rare/electrohome.jpeg"
   },
@@ -516,7 +516,7 @@ module.exports = [
     id: 58,
     name: "Green Goblin",
     aka: ["Noman Osborn"],
-    appearance: "Spiderman : No way Home",
+    appearance: "Spider-man : No way home",
     tier: "epic",
     image: "epic/greengoblinhome.jpeg"
   },
@@ -525,7 +525,7 @@ module.exports = [
     id: 59,
     name: "Iron Spider",
     aka: ["Peter Parker"],
-    appearance: "Spiderman : No way home",
+    appearance: "Spider-man : No way home",
     tier: "epic",
     image: "epic/ironspiderhome.jpeg"
   },
@@ -534,7 +534,7 @@ module.exports = [
     id: 60,
     name: "Spider-Man",
     aka: ["Peter Parker"],
-    appearance: "Spiderman : Homecoming",
+    appearance: "Spider-man : Homecoming",
     tier: "epic",
     image: "epic/spiderhome.jpeg"
   },
@@ -543,7 +543,7 @@ module.exports = [
     id: 61,
     name: "Spider-Man",
     aka: ["Peter Parker"],
-    appearance: "Spiderman : No way home",
+    appearance: "Spider-man : No way home",
     tier: "legendary",
     image: "legendary/spider-mannwh.jpeg"
   },
