@@ -3842,6 +3842,141 @@ module.exports = [
     image: "legendary/thanoseg.jpeg"
   },
 
+  {
+    id: 427,
+    name: "Porcupine",
+    aka: [],
+    appearance: "She Hulk : Attorney At Law",
+    tier: "common",
+    image: "common/porcupinesh.jpeg"
+  },
+
+   {
+    id: 428,
+    name: "Luke Jacobson",
+    aka: [],
+    appearance: "She Hulk : Attorney At Law",
+    tier: "common",
+    image: "common/lukesh.jpeg"
+  },
+
+   {
+    id: 429,
+    name: "Megan Thee Stallion",
+    aka: [],
+    appearance: "She Hulk : Attorney At Law",
+    tier: "common",
+    image: "common/megansh.jpeg"
+  },
+
+   {
+    id: 430,
+    name: "Nikki Ramos",
+    aka: [],
+    appearance: "She Hulk : Attorney At Law",
+    tier: "common",
+    image: "common/nikkish.jpeg"
+  },
+
+   {
+    id: 431,
+    name: "Augustus Pugliese",
+    aka: [],
+    appearance: "She Hulk : Attorney At Law",
+    tier: "common",
+    image: "common/augush.jpeg"
+  },
+
+   {
+    id: 432,
+    name: "Mallory Book",
+    aka: [],
+    appearance: "She Hulk : Attorney At Law",
+    tier: "common",
+    image: "common/mallorysh.jpeg"
+  },
+
+   {
+    id: 433,
+    name: "Wong",
+    aka: [],
+    appearance: "She Hulk : Attorney At Law",
+    tier: "common",
+    image: "common/wongsh.jpeg"
+  },
+
+   {
+    id: 434,
+    name: "Morris Walters",
+    aka: [],
+    appearance: "She Hulk : Attorney At Law",
+    tier: "common",
+    image: "common/morrissh.jpeg"
+  },
+
+   {
+    id: 435,
+    name: "Abomination",
+    aka: ["Emil Blonsky"],
+    appearance: "She Hulk : Attorney At Law",
+    tier: "uncommon",
+    image: "uncommon/abominationsh.jpeg"
+  },
+
+   {
+    id: 436,
+    name: "Hulkking",
+    aka: ["Teddy Altman"],
+    appearance: "She Hulk : Attorney At Law",
+    tier: "uncommon",
+    image: "uncommon/hulkkingsh.jpeg"
+  },
+
+   {
+    id: 437,
+    name: "Skaar",
+    aka: [],
+    appearance: "She Hulk : Attorney At Law",
+    tier: "uncommon",
+    image: "uncommon/skaarsh.jpeg"
+  },
+
+   {
+    id: 438,
+    name: "Leap-Frog",
+    aka: ["Eugene Patilio"],
+    appearance: "She Hulk : Attorney At Law",
+    tier: "uncommon",
+    image: "uncommon/frogsh.jpeg"
+  },
+
+   {
+    id: 439,
+    name: "Titania",
+    aka: [],
+    appearance: "She Hulk : Attorney At Law",
+    tier: "uncommon",
+    image: "uncommon/titaniash.jpeg"
+  },
+
+     {
+    id: 440,
+    name: "Daredevil",
+    aka: ["Matt Murdock"],
+    appearance: "She Hulk : Attorney At Law",
+    tier: "rare",
+    image: "rare/daredevilsh.jpeg"
+  },
+
+  {
+    id: 441,
+    name: "She Hulk",
+    aka: ["Jennifer Walters"],
+    appearance: "She Hulk : Attorney At Law",
+    tier: "rare",
+    image: "rare/shehulksh.jpeg"
+  },
+
 
 
 

@@ -101,14 +101,16 @@ module.exports = {
         [message.author.id]: {
 
           cards: [],
-          coins: 0
+          coins: 0,
+          items: {}
 
         },
 
         [target.id]: {
 
           cards: [],
-          coins: 0
+          coins: 0,
+          items: {}
 
         }
 
@@ -134,13 +136,11 @@ module.exports = {
 
       `Use:\n` +
 
-      "`!addcard code`\n" +
-
-      "`!addcoins amount`\n" +
-
-      "`!confirmtrade`\n" +
-
-      "`!canceltrade`"
+     "`!addcard code`\n" +
+"`!addcoins amount`\n" +
+"`!additem item amount`\n" +
+"`!confirmtrade`\n" +
+"`!canceltrade`"
 
     );
 

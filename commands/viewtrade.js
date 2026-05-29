@@ -8,24 +8,20 @@ const connectDB = require("../database");
 
 function getTierEmoji(tier) {
   switch (tier.toLowerCase()) {
-    case "common":
-      return "<:common:1504510702956839033>";
-
-    case "uncommon":
-      return "<:uncommon:1504510929210052698>";
-
-    case "rare":
-      return "<:rare:1504510606718275764>";
-
-    case "epic":
-      return "<:epic:1504510771214680175>";
-
-    case "legendary":
-      return "<:legendary:1504511435974377552>";
-
-    default:
-      return "❓";
+    case "common": return "<:common:1504510702956839033>";
+    case "uncommon": return "<:uncommon:1504510929210052698>";
+    case "rare": return "<:rare:1504510606718275764>";
+    case "epic": return "<:epic:1504510771214680175>";
+    case "legendary": return "<:legendary:1504511435974377552>";
+    default: return "❓";
   }
+}
+
+function formatItemName(item) {
+  return item
+    .split("_")
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 }
 
 module.exports = {
@@ -45,9 +41,7 @@ module.exports = {
     });
 
     if (!trade) {
-      return message.reply(
-        "❌ You are not in an active trade."
-      );
+      return message.reply("❌ You are not in an active trade.");
     }
 
     const user1 = trade.users[0];
@@ -56,36 +50,39 @@ module.exports = {
     async function formatOffer(userId) {
       const offer = trade.offers[userId];
 
-      if (!offer) {
-        return "No offer.";
-      }
+      if (!offer) return "No offer.";
 
-      let text =
-        `💰 Coins: **${offer.coins || 0}**\n\n`;
+      let text = `💰 Coins: **${offer.coins || 0}**\n`;
 
       if (
-        !offer.cards ||
-        offer.cards.length === 0
+        offer.items &&
+        Object.keys(offer.items).length > 0
       ) {
+        text += "\n📦 Items:\n";
+
+        for (const [item, amount] of Object.entries(offer.items)) {
+          if (amount <= 0) continue;
+
+          text += `• **${formatItemName(item)}** x${amount}\n`;
+        }
+      }
+
+      text += "\n";
+
+      if (!offer.cards || offer.cards.length === 0) {
         text += "No cards added.";
       } else {
-
         for (const code of offer.cards) {
-
-          const entry =
-            await collectionsCol.findOne({
-              userId,
-              code
-            });
+          const entry = await collectionsCol.findOne({
+            userId,
+            code
+          });
 
           if (!entry) continue;
 
-          const card =
-            cards.find(
-              c =>
-                Number(c.id) ===
-                Number(entry.cardId)
-            );
+          const card = cards.find(
+            c => Number(c.id) === Number(entry.cardId)
+          );
 
           if (!card) continue;
 
@@ -94,9 +91,7 @@ module.exports = {
             `**${card.name}**\n` +
             `└ ${entry.code} ` +
             `• #${String(entry.serial).padStart(5, "0")}\n\n`;
-
         }
-
       }
 
       return text;
@@ -120,8 +115,7 @@ module.exports = {
         }
       )
       .setFooter({
-        text:
-          "Use !confirmtrade when ready"
+        text: "Use !confirmtrade when ready"
       });
 
     message.reply({
