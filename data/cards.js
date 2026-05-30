@@ -3977,6 +3977,137 @@ module.exports = [
     image: "rare/shehulksh.jpeg"
   },
 
+   {
+    id: 442,
+    name: "Dionysus",
+    aka: [],
+    appearance: "Thor : Love and Thunder",
+    tier: "common",
+    image: "common/diothunder.jpeg"
+  },
+  
+    {
+    id: 443,
+    name: "Alx Heimdallson",
+    aka: [],
+    appearance: "Thor : Love and Thunder",
+    tier: "common",
+    image: "common/alxthunder.jpeg"
+  },
+
+    {
+    id: 444,
+    name: "Falligar",
+    aka: [],
+    appearance: "Thor : Love and Thunder",
+    tier: "common",
+    image: "common/falligar.jpeg"
+  },
+
+    {
+    id: 445,
+    name: "Miek",
+    aka: [],
+    appearance: "Thor : Love and Thunder",
+    tier: "common",
+    image: "common/miekthunder.jpeg"
+  },
+
+     {
+    id: 446,
+    name: "Love",
+    aka: [],
+    appearance: "Thor : Love and Thunder",
+    tier: "uncommon",
+    image: "uncommon/lovethunder.jpeg"
+  },
+
+     {
+    id: 447,
+    name: "Rapu",
+    aka: [],
+    appearance: "Thor : Love and Thunder",
+    tier: "uncommon",
+    image: "uncommon/raputhunder.jpeg"
+  },
+
+  
+     {
+    id: 448,
+    name: "Bast",
+    aka: [],
+    appearance: "Thor : Love and Thunder",
+    tier: "uncommon",
+    image: "uncommon/bastthunder.jpeg"
+  },
+
+  
+     {
+    id: 449,
+    name: "Korg",
+    aka: [],
+    appearance: "Thor : Love and Thunder",
+    tier: "rare",
+    image: "rare/korgthunder.jpeg"
+  },
+
+   {
+    id: 450,
+    name: "Zeus",
+    aka: [],
+    appearance: "Thor : Love and Thunder",
+    tier: "rare",
+    image: "rare/zeusthunder.jpeg"
+  },
+
+   {
+    id: 451,
+    name: "Valkyrie",
+    aka: [],
+    appearance: "Thor : Love and Thunder",
+    tier: "rare",
+    image: "rare/valkthunder.jpeg"
+  },
+
+  {
+    id: 452,
+    name: "Hercules",
+    aka: [],
+    appearance: "Thor : Love and Thunder",
+    tier: "rare",
+    image: "rare/herthunder.jpeg"
+  },
+
+  
+  {
+    id: 453,
+    name: "Gorr The God Butcher",
+    aka: [],
+    appearance: "Thor : Love and Thunder",
+    tier: "epic",
+    image: "epic/gorrthunder.jpeg"
+  },
+
+  {
+    id: 454,
+    name: "Jane Foster",
+    aka: ["Mighty Thor"],
+    appearance: "Thor : Love and Thunder",
+    tier: "epic",
+    image: "epic/janethunder.jpeg"
+  },
+
+   {
+    id: 455,
+    name: "Thor",
+    aka: [],
+    appearance: "Thor : Love and Thunder",
+    tier: "legendary",
+    image: "legendary/thorthunder.jpeg"
+  },
+
+
+
 
 
 
