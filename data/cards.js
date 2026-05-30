@@ -4106,6 +4106,172 @@ module.exports = [
     image: "legendary/thorthunder.jpeg"
   },
 
+  {
+    id: 456,
+    name: "Rintrah",
+    aka: [],
+    appearance: "Doctor Strange in the Multiverse of Madness",
+    tier: "common",
+    image: "common/rintrahmom.jpeg"
+  },
+
+   {
+    id: 457,
+    name: "Pizza Poppa",
+    aka: [],
+    appearance: "Doctor Strange in the Multiverse of Madness",
+    tier: "common",
+    image: "common/pizzamom.jpeg"
+  },
+
+   {
+    id: 458,
+    name: "Sara",
+    aka: [],
+    appearance: "Doctor Strange in the Multiverse of Madness",
+    tier: "common",
+    image: "common/saramom.jpeg"
+  },
+
+  {
+    id: 459,
+    name: "Charlie",
+    aka: [],
+    appearance: "Doctor Strange in the Multiverse of Madness",
+    tier: "common",
+    image: "common/charliemom.jpeg"
+  },
+
+   {
+    id: 460,
+    name: "Karl Mordo",
+    aka: [],
+    appearance: "Doctor Strange in the Multiverse of Madness",
+    tier: "uncommon",
+    image: "uncommon/mordomom.jpeg"
+  },
+
+  {
+    id: 461,
+    name: "Christine Palmer",
+    aka: [],
+    appearance: "Doctor Strange in the Multiverse of Madness",
+    tier: "uncommon",
+    image: "uncommon/palmermom.jpeg"
+  },
+
+  {
+    id: 462,
+    name: "Professor X",
+    aka: ["Charles Xavier"],
+    appearance: "Doctor Strange in the Multiverse of Madness",
+    tier: "rare",
+    image: "rare/xmom.jpeg"
+  },
+
+    {
+    id: 463,
+    name: "America Chaves",
+    aka: [],
+    appearance: "Doctor Strange in the Multiverse of Madness",
+    tier: "rare",
+    image: "rare/chavesmom.jpeg"
+  },
+
+    {
+    id: 464,
+    name: "Black Bolt",
+    aka: ["Blackagar Boltagon"],
+    appearance: "Doctor Strange in the Multiverse of Madness",
+    tier: "rare",
+    image: "rare/blackboltmom.jpeg"
+  },
+
+     {
+    id: 465,
+    name: "Captain Marvel",
+    aka: ["Maria Rambeau"],
+    appearance: "Doctor Strange in the Multiverse of Madness",
+    tier: "rare",
+    image: "rare/marvelmom.jpeg"
+  },
+
+   {
+    id: 466,
+    name: "Captain Carter",
+    aka: ["Peggy Carter"],
+    appearance: "Doctor Strange in the Multiverse of Madness",
+    tier: "rare",
+    image: "rare/cartermom.jpeg"
+  },
+
+  {
+    id: 467,
+    name: "Wong",
+    aka: [""],
+    appearance: "Doctor Strange in the Multiverse of Madness",
+    tier: "rare",
+    image: "rare/wongmom.jpeg"
+  },
+
+   {
+    id: 468,
+    name: "Reed Richards",
+    aka: ["Mr. Fantastic"],
+    appearance: "Doctor Strange in the Multiverse of Madness",
+    tier: "epic",
+    image: "epic/reedmom.jpeg"
+  },
+
+  {
+    id: 469,
+    name: "Clea",
+    aka: [],
+    appearance: "Doctor Strange in the Multiverse of Madness",
+    tier: "epic",
+    image: "epic/cleamom.jpeg"
+  },
+
+   {
+    id: 470,
+    name: "Sininster Strange",
+    aka: [],
+    appearance: "Doctor Strange in the Multiverse of Madness",
+    tier: "epic",
+    image: "epic/sinistermom.jpeg"
+  },
+
+  {
+    id: 471,
+    name: "Defender Strange",
+    aka: [],
+    appearance: "Doctor Strange in the Multiverse of Madness",
+    tier: "epic",
+    image: "epic/defendermom.jpeg"
+  },
+
+    {
+    id: 472,
+    name: "Doctor Strange",
+    aka: [],
+    appearance: "Doctor Strange in the Multiverse of Madness",
+    tier: "legendary",
+    image: "legendary/drmom.jpeg"
+  },
+
+  {
+    id: 473,
+    name: "Scarlet Witch",
+    aka: [],
+    appearance: "Doctor Strange in the Multiverse of Madness",
+    tier: "legendary",
+    image: "legendary/wandamom.jpeg"
+  },
+
+
+
+
+
 
 
 
