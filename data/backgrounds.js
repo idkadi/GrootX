@@ -59,4 +59,13 @@ module.exports = [
     name: "The Amazing Spider-man",
     file: "tasmbg.jpeg"
   },
+
+   {
+    id: 11,
+    name: "Venom",
+    file: "venombg.jpeg"
+  },
+  
+  
+  
 ];

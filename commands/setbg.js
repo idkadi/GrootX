@@ -90,6 +90,13 @@ const backgrounds = [
     free: false
   },
 
+   {
+    id: 11,
+    name: "Venom",
+    file: "venombg.jpeg",
+    free: false
+  },
+
 ];
 
 function makeButtons() {
