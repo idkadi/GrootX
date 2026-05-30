@@ -83,13 +83,15 @@ const backgrounds = [
     file: "tasmbg.jpeg"
   },
 
-  {
+   {
     id: 11,
-    name: "Venom",
+    name: "TVenom",
     price: 2500,
-    file: "venombg.jpeg",
-   
+    file: "venombg.jpeg"
   },
+  
+
+  
 
 
 ];
