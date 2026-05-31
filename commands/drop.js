@@ -208,8 +208,7 @@ module.exports = {
 
     const dropText =
       "🎴 **A New Drop Has Appeared!**\n" +
-      "⏳ Dropper has **7 seconds priority**.\n\n" +
-      dropCards.map((card, index) =>
+            dropCards.map((card, index) =>
         `**${index + 1}.** ${getTierEmoji(card.tier)} **${card.name}**`
       ).join("\n");
 
