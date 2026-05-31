@@ -30,9 +30,9 @@ function getRandomTier() {
   const chance = Math.random() * 100;
 
   if (chance < 65) return "common";
-  if (chance < 88) return "uncommon";
-  if (chance < 96) return "rare";
-  if (chance < 99) return "epic";
+  if (chance < 90) return "uncommon";
+  if (chance < 98) return "rare";
+  if (chance < 99.7) return "epic";
 
   return "legendary";
 }
@@ -163,7 +163,8 @@ module.exports = {
       },
       {
         $set: {
-          timestamp: now
+          timestamp: now,
+          notified: false
         }
       },
       {
@@ -205,6 +206,13 @@ module.exports = {
 
     const dropImage = await createDropImage(dropCards);
 
+    const dropText =
+      "🎴 **A New Drop Has Appeared!**\n" +
+      "⏳ Dropper has **7 seconds priority**.\n\n" +
+      dropCards.map((card, index) =>
+        `**${index + 1}.** ${getTierEmoji(card.tier)} **${card.name}**`
+      ).join("\n");
+
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId("claim_0")
@@ -223,7 +231,7 @@ module.exports = {
     );
 
     const dropMessage = await message.reply({
-      content: "🎴 **A New Drop Has Appeared!**",
+      content: dropText,
       files: [
         {
           attachment: dropImage,
@@ -233,6 +241,8 @@ module.exports = {
       components: [row]
     });
 
+    const dropStartedAt = Date.now();
+
     const collector = dropMessage.createMessageComponentCollector({
       time: 60000
     });
@@ -240,6 +250,24 @@ module.exports = {
     collector.on("collect", async interaction => {
       const claimerId = interaction.user.id;
       const claimNow = Date.now();
+
+      const priorityTime = 7 * 1000;
+
+      if (
+        claimNow - dropStartedAt < priorityTime &&
+        claimerId !== userId
+      ) {
+        const left =
+          Math.ceil(
+            (priorityTime - (claimNow - dropStartedAt)) / 1000
+          );
+
+        return interaction.reply({
+          content:
+            `⏳ The dropper has priority for ${left}s.`,
+          ephemeral: true
+        });
+      }
 
       const pickupCooldown = await cooldownsCol.findOne({
         type: "pickup",
@@ -327,7 +355,8 @@ module.exports = {
         },
         {
           $set: {
-            timestamp: claimNow
+            timestamp: claimNow,
+            notified: false
           }
         },
         {
