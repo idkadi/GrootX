@@ -16,7 +16,7 @@ const rewards = {
   uncommon: 200,
   rare: 350,
   epic: 700,
-  legendary: 1000
+  legendary: 1500
 };
 
 function clean(text) {
