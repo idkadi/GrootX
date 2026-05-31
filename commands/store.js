@@ -41,7 +41,7 @@ module.exports = {
               "📜 Trade Voucher",
 
             value:
-              "**Cost:** 7,000 Coins\n" +
+              "**Cost:** 3,000 Coins\n" +
               "**Use:** Required to trade with other players.\n" +
               "**Duration:** Expires after 30 days.",
 

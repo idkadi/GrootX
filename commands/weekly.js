@@ -40,7 +40,7 @@ module.exports = {
       );
     }
 
-    const reward = 3000;
+    const reward = 4000;
 
     await balancesCol.updateOne(
       { userId },

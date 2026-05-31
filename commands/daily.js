@@ -86,7 +86,7 @@ module.exports = {
 
     }
 
-    const reward = 400;
+    const reward = 500;
 
     const newBalance =
       balanceDoc.coins + reward;
