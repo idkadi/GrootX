@@ -1075,8 +1075,8 @@ module.exports = [
     name: "Khonshu",
     aka: [],
     appearance: "Moonknight",
-    tier: "uncommon",
-    image: "uncommon/khonshumk.jpeg"
+    tier: "rare",
+    image: "rare/khonshumk.jpeg"
   },
 
    {
@@ -4267,6 +4267,117 @@ module.exports = [
     tier: "legendary",
     image: "legendary/wandamom.jpeg"
   },
+
+   {
+    id: 474,
+    name: "Grunds",
+    aka: [],
+    appearance: "I am Groot",
+    tier: "common",
+    image: "common/grundsgroot.jpeg"
+  },
+
+     {
+    id: 475,
+    name: "Bird Alien",
+    aka: [],
+    appearance: "I am Groot",
+    tier: "common",
+    image: "common/birdgroot.jpeg"
+  },
+
+       {
+    id: 476,
+    name: "Groot",
+    aka: [],
+    appearance: "I am Groot",
+    tier: "legendary",
+    image: "legendary/groot.jpeg"
+  },
+
+   {
+    id: 477,
+    name: "Theddeus Ross",
+    aka: [],
+    appearance: "The Incredible Hulk",
+    tier: "common",
+    image: "common/rosshulk.jpeg"
+  },
+
+   {
+    id: 478,
+    name: "Joe Greller",
+    aka: [],
+    appearance: "The Incredible Hulk",
+    tier: "common",
+    image: "common/joehulk.jpeg"
+  },
+
+   {
+    id: 479,
+    name: "Kathleen Sparr",
+    aka: [],
+    appearance: "The Incredible Hulk",
+    tier: "common",
+    image: "common/sparrhulk.jpeg"
+  },
+
+    {
+    id: 480,
+    name: "Leonard Samson",
+    aka: [],
+    appearance: "The Incredible Hulk",
+    tier: "common",
+    image: "common/leonardhulk.jpeg"
+  },
+
+   {
+    id: 481,
+    name: "Stanley Lieber",
+    aka: [],
+    appearance: "The Incredible Hulk",
+    tier: "common",
+    image: "common/stanleyhulk.jpeg"
+  },
+
+     {
+    id: 482,
+    name: "Samuel Sterns",
+    aka: [],
+    appearance: "The Incredible Hulk",
+    tier: "common",
+    image: "common/samuelhulk.jpeg"
+  },
+
+   {
+    id: 483,
+    name: "Betty Ross",
+    aka: [],
+    appearance: "The Incredible Hulk",
+    tier: "uncommon",
+    image: "uncommon/bettyhulk.jpeg"
+  },
+
+  {
+    id: 484,
+    name: "Abomination",
+    aka: ["Emil Blonsky"],
+    appearance: "The Incredible Hulk",
+    tier: "rare",
+    image: "rare/abominationhulk.jpeg"
+  },
+
+  {
+    id: 485,
+    name: "Hulk",
+    aka: ["Bruce Banner"],
+    appearance: "The Incredible Hulk",
+    tier: "legendary",
+    image: "legendary/hulkhulk.jpeg"
+  },
+
+
+
 
 
 
