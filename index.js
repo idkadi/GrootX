@@ -13,136 +13,202 @@ const autoDrop =
   require("./systems/autoDrop");
 
 const {
-
   Client,
   GatewayIntentBits,
   Partials,
   Collection
-
 } = require("discord.js");
 
-console.log(
-  "\n========== CARD LOADING =========="
-);
-
-console.log(
-  `✅ Total Cards Loaded: ${cards.length}`
-);
+console.log("\n========== CARD LOADING ==========");
+console.log(`✅ Total Cards Loaded: ${cards.length}`);
 
 let brokenImages = 0;
 
 cards.forEach(card => {
-
   const imagePath =
-    path.join(
-      __dirname,
-      "images",
-      card.image
-    );
+    path.join(__dirname, "images", card.image);
 
-  if (
-    !fs.existsSync(imagePath)
-  ) {
-
-    console.log(
-      `❌ Missing Image: ${card.image}`
-    );
-
+  if (!fs.existsSync(imagePath)) {
+    console.log(`❌ Missing Image: ${card.image}`);
     brokenImages++;
-
   }
-
 });
 
 if (brokenImages === 0) {
-
-  console.log(
-    "✅ All card images found!"
-  );
-
+  console.log("✅ All card images found!");
+} else {
+  console.log(`❌ ${brokenImages} broken images found`);
 }
 
-else {
+console.log("==================================\n");
 
-  console.log(
-    `❌ ${brokenImages} broken images found`
-  );
-
-}
-
-console.log(
-  "==================================\n"
-);
-
-// CLIENT
 const client = new Client({
-
   intents: [
-
     GatewayIntentBits.Guilds,
-
     GatewayIntentBits.GuildMessages,
-
     GatewayIntentBits.MessageContent,
-
     GatewayIntentBits.GuildMessageReactions
-
   ],
-
   partials: [
-
     Partials.Message,
     Partials.Channel,
     Partials.Reaction
-
   ]
-
 });
 
-// COMMANDS
 client.commands =
   new Collection();
 
-// COMMANDS PATH
 const commandsPath =
-  path.join(
-    __dirname,
-    "commands"
-  );
+  path.join(__dirname, "commands");
 
-// COMMAND FILES
 const commandFiles =
   fs.readdirSync(commandsPath)
+    .filter(file => file.endsWith(".js"));
 
-    .filter(file =>
-      file.endsWith(".js")
-    );
-
-// LOAD COMMANDS
 for (const file of commandFiles) {
-
   const filePath =
-    path.join(
-      commandsPath,
-      file
-    );
+    path.join(commandsPath, file);
 
   const command =
     require(filePath);
 
-  client.commands.set(
-    command.name,
-    command
-  );
-
+  client.commands.set(command.name, command);
 }
 
-// READY
+async function startReminderChecker(client) {
+  const db =
+    await connectDB();
+
+  const remindersCol =
+    db.collection("reminders");
+
+  const cooldownsCol =
+    db.collection("cooldowns");
+
+  setInterval(async () => {
+    const now =
+      Date.now();
+
+    const reminders =
+      await remindersCol.find({
+        enabled: true
+      }).toArray();
+
+    for (const reminder of reminders) {
+      let cooldownDoc = null;
+      let cooldownTime = 0;
+
+      if (reminder.type === "drop") {
+        cooldownDoc =
+          await cooldownsCol.findOne({
+            userId: reminder.userId,
+            type: "drop"
+          });
+
+        cooldownTime =
+          8 * 60 * 1000;
+      }
+
+      else if (reminder.type === "pickup") {
+        cooldownDoc =
+          await cooldownsCol.findOne({
+            userId: reminder.userId,
+            type: "pickup"
+          });
+
+        cooldownTime =
+          5 * 60 * 1000;
+      }
+
+      else if (reminder.type === "vote") {
+        cooldownDoc =
+          await cooldownsCol.findOne({
+            userId: reminder.userId,
+            type: "vote"
+          });
+
+        cooldownTime =
+          12 * 60 * 60 * 1000;
+      }
+
+      else if (reminder.type === "daily") {
+        cooldownDoc =
+          await db.collection("daily").findOne({
+            userId: reminder.userId
+          });
+
+        cooldownTime =
+          24 * 60 * 60 * 1000;
+      }
+
+      else if (reminder.type === "weekly") {
+        cooldownDoc =
+          await db.collection("weekly").findOne({
+            userId: reminder.userId
+          });
+
+        cooldownTime =
+          7 * 24 * 60 * 60 * 1000;
+      }
+
+      if (!cooldownDoc?.timestamp) continue;
+      if (cooldownDoc.notified === true) continue;
+
+      const ready =
+        now - cooldownDoc.timestamp >= cooldownTime;
+
+      if (!ready) continue;
+
+      try {
+        const user =
+          await client.users.fetch(reminder.userId);
+
+        await user.send(
+          `🔔 Your **${reminder.type}** cooldown is over!`
+        );
+
+        if (
+          reminder.type === "daily" ||
+          reminder.type === "weekly"
+        ) {
+          await db.collection(reminder.type).updateOne(
+            {
+              userId: reminder.userId
+            },
+            {
+              $set: {
+                notified: true
+              }
+            }
+          );
+        } else {
+          await cooldownsCol.updateOne(
+            {
+              userId: reminder.userId,
+              type: reminder.type
+            },
+            {
+              $set: {
+                notified: true
+              }
+            }
+          );
+        }
+
+      } catch (err) {
+        console.log(
+          `Could not DM ${reminder.userId}: ${err.message}`
+        );
+      }
+    }
+  }, 60 * 1000);
+}
+
 client.once(
   "clientReady",
 
   async () => {
-
     await connectDB();
 
     console.log(
@@ -151,16 +217,14 @@ client.once(
 
     autoDrop(client);
 
+    startReminderChecker(client);
   }
-
 );
 
-// MESSAGE EVENT
 client.on(
   "messageCreate",
 
   async message => {
-
     if (message.author.bot)
       return;
 
@@ -172,79 +236,52 @@ client.on(
 
     const guildPrefix =
       await prefixesCol.findOne({
-
-        guildId:
-          message.guild?.id
-
+        guildId: message.guild?.id
       });
 
     const PREFIX =
       guildPrefix?.prefix || "!";
 
-    if (
-      !message.content.startsWith(
-        PREFIX
-      )
-    ) return;
+    if (!message.content.startsWith(PREFIX))
+      return;
 
     const args =
       message.content
-
         .slice(PREFIX.length)
-
         .trim()
-
         .split(/ +/);
 
     const commandName =
-      args.shift()
-        .toLowerCase();
+      args.shift().toLowerCase();
 
     const command =
-
-      client.commands.get(commandName)
-
-      ||
-
+      client.commands.get(commandName) ||
       client.commands.find(cmd =>
-
         cmd.aliases &&
-        cmd.aliases.includes(
-          commandName
-        )
-
+        cmd.aliases.includes(commandName)
       );
 
     if (!command)
       return;
 
     try {
-
       await command.execute(
         message,
         args,
         client
       );
-
     }
 
     catch (error) {
-
       console.error(error);
 
       message.reply(
-
         "❌ An error occurred while executing this command."
-
       );
-
     }
-
   }
-
 );
 
-// LOGIN
 client.login(
   process.env.TOKEN
 );

@@ -41,127 +41,91 @@ module.exports = {
       ) {
 
         const remaining =
-          cooldownTime -
-          (now - timestamp);
+          cooldownTime - (now - timestamp);
+
+        const days =
+          Math.floor(remaining / 86400000);
 
         const hours =
-          Math.floor(
-            remaining / 3600000
-          );
+          Math.floor((remaining % 86400000) / 3600000);
 
         const minutes =
-          Math.floor(
-            (remaining % 3600000) /
-            60000
-          );
+          Math.floor((remaining % 3600000) / 60000);
 
         const seconds =
-          Math.floor(
-            (remaining % 60000) /
-            1000
-          );
+          Math.floor((remaining % 60000) / 1000);
+
+        if (days > 0) {
+          return `⏳ ${days}d ${hours}h`;
+        }
 
         if (hours > 0) {
           return `⏳ ${hours}h ${minutes}m ${seconds}s`;
         }
 
         return `⏳ ${minutes}m ${seconds}s`;
-
       }
 
       return "✅ Ready";
-
     }
 
-    // Drop
+    async function getDailyCooldownText() {
+
+      const dailyDoc =
+        await db.collection("daily").findOne({
+          userId
+        });
+
+      const timestamp =
+        dailyDoc?.timestamp;
+
+      const cooldownTime =
+        24 * 60 * 60 * 1000;
+
+      if (
+        timestamp &&
+        now - timestamp < cooldownTime
+      ) {
+
+        const remaining =
+          cooldownTime - (now - timestamp);
+
+        const hours =
+          Math.floor(remaining / 3600000);
+
+        const minutes =
+          Math.floor((remaining % 3600000) / 60000);
+
+        const seconds =
+          Math.floor((remaining % 60000) / 1000);
+
+        return `⏳ ${hours}h ${minutes}m ${seconds}s`;
+      }
+
+      return "✅ Ready";
+    }
+
     const dropText =
       await getCooldownText(
         "drop",
         8 * 60 * 1000
       );
 
-    // Pickup
     const pickupText =
       await getCooldownText(
         "pickup",
         5 * 60 * 1000
       );
 
-    // Daily (separate collection)
-    let dailyText =
-      "✅ Ready";
+    const dailyText =
+      await getDailyCooldownText();
 
-    const dailyDoc =
-      await db.collection("daily")
-        .findOne({ userId });
+    const weeklyText =
+      await getCooldownText(
+        "weekly",
+        7 * 24 * 60 * 60 * 1000
+      );
 
-    if (dailyDoc?.timestamp) {
-
-      const remaining =
-        (24 * 60 * 60 * 1000) -
-        (now - dailyDoc.timestamp);
-
-      if (remaining > 0) {
-
-        const hours =
-          Math.floor(
-            remaining / 3600000
-          );
-
-        const minutes =
-          Math.floor(
-            (remaining % 3600000) /
-            60000
-          );
-
-        const seconds =
-          Math.floor(
-            (remaining % 60000) /
-            1000
-          );
-
-        dailyText =
-          `⏳ ${hours}h ${minutes}m ${seconds}s`;
-
-      }
-
-    }
-
-    // Weekly (separate collection)
-    let weeklyText =
-      "✅ Ready";
-
-    const weeklyDoc =
-      await db.collection("weekly")
-        .findOne({ userId });
-
-    if (weeklyDoc?.timestamp) {
-
-      const remaining =
-        (7 * 24 * 60 * 60 * 1000) -
-        (now - weeklyDoc.timestamp);
-
-      if (remaining > 0) {
-
-        const days =
-          Math.floor(
-            remaining / 86400000
-          );
-
-        const hours =
-          Math.floor(
-            (remaining % 86400000) /
-            3600000
-          );
-
-        weeklyText =
-          `⏳ ${days}d ${hours}h`;
-
-      }
-
-    }
-
-    // Vote
     const voteText =
       await getCooldownText(
         "vote",
@@ -173,9 +137,7 @@ module.exports = {
 
         .setColor(0x8b5cf6)
 
-        .setTitle(
-          "⏱️ Cooldowns"
-        )
+        .setTitle("⏱️ Cooldowns")
 
         .addFields(
 
@@ -212,8 +174,7 @@ module.exports = {
         )
 
         .setFooter({
-          text:
-            "GrootX Cooldown System"
+          text: "GrootX Cooldown System"
         })
 
         .setTimestamp();
