@@ -16,162 +16,96 @@ const cards = require("../data/cards");
 const connectDB = require("../database");
 
 function getTierEmoji(tier) {
-
   switch (tier) {
-
     case "common":
       return "<:common:1504510702956839033>";
-
     case "uncommon":
       return "<:uncommon:1504510929210052698>";
-
     case "rare":
       return "<:rare:1504510606718275764>";
-
     case "epic":
       return "<:epic:1504510771214680175>";
-
     case "legendary":
       return "<:legendary:1504511435974377552>";
-
     default:
       return "🎴";
-
   }
-
 }
 
 function getRandomTier() {
+  const chance = Math.random() * 100;
 
-  const chance =
-    Math.random() * 100;
-
-  if (chance < 50)
-    return "common";
-
-  if (chance < 75)
-    return "uncommon";
-
-  if (chance < 90)
-    return "rare";
-
-  if (chance < 99)
-    return "epic";
+  if (chance < 65) return "common";
+  if (chance < 90) return "uncommon";
+  if (chance < 98) return "rare";
+  if (chance < 99.7) return "epic";
 
   return "legendary";
-
 }
 
 async function getRecentDrops(recentDropsCol) {
-
   const docs =
     await recentDropsCol
       .find({})
       .sort({ createdAt: 1 })
       .toArray();
 
-  return docs.map(
-    doc => doc.cardId
-  );
-
+  return docs.map(doc => doc.cardId);
 }
 
-async function saveRecentDrops(
-  recentDropsCol,
-  recentDrops
-) {
-
+async function saveRecentDrops(recentDropsCol, recentDrops) {
   await recentDropsCol.deleteMany({});
 
   if (recentDrops.length > 0) {
-
     await recentDropsCol.insertMany(
-
-      recentDrops.map(
-        (cardId, index) => ({
-          cardId,
-          createdAt:
-            Date.now() + index
-        })
-      )
-
+      recentDrops.map((cardId, index) => ({
+        cardId,
+        createdAt: Date.now() + index
+      }))
     );
-
   }
-
 }
 
-function pickWithoutRecent(
-  tier,
-  dropCards,
-  recentDrops
-) {
-
+function pickWithoutRecent(tier, dropCards, recentDrops) {
   let pool =
     cards.filter(card =>
-
       card.tier === tier &&
-
       !recentDrops.includes(card.id) &&
-
-      !dropCards.some(
-        c => c.id === card.id
-      )
-
+      !dropCards.some(c => c.id === card.id)
     );
 
   if (pool.length === 0) {
-
     pool =
       cards.filter(card =>
-
         card.tier === tier &&
-
-        !dropCards.some(
-          c => c.id === card.id
-        )
-
+        !dropCards.some(c => c.id === card.id)
       );
-
   }
 
   if (pool.length === 0) {
-
     pool =
-      cards.filter(
-        card =>
-          card.tier === tier
+      cards.filter(card =>
+        card.tier === tier
       );
-
   }
 
   const picked =
     pool[
       Math.floor(
-        Math.random() *
-        pool.length
+        Math.random() * pool.length
       )
     ];
 
   recentDrops.push(picked.id);
 
-  while (
-    recentDrops.length > 15
-  ) {
-
+  while (recentDrops.length > 15) {
     recentDrops.shift();
-
   }
 
   return picked;
-
 }
 
-function generateCard(
-  dropCards,
-  recentDrops
-) {
-
+function generateCard(dropCards, recentDrops) {
   const tier =
     getRandomTier();
 
@@ -180,29 +114,21 @@ function generateCard(
     dropCards,
     recentDrops
   );
-
 }
 
-async function generateUniqueCode(
-  collectionsCol
-) {
-
+async function generateUniqueCode(collectionsCol) {
   const chars =
     "abcdefghijklmnopqrstuvwxyz0123456789";
 
   while (true) {
-
     let code = "";
 
     for (let i = 0; i < 6; i++) {
-
       code += chars.charAt(
         Math.floor(
-          Math.random() *
-          chars.length
+          Math.random() * chars.length
         )
       );
-
     }
 
     const exists =
@@ -212,19 +138,13 @@ async function generateUniqueCode(
 
     if (!exists)
       return code;
-
   }
-
 }
 
 module.exports = client => {
-
   setInterval(
-
     async () => {
-
       try {
-
         const db =
           await connectDB();
 
@@ -249,9 +169,7 @@ module.exports = client => {
             .toArray();
 
         for (const entry of dropChannels) {
-
           try {
-
             const channel =
               client.channels.cache.get(
                 entry.channelId
@@ -267,10 +185,7 @@ module.exports = client => {
 
             const dropCards = [];
 
-            while (
-              dropCards.length < 3
-            ) {
-
+            while (dropCards.length < 3) {
               const card =
                 generateCard(
                   dropCards,
@@ -278,7 +193,6 @@ module.exports = client => {
                 );
 
               dropCards.push(card);
-
             }
 
             await saveRecentDrops(
@@ -298,12 +212,8 @@ module.exports = client => {
 
             const canvas =
               createCanvas(
-
-                (cardWidth * 3) +
-                (spacing * 4),
-
+                (cardWidth * 3) + (spacing * 4),
                 cardHeight + 40
-
               );
 
             const ctx =
@@ -321,50 +231,27 @@ module.exports = client => {
 
             const images =
               await Promise.all(
-
                 dropCards.map(card =>
-
                   loadImage(
-
                     path.join(
                       __dirname,
                       "..",
                       "images",
                       card.image
                     )
-
                   )
-
                 )
-
               );
 
-            images.forEach(
-              (img, i) => {
-
-                ctx.drawImage(
-
-                  img,
-
-                  spacing +
-                  (
-                    i *
-                    (
-                      cardWidth +
-                      spacing
-                    )
-                  ),
-
-                  20,
-
-                  cardWidth,
-
-                  cardHeight
-
-                );
-
-              }
-            );
+            images.forEach((img, i) => {
+              ctx.drawImage(
+                img,
+                spacing + (i * (cardWidth + spacing)),
+                20,
+                cardWidth,
+                cardHeight
+              );
+            });
 
             const attachment =
               new AttachmentBuilder(
@@ -374,43 +261,37 @@ module.exports = client => {
                 }
               );
 
+            const dropText =
+              "🎴 **A New Drop Has Appeared!**\n" +
+              "\u200B\n" +
+              dropCards.map((card, index) =>
+                `**${index + 1}.** ${getTierEmoji(card.tier)} **${card.name}**`
+              ).join("\n");
+
             const row =
               new ActionRowBuilder()
                 .addComponents(
-
                   new ButtonBuilder()
                     .setCustomId("drop_0")
                     .setLabel("1")
-                    .setStyle(
-                      ButtonStyle.Primary
-                    ),
+                    .setStyle(ButtonStyle.Primary),
 
                   new ButtonBuilder()
                     .setCustomId("drop_1")
                     .setLabel("2")
-                    .setStyle(
-                      ButtonStyle.Primary
-                    ),
+                    .setStyle(ButtonStyle.Primary),
 
                   new ButtonBuilder()
                     .setCustomId("drop_2")
                     .setLabel("3")
-                    .setStyle(
-                      ButtonStyle.Primary
-                    )
-
+                    .setStyle(ButtonStyle.Primary)
                 );
 
             const msg =
               await channel.send({
-
-                content:
-                  "🎴 **A New Drop Has Appeared!**",
-
+                content: dropText,
                 files: [attachment],
-
                 components: [row]
-
               });
 
             const collector =
@@ -422,9 +303,7 @@ module.exports = client => {
               "collect",
 
               async interaction => {
-
                 try {
-
                   const userId =
                     interaction.user.id;
 
@@ -433,31 +312,20 @@ module.exports = client => {
 
                   const pickupCooldown =
                     await cooldownsCol.findOne({
-
                       type: "pickup",
                       userId
-
                     });
 
                   const cooldownTime =
-                    10 * 60 * 1000;
+                    5 * 60 * 1000;
 
                   if (
-
                     pickupCooldown &&
-
-                    now -
-                    pickupCooldown.timestamp <
-                    cooldownTime
-
+                    now - pickupCooldown.timestamp < cooldownTime
                   ) {
-
                     const remaining =
                       cooldownTime -
-                      (
-                        now -
-                        pickupCooldown.timestamp
-                      );
+                      (now - pickupCooldown.timestamp);
 
                     const minutes =
                       Math.floor(
@@ -466,93 +334,64 @@ module.exports = client => {
 
                     const seconds =
                       Math.floor(
-                        (
-                          remaining % 60000
-                        ) / 1000
+                        (remaining % 60000) / 1000
                       );
 
                     return interaction.reply({
-
                       content:
-
                         `❌ You can claim again in ` +
-
                         `${minutes}m ${seconds}s.`,
-
                       ephemeral: true
-
                     });
-
                   }
 
-                  if (
-                    claimedUsers.has(userId)
-                  ) {
-
+                  if (claimedUsers.has(userId)) {
                     return interaction.reply({
-
                       content:
                         "❌ You already claimed a card from this drop.",
-
                       ephemeral: true
-
                     });
-
                   }
 
                   const index =
                     parseInt(
-
                       interaction.customId
                         .split("_")[1]
-
                     );
 
                   if (claimed[index]) {
-
                     return interaction.reply({
-
                       content:
                         "❌ This card is already claimed.",
-
                       ephemeral: true
-
                     });
-
                   }
 
                   claimed[index] = true;
-
                   claimedUsers.add(userId);
 
                   const selectedCard =
                     dropCards[index];
 
                   await serialsCol.updateOne(
-
                     {
                       cardId:
                         selectedCard.id
                     },
-
                     {
                       $inc: {
                         serial: 1
                       }
                     },
-
                     {
                       upsert: true
                     }
-
                   );
 
                   const serialDoc =
                     await serialsCol.findOne({
-
                       cardId:
                         selectedCard.id
-
                     });
 
                   const serial =
@@ -564,39 +403,29 @@ module.exports = client => {
                     );
 
                   await collectionsCol.insertOne({
-
                     userId,
-
                     cardId:
                       selectedCard.id,
-
                     serial,
-
                     code,
-
                     tag: null,
-
                     favorite: false
-
                   });
 
                   await cooldownsCol.updateOne(
-
                     {
                       type: "pickup",
                       userId
                     },
-
                     {
                       $set: {
-                        timestamp: now
+                        timestamp: now,
+                        notified: false
                       }
                     },
-
                     {
                       upsert: true
                     }
-
                   );
 
                   row.components[index]
@@ -604,105 +433,66 @@ module.exports = client => {
                     .setLabel("✅");
 
                   await interaction.update({
-
-                    content:
-                      "🎴 **A New Drop Has Appeared!**",
-
+                    content: dropText,
                     files: [attachment],
-
                     components: [row]
-
                   });
 
                   await channel.send(
-
                     `🎉 ${interaction.user} claimed ` +
-
                     `${getTierEmoji(selectedCard.tier)} ` +
-
                     `**${selectedCard.name}**\n` +
-
                     `└ ${code} • #${serial}`
-
                   );
-
                 }
 
                 catch (err) {
-
                   console.error(err);
-
                 }
-
               }
-
             );
 
             collector.on(
               "end",
 
               async () => {
-
                 try {
-
                   row.components.forEach(
                     button =>
-
                       button.setDisabled(true)
-
                   );
 
                   await msg.edit({
-
-                    content:
-                      "🎴 **A New Drop Has Appeared!**",
-
+                    content: dropText,
                     files: [attachment],
-
                     components: [row]
-
                   });
-
                 }
 
                 catch (err) {
-
                   console.error(err);
-
                 }
-
               }
-
             );
-
           }
 
           catch (err) {
-
             console.error(
               "Auto Drop Error:",
               err
             );
-
           }
-
         }
-
       }
 
       catch (err) {
-
         console.error(
           "Mongo AutoDrop Error:",
           err
         );
-
       }
-
     },
 
     1800000
-
   );
-
 };
