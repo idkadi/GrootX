@@ -20,7 +20,7 @@ module.exports = {
       .setDescription(
         "Vote for GrootX on Top.gg and receive:\n\n" +
         "<:grootcoin:1504742213110861834> **700 Coins**\n" +
-        "🤖 **1 Ultron Chip**\n\n" +
+        "🎫 **1 Ultron Chip**\n\n" +
         "Rewards are given after your vote is verified."
       )
       .setFooter({

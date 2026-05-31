@@ -8,7 +8,6 @@ const connectDB =
 module.exports = {
 
   name: "cooldown",
-
   aliases: ["cd"],
 
   async execute(message) {
@@ -25,101 +24,71 @@ module.exports = {
     const now =
       Date.now();
 
-    // ===== DROP =====
+    async function getCooldownText(type, cooldownTime) {
+      const doc =
+        await cooldownsCol.findOne({
+          type,
+          userId
+        });
 
-    const dropDoc =
-      await cooldownsCol.findOne({
+      const timestamp =
+        doc?.timestamp;
 
-        type: "drop",
+      if (
+        timestamp &&
+        now - timestamp < cooldownTime
+      ) {
+        const remaining =
+          cooldownTime - (now - timestamp);
 
-        userId
+        const hours =
+          Math.floor(remaining / 3600000);
 
-      });
+        const minutes =
+          Math.floor((remaining % 3600000) / 60000);
 
-    const dropCooldown =
-      dropDoc?.timestamp;
+        const seconds =
+          Math.floor((remaining % 60000) / 1000);
 
-    const dropTime =
-      8 * 60 * 1000;
+        if (hours > 0) {
+          return `⏳ ${hours}h ${minutes}m ${seconds}s`;
+        }
 
-    let dropText =
-      "✅ Ready";
+        return `⏳ ${minutes}m ${seconds}s`;
+      }
 
-    if (
-
-      dropCooldown &&
-
-      now - dropCooldown <
-      dropTime
-
-    ) {
-
-      const remaining =
-        dropTime -
-        (now - dropCooldown);
-
-      const minutes =
-        Math.floor(
-          remaining / 60000
-        );
-
-      const seconds =
-        Math.floor(
-          (remaining % 60000) / 1000
-        );
-
-      dropText =
-        `⏳ ${minutes}m ${seconds}s`;
-
+      return "✅ Ready";
     }
 
-    // ===== PICKUP =====
+    const dropText =
+      await getCooldownText(
+        "drop",
+        8 * 60 * 1000
+      );
 
-    const pickupDoc =
-      await cooldownsCol.findOne({
+    const pickupText =
+      await getCooldownText(
+        "pickup",
+        5 * 60 * 1000
+      );
 
-        type: "pickup",
+    const dailyText =
+      await getCooldownText(
+        "daily",
+        24 * 60 * 60 * 1000
+      );
 
-        userId
+    const weeklyText =
+      await getCooldownText(
+        "weekly",
+        7 * 24 * 60 * 60 * 1000
+      );
 
-      });
-
-    const pickupCooldown =
-      pickupDoc?.timestamp;
-
-    const pickupTime =
-      5 * 60 * 1000;
-
-    let pickupText =
-      "✅ Ready";
-
-    if (
-
-      pickupCooldown &&
-
-      now - pickupCooldown <
-      pickupTime
-
-    ) {
-
-      const remaining =
-        pickupTime -
-        (now - pickupCooldown);
-
-      const minutes =
-        Math.floor(
-          remaining / 60000
-        );
-
-      const seconds =
-        Math.floor(
-          (remaining % 60000) / 1000
-        );
-
-      pickupText =
-        `⏳ ${minutes}m ${seconds}s`;
-
-    }
+    const voteText =
+      await getCooldownText(
+        "vote",
+        12 * 60 * 60 * 1000
+      );
 
     const embed =
       new EmbedBuilder()
@@ -133,40 +102,45 @@ module.exports = {
         .addFields(
 
           {
-            name:
-              "🎴 Drop Cooldown",
-
-            value:
-              dropText,
-
+            name: "🎴 Drop Cooldown",
+            value: dropText,
             inline: false
           },
 
           {
-            name:
-              "🎯 Pickup Cooldown",
+            name: "🎯 Pickup Cooldown",
+            value: pickupText,
+            inline: false
+          },
 
-            value:
-              pickupText,
+          {
+            name: "🎁 Daily Cooldown",
+            value: dailyText,
+            inline: false
+          },
 
+          {
+            name: "📦 Weekly Cooldown",
+            value: weeklyText,
+            inline: false
+          },
+
+          {
+            name: "🗳️ Vote Cooldown",
+            value: voteText,
             inline: false
           }
 
         )
 
         .setFooter({
-
-          text:
-            "GrootX Cooldown System"
-
+          text: "GrootX Cooldown System"
         })
 
         .setTimestamp();
 
     await message.reply({
-
       embeds: [embed]
-
     });
 
   }
