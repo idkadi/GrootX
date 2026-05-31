@@ -12,7 +12,7 @@ const storeItems = {
 
   trade_voucher: {
     currency: "coins",
-    cost: 7000
+    cost: 3000
   },
 
   extra_drop: {
