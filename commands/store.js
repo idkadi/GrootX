@@ -92,28 +92,7 @@ module.exports = {
             inline: false
           },
 
-          {
-            name:
-              "✨ Shard Booster",
-
-            value:
-              "**Cost:** 3 🎫 Ultron Chips\n" +
-              "**Use:** Gives 2x shards from your next burn.",
-
-            inline: false
-          },
-
-          {
-            name:
-              "💰 Coin Booster",
-
-            value:
-              "**Cost:** 3 🎫 Ultron Chips\n" +
-              "**Use:** Gives 2x coins from your next burn.",
-
-            inline: false
-          }
-
+         
         )
 
         .setFooter({

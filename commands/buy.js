@@ -25,15 +25,6 @@ extra_grab: {
   cost: 3
 },
 
-shard_booster: {
-  currency: "ultron_chips",
-  cost: 1
-},
-
-coin_booster: {
-  currency: "ultron_chips",
-  cost: 1
-},
 
   album: {
     currency: "coins",
