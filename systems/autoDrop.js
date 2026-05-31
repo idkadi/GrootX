@@ -163,6 +163,9 @@ module.exports = client => {
         const recentDropsCol =
           db.collection("recentDrops");
 
+        const inventoryCol =
+          db.collection("inventory");
+
         const dropChannels =
           await dropChannelsCol
             .find({})
@@ -319,30 +322,55 @@ module.exports = client => {
                   const cooldownTime =
                     5 * 60 * 1000;
 
+                  let usedExtraGrab = false;
+
                   if (
                     pickupCooldown &&
                     now - pickupCooldown.timestamp < cooldownTime
                   ) {
-                    const remaining =
-                      cooldownTime -
-                      (now - pickupCooldown.timestamp);
+                    const inventoryDoc =
+                      await inventoryCol.findOne({
+                        userId
+                      });
 
-                    const minutes =
-                      Math.floor(
-                        remaining / 60000
-                      );
+                    const extraGrabs =
+                      inventoryDoc?.items?.extra_grab || 0;
 
-                    const seconds =
-                      Math.floor(
-                        (remaining % 60000) / 1000
-                      );
+                    if (extraGrabs <= 0) {
+                      const remaining =
+                        cooldownTime -
+                        (now - pickupCooldown.timestamp);
 
-                    return interaction.reply({
-                      content:
-                        `❌ You can claim again in ` +
-                        `${minutes}m ${seconds}s.`,
-                      ephemeral: true
-                    });
+                      const minutes =
+                        Math.floor(
+                          remaining / 60000
+                        );
+
+                      const seconds =
+                        Math.floor(
+                          (remaining % 60000) / 1000
+                        );
+
+                      return interaction.reply({
+                        content:
+                          `❌ You can claim again in ` +
+                          `${minutes}m ${seconds}s.`,
+                        ephemeral: true
+                      });
+                    }
+
+                    await inventoryCol.updateOne(
+                      {
+                        userId
+                      },
+                      {
+                        $inc: {
+                          "items.extra_grab": -1
+                        }
+                      }
+                    );
+
+                    usedExtraGrab = true;
                   }
 
                   if (claimedUsers.has(userId)) {
@@ -442,7 +470,12 @@ module.exports = client => {
                     `🎉 ${interaction.user} claimed ` +
                     `${getTierEmoji(selectedCard.tier)} ` +
                     `**${selectedCard.name}**\n` +
-                    `└ ${code} • #${serial}`
+                    `└ ${code} • #${serial}` +
+                    (
+                      usedExtraGrab
+                        ? "\n⚡ **Extra Grab Used!**"
+                        : ""
+                    )
                   );
                 }
 

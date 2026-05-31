@@ -130,6 +130,7 @@ module.exports = {
     const serialsCol = db.collection("serials");
     const cooldownsCol = db.collection("cooldowns");
     const recentDropsCol = db.collection("recentDrops");
+    const inventoryCol = db.collection("inventory");
 
     const userId = message.author.id;
     const now = Date.now();
@@ -141,19 +142,44 @@ module.exports = {
 
     const cooldownTime = 8 * 60 * 1000;
 
+    let usedExtraDrop = false;
+
     if (
       dropCooldown &&
       now - dropCooldown.timestamp < cooldownTime
     ) {
-      const remaining =
-        cooldownTime - (now - dropCooldown.timestamp);
+      const inventoryDoc =
+        await inventoryCol.findOne({
+          userId
+        });
 
-      const minutes = Math.floor(remaining / 60000);
-      const seconds = Math.floor((remaining % 60000) / 1000);
+      const extraDrops =
+        inventoryDoc?.items?.extra_drop || 0;
 
-      return message.reply(
-        `❌ You can drop again in ${minutes}m ${seconds}s.`
+      if (extraDrops <= 0) {
+        const remaining =
+          cooldownTime - (now - dropCooldown.timestamp);
+
+        const minutes = Math.floor(remaining / 60000);
+        const seconds = Math.floor((remaining % 60000) / 1000);
+
+        return message.reply(
+          `❌ You can drop again in ${minutes}m ${seconds}s.`
+        );
+      }
+
+      await inventoryCol.updateOne(
+        {
+          userId
+        },
+        {
+          $inc: {
+            "items.extra_drop": -1
+          }
+        }
       );
+
+      usedExtraDrop = true;
     }
 
     await cooldownsCol.updateOne(
@@ -209,7 +235,12 @@ module.exports = {
     const dropText =
       "🎴 **A New Drop Has Appeared!**\n" +
       "\u200B\n" +
-            dropCards.map((card, index) =>
+      (
+        usedExtraDrop
+          ? "🌌 **Extra Drop Used!**\n\n"
+          : ""
+      ) +
+      dropCards.map((card, index) =>
         `**${index + 1}.** ${getTierEmoji(card.tier)} **${card.name}**`
       ).join("\n");
 
@@ -276,21 +307,46 @@ module.exports = {
 
       const pickupTime = 5 * 60 * 1000;
 
+      let usedExtraGrab = false;
+
       if (
         pickupCooldown &&
         claimNow - pickupCooldown.timestamp < pickupTime
       ) {
-        const remaining =
-          pickupTime - (claimNow - pickupCooldown.timestamp);
+        const inventoryDoc =
+          await inventoryCol.findOne({
+            userId: claimerId
+          });
 
-        const minutes = Math.floor(remaining / 60000);
-        const seconds = Math.floor((remaining % 60000) / 1000);
+        const extraGrabs =
+          inventoryDoc?.items?.extra_grab || 0;
 
-        return interaction.reply({
-          content:
-            `❌ You can claim again in ${minutes}m ${seconds}s.`,
-          ephemeral: true
-        });
+        if (extraGrabs <= 0) {
+          const remaining =
+            pickupTime - (claimNow - pickupCooldown.timestamp);
+
+          const minutes = Math.floor(remaining / 60000);
+          const seconds = Math.floor((remaining % 60000) / 1000);
+
+          return interaction.reply({
+            content:
+              `❌ You can claim again in ${minutes}m ${seconds}s.`,
+            ephemeral: true
+          });
+        }
+
+        await inventoryCol.updateOne(
+          {
+            userId: claimerId
+          },
+          {
+            $inc: {
+              "items.extra_grab": -1
+            }
+          }
+        );
+
+        usedExtraGrab = true;
       }
 
       const index = parseInt(
@@ -378,7 +434,12 @@ module.exports = {
           `${getTierEmoji(claimedCard.tier)} ` +
           `**${claimedCard.name}** ` +
           `#${serial} ` +
-          `• ${code}!`
+          `• ${code}!` +
+          (
+            usedExtraGrab
+              ? "\n⚡ **Extra Grab Used!**"
+              : ""
+          )
       });
     });
   }
