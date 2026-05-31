@@ -17,12 +17,12 @@ const storeItems = {
 
   extra_drop: {
   currency: "ultron_chips",
-  cost: 3
+  cost: 1
 },
 
 extra_grab: {
   currency: "ultron_chips",
-  cost: 3
+  cost: 1
 },
 
 
