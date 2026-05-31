@@ -12,10 +12,10 @@ const cards = require("../data/cards");
 const connectDB = require("../database");
 
 const rewards = {
-  common: 50,
-  uncommon: 100,
-  rare: 250,
-  epic: 500,
+  common: 100,
+  uncommon: 200,
+  rare: 350,
+  epic: 700,
   legendary: 1000
 };
 

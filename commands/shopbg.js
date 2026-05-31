@@ -16,77 +16,77 @@ const backgrounds = [
   {
     id: 1,
     name: "Spider-man",
-    price: 2500,
+    price: 5000,
     file: "spidermanbg.jpeg"
   },
 
   {
     id: 2,
     name: "Loki",
-    price: 2500,
+    price: 5000,
     file: "lokibg.jpeg"
   },
 
   {
     id: 3,
     name: "Punisher",
-    price: 2500,
+    price: 5000,
     file: "punisherbg.jpeg"
   },
 
   {
     id: 4,
     name: "Fantastic Four",
-    price: 2500,
+    price: 5000,
     file: "fantastic4bg.jpeg"
   },
 
   {
     id: 5,
     name: "Daredevil",
-    price: 2500,
+    price: 5000,
     file: "daredevilbg.jpeg"
   },
 
    {
     id: 6,
     name: "Deadpool",
-    price: 2500,
+    price: 5000,
     file: "deadpoolbg.jpeg"
   },
 
   {
     id: 7,
     name: "Iron Man",
-    price: 2500,
+    price: 5000,
     file: "ironmanbg.jpeg"
   },
 
   {
     id: 8,
     name: "Civil War",
-    price: 2500,
+    price: 5000,
     file: "civilwarbg.jpeg"
   },
 
   {
     id: 9,
     name: "MoonKnight",
-    price: 2500,
+    price: 5000,
     file: "moonknightbg.jpeg"
   },
 
   {
     id: 10,
     name: "The Amazing Spider-man",
-    price: 2500,
+    price: 5000,
     file: "tasmbg.jpeg"
   },
 
    {
     id: 11,
-    name: "TVenom",
-    price: 2500,
+    name: "Venom",
+    price: 5000,
     file: "venombg.jpeg"
   },
   
