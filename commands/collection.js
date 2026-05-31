@@ -10,11 +10,6 @@ const {
   AttachmentBuilder
 } = require("discord.js");
 
-const {
-  createCanvas,
-  loadImage
-} = require("canvas");
-
 const connectDB = require("../database");
 
 function getTierEmoji(tier) {
@@ -39,8 +34,6 @@ module.exports = {
     const cardTagsCol = db.collection("cardtags");
 
     const userId = message.author.id;
-
-    let imageMode = false;
 
     const userCards = await collectionsCol
       .find({ userId })
@@ -89,12 +82,11 @@ module.exports = {
       return message.reply("❌ No cards found.");
     }
 
+    const perPage = 10;
     let page = 0;
+    let imageIndex = 0;
+    let viewMode = "list";
     let currentSort = "latest";
-
-    function getPerPage() {
-      return imageMode ? 8 : 10;
-    }
 
     function applySort(sortType) {
       currentSort = sortType;
@@ -153,24 +145,25 @@ module.exports = {
     applySort("latest");
 
     function getTotalPages() {
-      return Math.ceil(filteredCards.length / getPerPage());
+      return Math.ceil(filteredCards.length / perPage);
     }
 
-    function getCurrentCards() {
-      const start = page * getPerPage();
-      const end = start + getPerPage();
-
-      return filteredCards.slice(start, end);
+    function getCardFromEntry(entry) {
+      return cards.find(
+        c => Number(c.id) === Number(entry.cardId)
+      );
     }
 
-    function generateEmbed() {
+    function generateListEmbed() {
       const totalPages = getTotalPages();
-      const currentCards = getCurrentCards();
+
+      const start = page * perPage;
+      const end = start + perPage;
+
+      const currentCards = filteredCards.slice(start, end);
 
       const description = currentCards.map(entry => {
-        const card = cards.find(
-          c => Number(c.id) === Number(entry.cardId)
-        );
+        const card = getCardFromEntry(entry);
 
         if (!card) return "❌ Unknown Card";
 
@@ -197,157 +190,61 @@ module.exports = {
         .setDescription(description || "No cards found.")
         .setFooter({
           text:
-            `Page ${page + 1}/${totalPages} • ` +
+            `List View • Page ${page + 1}/${totalPages} • ` +
             `Total Cards: ${filteredCards.length} • ` +
             `Sort: ${currentSort}`
         })
         .setTimestamp();
     }
 
-    async function generateImage() {
-      const totalPages = getTotalPages();
-      const currentCards = getCurrentCards();
+    function generateImageEmbed() {
+      const entry = filteredCards[imageIndex];
+      const card = getCardFromEntry(entry);
 
-      const cardWidth = 160;
-      const cardHeight = 230;
-      const gap = 25;
+      const savedTag =
+        userTags[String(entry.code).toLowerCase()];
 
-      const cols = 4;
-      const rows = 2;
+      const imageName =
+        card.image.split("/").pop();
 
-      const canvasWidth =
-        (cols * cardWidth) + ((cols + 1) * gap);
+      return new EmbedBuilder()
+        .setColor(0x00aeff)
+        .setTitle(`${card.name}`)
+        .setDescription(
+          `${getTierEmoji(card.tier)} **${card.tier}**\n\n` +
+          `Series: **${card.appearance}**\n` +
+          `Serial: **#${entry.serial}**\n` +
+          `Code: \`${entry.code}\`\n` +
+          `Tag: ${savedTag || "None"}\n` +
+          `Card: **${imageIndex + 1}/${filteredCards.length}**`
+        )
+        .setImage(`attachment://${imageName}`)
+        .setFooter({
+          text:
+            `Image View • Total Cards: ${filteredCards.length} • ` +
+            `Sort: ${currentSort}`
+        })
+        .setTimestamp();
+    }
 
-      const canvasHeight =
-        110 + (rows * (cardHeight + 80)) + gap;
+    function getImageFile() {
+      const entry = filteredCards[imageIndex];
+      const card = getCardFromEntry(entry);
 
-      const canvas =
-        createCanvas(canvasWidth, canvasHeight);
+      const imageName =
+        card.image.split("/").pop();
 
-      const ctx =
-        canvas.getContext("2d");
-
-      ctx.fillStyle = "#111827";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 32px Sans";
-      ctx.fillText(
-        `${message.author.username}'s Collection`,
-        25,
-        45
-      );
-
-      ctx.font = "20px Sans";
-      ctx.fillStyle = "#d1d5db";
-      ctx.fillText(
-        `Page ${page + 1}/${totalPages} • Total Cards: ${filteredCards.length} • Sort: ${currentSort}`,
-        25,
-        78
-      );
-
-      for (let i = 0; i < currentCards.length; i++) {
-        const entry = currentCards[i];
-
-        const card = cards.find(
-          c => Number(c.id) === Number(entry.cardId)
+      const imagePath =
+        path.join(
+          __dirname,
+          "..",
+          "images",
+          card.image
         );
 
-        if (!card) continue;
-
-        const col = i % cols;
-        const row = Math.floor(i / cols);
-
-        const x =
-          gap + col * (cardWidth + gap);
-
-        const y =
-          110 + row * (cardHeight + 80);
-
-        ctx.fillStyle = "#1f2937";
-        ctx.fillRect(
-          x - 5,
-          y - 5,
-          cardWidth + 10,
-          cardHeight + 70
-        );
-
-        try {
-          const img =
-            await loadImage(
-              path.join(
-                __dirname,
-                "..",
-                "images",
-                card.image
-              )
-            );
-
-          ctx.drawImage(
-            img,
-            x,
-            y,
-            cardWidth,
-            cardHeight
-          );
-        } catch (err) {
-          ctx.fillStyle = "#374151";
-          ctx.fillRect(
-            x,
-            y,
-            cardWidth,
-            cardHeight
-          );
-
-          ctx.fillStyle = "#ffffff";
-          ctx.font = "16px Sans";
-          ctx.fillText(
-            "Image Missing",
-            x + 25,
-            y + 115
-          );
-        }
-
-        const savedTag =
-          userTags[String(entry.code).toLowerCase()];
-
-        ctx.fillStyle = "#ffffff";
-        ctx.font = "bold 15px Sans";
-
-        let name = card.name;
-
-        if (name.length > 17) {
-          name = name.slice(0, 17) + "...";
-        }
-
-        ctx.fillText(
-          name,
-          x,
-          y + cardHeight + 22
-        );
-
-        ctx.font = "14px Sans";
-        ctx.fillStyle = "#d1d5db";
-
-        ctx.fillText(
-          `${entry.code} • #${entry.serial}`,
-          x,
-          y + cardHeight + 42
-        );
-
-        ctx.fillText(
-          `${savedTag ? savedTag + " • " : ""}${card.tier}`,
-          x,
-          y + cardHeight + 62
-        );
-      }
-
-      return new AttachmentBuilder(
-        canvas.toBuffer(),
-        {
-          name: "collection.png"
-        }
-      );
+      return new AttachmentBuilder(imagePath, {
+        name: imageName
+      });
     }
 
     function makeSelectRow() {
@@ -394,30 +291,39 @@ module.exports = {
           .setCustomId("col_prev")
           .setLabel("⬅️")
           .setStyle(ButtonStyle.Primary)
-          .setDisabled(totalPages <= 1),
+          .setDisabled(
+            viewMode === "list"
+              ? totalPages <= 1
+              : filteredCards.length <= 1
+          ),
 
         new ButtonBuilder()
-          .setCustomId("col_mode")
-          .setLabel(imageMode ? "Text Mode" : "Image Mode")
+          .setCustomId("col_view")
+          .setLabel(
+            viewMode === "list"
+              ? "Image View"
+              : "List View"
+          )
+          .setEmoji("🖼️")
           .setStyle(ButtonStyle.Secondary),
 
         new ButtonBuilder()
           .setCustomId("col_next")
           .setLabel("➡️")
           .setStyle(ButtonStyle.Primary)
-          .setDisabled(totalPages <= 1)
+          .setDisabled(
+            viewMode === "list"
+              ? totalPages <= 1
+              : filteredCards.length <= 1
+          )
       );
     }
 
-    async function getMessagePayload() {
-      if (imageMode) {
-        const attachment =
-          await generateImage();
-
+    function getPayload() {
+      if (viewMode === "image") {
         return {
-          content: null,
-          embeds: [],
-          files: [attachment],
+          embeds: [generateImageEmbed()],
+          files: [getImageFile()],
           components: [
             makeSelectRow(),
             makeButtonRow()
@@ -426,8 +332,7 @@ module.exports = {
       }
 
       return {
-        content: null,
-        embeds: [generateEmbed()],
+        embeds: [generateListEmbed()],
         files: [],
         components: [
           makeSelectRow(),
@@ -436,9 +341,7 @@ module.exports = {
       };
     }
 
-    const msg = await message.reply(
-      await getMessagePayload()
-    );
+    const msg = await message.reply(getPayload());
 
     const collector = msg.createMessageComponentCollector({
       time: 120000
@@ -457,32 +360,43 @@ module.exports = {
       if (interaction.customId === "col_sort") {
         applySort(interaction.values[0]);
         page = 0;
+        imageIndex = 0;
+
+        return interaction.update(getPayload());
+      }
+
+      if (interaction.customId === "col_view") {
+        viewMode =
+          viewMode === "list"
+            ? "image"
+            : "list";
+
+        return interaction.update(getPayload());
       }
 
       if (interaction.customId === "col_next") {
-        page++;
-
-        if (page >= getTotalPages()) {
-          page = 0;
+        if (viewMode === "list") {
+          page++;
+          if (page >= getTotalPages()) page = 0;
+        } else {
+          imageIndex++;
+          if (imageIndex >= filteredCards.length) imageIndex = 0;
         }
+
+        return interaction.update(getPayload());
       }
 
       if (interaction.customId === "col_prev") {
-        page--;
-
-        if (page < 0) {
-          page = getTotalPages() - 1;
+        if (viewMode === "list") {
+          page--;
+          if (page < 0) page = getTotalPages() - 1;
+        } else {
+          imageIndex--;
+          if (imageIndex < 0) imageIndex = filteredCards.length - 1;
         }
-      }
 
-      if (interaction.customId === "col_mode") {
-        imageMode = !imageMode;
-        page = 0;
+        return interaction.update(getPayload());
       }
-
-      await interaction.update(
-        await getMessagePayload()
-      );
     });
 
     collector.on("end", async () => {
