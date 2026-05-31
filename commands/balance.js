@@ -29,13 +29,23 @@ module.exports = {
     if (!userBalance) {
 
       await balances.insertOne({
+
         userId,
-        coins: 0
+
+        coins: 0,
+
+        ultronChips: 0
+
       });
 
       userBalance = {
+
         userId,
-        coins: 0
+
+        coins: 0,
+
+        ultronChips: 0
+
       };
 
     }
@@ -43,28 +53,39 @@ module.exports = {
     const coins =
       userBalance.coins || 0;
 
+    const ultronChips =
+      userBalance.ultronChips || 0;
+
     const embed =
       new EmbedBuilder()
 
         .setColor(0xffd700)
 
         .setTitle(
-          `<:grootcoin:1504742213110861834> ${message.author.username}'s Balance`
+          `${message.author.username}'s Balance`
         )
 
         .setDescription(
-          `<:grootcoin:1504742213110861834> Coins: **${coins}**`
+
+          `<:grootcoin:1504742213110861834> Coins: **${coins.toLocaleString()}**\n` +
+
+          `🎫 Ultron Chips: **${ultronChips.toLocaleString()}**`
+
         )
 
         .setFooter({
+
           text:
             "GrootX Economy System"
+
         })
 
         .setTimestamp();
 
     await message.reply({
+
       embeds: [embed]
+
     });
 
   }
