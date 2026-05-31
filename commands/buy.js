@@ -16,19 +16,24 @@ const storeItems = {
   },
 
   extra_drop: {
-    currency: "token",
-    cost: 1
-  },
+  currency: "ultron_chips",
+  cost: 3
+},
 
-  shard_booster: {
-    currency: "token",
-    cost: 3
-  },
+extra_grab: {
+  currency: "ultron_chips",
+  cost: 3
+},
 
-  coin_booster: {
-    currency: "token",
-    cost: 3
-  },
+shard_booster: {
+  currency: "ultron_chips",
+  cost: 1
+},
+
+coin_booster: {
+  currency: "ultron_chips",
+  cost: 1
+},
 
   album: {
     currency: "coins",
@@ -109,11 +114,14 @@ module.exports = {
 
     let userAmount;
 
-    if (currency === "coins") {
-      userAmount = balanceDoc.coins || 0;
-    } else {
-      userAmount = items.token || 0;
-    }
+if (currency === "coins") {
+  userAmount = balanceDoc.coins || 0;
+} else {
+  userAmount =
+    balanceDoc.ultronChips ||
+    balanceDoc.ultronchips ||
+    0;
+}
 
     if (userAmount < cost) {
       return message.reply(
@@ -132,14 +140,14 @@ module.exports = {
         }
       );
     } else {
-      await inventoryCol.updateOne(
-        { userId },
-        {
-          $inc: {
-            "items.token": -cost
-          }
-        }
-      );
+     await balancesCol.updateOne(
+  { userId },
+  {
+    $inc: {
+      ultronChips: -cost
+    }
+  }
+);
     }
 
     if (item === "trade_voucher") {

@@ -19,7 +19,8 @@ module.exports = {
         )
 
         .setDescription(
-          "Purchase items using Coins or Tokens."
+          "Purchase items using <:grootcoin:1504742213110861834> Coins or 🎫 Ultron Chips.\n" +
+          "Use `!buy <item>` to purchase."
         )
 
         .addFields(
@@ -29,8 +30,8 @@ module.exports = {
               "<:guantlet:1504854241360085066> Gauntlet",
 
             value:
-              "Cost: 15,000 Coins\n" +
-              "Used for the Snap system.",
+              "**Cost:** 15,000 Coins\n" +
+              "**Use:** Required for the Snap system.",
 
             inline: false
           },
@@ -40,9 +41,9 @@ module.exports = {
               "📜 Trade Voucher",
 
             value:
-              "Cost: 7,000 Coins\n" +
-              "Required to trade with other players.\n" +
-              "Expires after 30 days.",
+              "**Cost:** 7,000 Coins\n" +
+              "**Use:** Required to trade with other players.\n" +
+              "**Duration:** Expires after 30 days.",
 
             inline: false
           },
@@ -52,8 +53,8 @@ module.exports = {
               "📘 Album",
 
             value:
-              "Cost: 5,000 Coins\n" +
-              "Used to create a custom card album.",
+              "**Cost:** 5,000 Coins\n" +
+              "**Use:** Create a custom card album.",
 
             inline: false
           },
@@ -63,8 +64,8 @@ module.exports = {
               "📄 Page",
 
             value:
-              "Cost: 1,500 Coins\n" +
-              "Used to add a page inside an album.",
+              "**Cost:** 1,500 Coins\n" +
+              "**Use:** Add one extra page inside an album.",
 
             inline: false
           },
@@ -74,8 +75,19 @@ module.exports = {
               "🌌 Extra Drop",
 
             value:
-              "Cost: 1 Token\n" +
-              "Instantly grants an extra drop.",
+              "**Cost:** 1 🎫 Ultron Chip\n" +
+              "**Use:** Instantly gives you one extra drop.",
+
+            inline: false
+          },
+
+          {
+            name:
+              "⚡ Extra Grab",
+
+            value:
+              "**Cost:** 1 🎫 Ultron Chip\n" +
+              "**Use:** Instantly resets your pickup/grab cooldown once.",
 
             inline: false
           },
@@ -85,8 +97,8 @@ module.exports = {
               "✨ Shard Booster",
 
             value:
-              "Cost: 3 Tokens\n" +
-              "2x shards from next burn.",
+              "**Cost:** 3 🎫 Ultron Chips\n" +
+              "**Use:** Gives 2x shards from your next burn.",
 
             inline: false
           },
@@ -96,8 +108,8 @@ module.exports = {
               "💰 Coin Booster",
 
             value:
-              "Cost: 3 Tokens\n" +
-              "2x coins from next burn.",
+              "**Cost:** 3 🎫 Ultron Chips\n" +
+              "**Use:** Gives 2x coins from your next burn.",
 
             inline: false
           }
@@ -106,7 +118,7 @@ module.exports = {
 
         .setFooter({
           text:
-            "Use !buy <item> to purchase."
+            "GrootX Store • Use !buy <item>"
         })
 
         .setTimestamp();
