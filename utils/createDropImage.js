@@ -7,26 +7,22 @@ const path = require("path");
 
 async function createDropImage(cards) {
 
-  // SMALLER CLEANER SIZE
   const cardWidth = 220;
   const cardHeight = 320;
-
   const spacing = 20;
 
   const width =
-    (cardWidth * 3) +
-    (spacing * 4);
+    (cardWidth * cards.length) +
+    (spacing * (cards.length + 1));
 
   const height = 380;
 
-  // CANVAS
   const canvas =
     createCanvas(width, height);
 
   const ctx =
     canvas.getContext("2d");
 
-  // BACKGROUND
   ctx.fillStyle =
     "#1e1f22";
 
@@ -37,62 +33,64 @@ async function createDropImage(cards) {
     height
   );
 
-  // CARD POSITIONS
-  const positions = [
-
-    spacing,
-
-    spacing * 2 +
-    cardWidth,
-
-    spacing * 3 +
-    (cardWidth * 2)
-
-  ];
-
-  // DRAW CARDS
   for (let i = 0; i < cards.length; i++) {
 
     const card =
       cards[i];
 
-    // IMAGE PATH
     const imagePath =
       path.join(
-
         __dirname,
         "..",
         "images",
         card.image
-
       );
 
-    // LOAD IMAGE
     const image =
       await loadImage(
         imagePath
       );
 
-    // DRAW IMAGE
+    const x =
+      spacing +
+      i * (cardWidth + spacing);
+
     ctx.drawImage(
-
       image,
-
-      positions[i],
-
+      x,
       25,
-
       cardWidth,
-
       cardHeight
-
     );
 
+    // number overlay
+    ctx.fillStyle =
+      "rgba(0,0,0,0.75)";
+
+    ctx.fillRect(
+      x,
+      25,
+      40,
+      40
+    );
+
+    ctx.fillStyle =
+      "#ffffff";
+
+    ctx.font =
+      "bold 24px Arial";
+
+    ctx.textAlign =
+      "center";
+
+    ctx.fillText(
+      String(i + 1),
+      x + 20,
+      52
+    );
   }
 
-  // FINAL IMAGE
   return canvas.toBuffer();
-
 }
 
 module.exports =

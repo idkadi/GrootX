@@ -1,4 +1,11 @@
 const cards = require("../data/cards");
+const path = require("path");
+
+const {
+  EmbedBuilder,
+  AttachmentBuilder
+} = require("discord.js");
+
 const connectDB = require("../database");
 
 function getStoneKey(stone) {
@@ -13,7 +20,9 @@ function getRandomSameTierCard(oldCard) {
 
   if (!sameTierCards.length) return null;
 
-  return sameTierCards[Math.floor(Math.random() * sameTierCards.length)];
+  return sameTierCards[
+    Math.floor(Math.random() * sameTierCards.length)
+  ];
 }
 
 module.exports = {
@@ -29,7 +38,14 @@ module.exports = {
       );
     }
 
-    const allowed = ["power", "time", "mind", "reality", "space", "soul"];
+    const allowed = [
+      "power",
+      "time",
+      "mind",
+      "reality",
+      "space",
+      "soul"
+    ];
 
     if (!allowed.includes(stone)) {
       return message.reply("❌ Invalid stone.");
@@ -44,15 +60,19 @@ module.exports = {
     const inventoryCol = db.collection("inventory");
     const collectionsCol = db.collection("collections");
     const stoneEffectsCol = db.collection("stoneeffects");
+    const serialsCol = db.collection("serials");
 
     const userId = message.author.id;
     const stoneKey = getStoneKey(stone);
 
     const inventory = await inventoryCol.findOne({ userId });
-    const stoneAmount = inventory?.items?.[`${stone}_stone`] || 0;
+    const stoneAmount =
+      inventory?.items?.[`${stone}_stone`] || 0;
 
     if (stoneAmount <= 0) {
-      return message.reply(`❌ You don't have a ${stone} stone.`);
+      return message.reply(
+        `❌ You don't have a ${stone} stone.`
+      );
     }
 
     if (stone === "power") {
@@ -66,14 +86,16 @@ module.exports = {
         {
           $set: {
             userId,
-            powerUntil: Date.now() + 3 * 60 * 60 * 1000
+            powerUntil:
+              Date.now() + 3 * 60 * 60 * 1000
           }
         },
         { upsert: true }
       );
 
       return message.reply(
-        "💪 **Power Stone activated!**\nYou can overpower drop priority for **3 hours**."
+        "💪 **Power Stone activated!**\n" +
+        "You can overpower drop priority for **3 hours**."
       );
     }
 
@@ -88,14 +110,16 @@ module.exports = {
         {
           $set: {
             userId,
-            timeUntil: Date.now() + 30 * 60 * 1000
+            timeUntil:
+              Date.now() + 30 * 60 * 1000
           }
         },
         { upsert: true }
       );
 
       return message.reply(
-        "⏳ **Time Stone activated!**\nDrop and grab cooldowns are **2x faster for 30 minutes**."
+        "⏳ **Time Stone activated!**\n" +
+        "Drop and grab cooldowns are **2x faster for 30 minutes**."
       );
     }
 
@@ -117,13 +141,16 @@ module.exports = {
       );
 
       return message.reply(
-        "🧠 **Mind Stone activated!**\nYour next **3 drops** will drop **4 cards**."
+        "🧠 **Mind Stone activated!**\n" +
+        "Your next **3 drops** will drop **4 cards**."
       );
     }
 
     if (stone === "reality") {
       if (!code) {
-        return message.reply("❌ Use: `!stone reality <cardcode>`");
+        return message.reply(
+          "❌ Use: `!stone reality <cardcode>`"
+        );
       }
 
       const ownedCard = await collectionsCol.findOne({
@@ -132,7 +159,9 @@ module.exports = {
       });
 
       if (!ownedCard) {
-        return message.reply("❌ You don't own that card.");
+        return message.reply(
+          "❌ You don't own that card."
+        );
       }
 
       const oldCard = cards.find(
@@ -146,8 +175,22 @@ module.exports = {
       const newCard = getRandomSameTierCard(oldCard);
 
       if (!newCard) {
-        return message.reply("❌ No same-tier card available.");
+        return message.reply(
+          "❌ No same-tier card available."
+        );
       }
+
+      await serialsCol.updateOne(
+        { cardId: newCard.id },
+        { $inc: { serial: 1 } },
+        { upsert: true }
+      );
+
+      const serialDoc = await serialsCol.findOne({
+        cardId: newCard.id
+      });
+
+      const newSerial = serialDoc.serial;
 
       await inventoryCol.updateOne(
         { userId },
@@ -158,16 +201,66 @@ module.exports = {
         { userId, code },
         {
           $set: {
-            cardId: newCard.id
+            cardId: newCard.id,
+            serial: newSerial
           }
         }
       );
 
-      return message.reply(
-        "🌀 **Reality Stone used!**\n" +
-        `\`${code}\` changed from **${oldCard.name}** to **${newCard.name}**.\n` +
-        `Tier stayed: **${oldCard.tier}**`
+      const oldImageName =
+        `old_${oldCard.image.split("/").pop()}`;
+
+      const newImageName =
+        `new_${newCard.image.split("/").pop()}`;
+
+      const oldImagePath = path.join(
+        __dirname,
+        "..",
+        "images",
+        oldCard.image
       );
+
+      const newImagePath = path.join(
+        __dirname,
+        "..",
+        "images",
+        newCard.image
+      );
+
+      const oldAttachment =
+        new AttachmentBuilder(oldImagePath, {
+          name: oldImageName
+        });
+
+      const newAttachment =
+        new AttachmentBuilder(newImagePath, {
+          name: newImageName
+        });
+
+      const embed = new EmbedBuilder()
+        .setColor(0x8a2be2)
+        .setTitle("🌀 Reality Stone Used")
+        .setDescription(
+          `Reality has rewritten card \`${code}\`.\n\n` +
+          `**Before:** ${oldCard.name} #${ownedCard.serial}\n` +
+          `**After:** ${newCard.name} #${newSerial}\n\n` +
+          `Tier stayed: **${oldCard.tier}**`
+        )
+        .setThumbnail(`attachment://${oldImageName}`)
+        .setImage(`attachment://${newImageName}`)
+        .setFooter({
+          text:
+            "Thumbnail = old card • Main image = new card"
+        })
+        .setTimestamp();
+
+      return message.reply({
+        embeds: [embed],
+        files: [
+          oldAttachment,
+          newAttachment
+        ]
+      });
     }
   }
 };
