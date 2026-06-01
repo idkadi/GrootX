@@ -30,7 +30,8 @@ module.exports = {
         "**Examples:**\n" +
         "`!search n: iron man`\n" +
         "`!search s: daredevil`\n" +
-        "`!search t: spider`"
+        "`!search t: spider`\n" +
+        "`!search t:untag`"
       );
     }
 
@@ -103,7 +104,12 @@ module.exports = {
       }
 
       if (searchType === "tag") {
-        const savedTag = tagMap[String(entry.code).toLowerCase()];
+        const savedTag =
+          tagMap[String(entry.code).toLowerCase()];
+
+        if (searchValue === "untag") {
+          return !savedTag || !savedTag.tagName;
+        }
 
         return (
           savedTag &&
@@ -117,7 +123,9 @@ module.exports = {
 
     if (matchingCards.length === 0) {
       return message.reply(
-        `❌ No cards found for:\n\`${searchValue}\``
+        searchType === "tag" && searchValue === "untag"
+          ? "❌ No untagged cards found."
+          : `❌ No cards found for:\n\`${searchValue}\``
       );
     }
 
@@ -140,7 +148,8 @@ module.exports = {
 
         const emoji = rarityEmojis[card.tier] || "🎴";
 
-        const savedTag = tagMap[String(entry.code).toLowerCase()];
+        const savedTag =
+          tagMap[String(entry.code).toLowerCase()];
 
         const tagText = savedTag?.emoji
           ? `${savedTag.emoji} • `
