@@ -29,10 +29,10 @@ function getTierEmoji(tier) {
 function getRandomTier() {
   const chance = Math.random() * 100;
 
-  if (chance < 65) return "common";
-  if (chance < 90) return "uncommon";
-  if (chance < 98) return "rare";
-  if (chance < 99.7) return "epic";
+  if (chance < 60) return "common";
+  if (chance < 87.5) return "uncommon";
+  if (chance < 97.5) return "rare";
+  if (chance < 99.5) return "epic";
 
   return "legendary";
 }
@@ -294,7 +294,7 @@ module.exports = {
 
       attemptedBy[index].add(claimerId);
 
-      const priorityTime = 6 * 1000;
+      const priorityTime = 5 * 1000;
 
       if (
         claimNow - dropStartedAt < priorityTime &&
@@ -308,7 +308,7 @@ module.exports = {
         userId: claimerId
       });
 
-      const pickupTime = 5 * 60 * 1000;
+      const pickupTime = 4 * 60 * 1000;
 
       let usedExtraGrab = false;
 
