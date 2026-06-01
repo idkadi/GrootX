@@ -11,18 +11,12 @@ const connectDB = require("../database");
 
 function getTierEmoji(tier) {
   switch (tier.toLowerCase()) {
-    case "common":
-      return "<:common:1504510702956839033>";
-    case "uncommon":
-      return "<:uncommon:1504510929210052698>";
-    case "rare":
-      return "<:rare:1504510606718275764>";
-    case "epic":
-      return "<:epic:1504510771214680175>";
-    case "legendary":
-      return "<:legendary:1504511435974377552>";
-    default:
-      return "❓";
+    case "common": return "<:common:1504510702956839033>";
+    case "uncommon": return "<:uncommon:1504510929210052698>";
+    case "rare": return "<:rare:1504510606718275764>";
+    case "epic": return "<:epic:1504510771214680175>";
+    case "legendary": return "<:legendary:1504511435974377552>";
+    default: return "❓";
   }
 }
 
@@ -44,9 +38,7 @@ async function generateUniqueCode(collectionsCol) {
     let code = "";
 
     for (let i = 0; i < 6; i++) {
-      code += chars.charAt(
-        Math.floor(Math.random() * chars.length)
-      );
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
 
     const exists = await collectionsCol.findOne({ code });
@@ -131,16 +123,23 @@ module.exports = {
     const cooldownsCol = db.collection("cooldowns");
     const recentDropsCol = db.collection("recentDrops");
     const inventoryCol = db.collection("inventory");
+    const stoneEffectsCol = db.collection("stoneeffects");
 
     const userId = message.author.id;
     const now = Date.now();
+
+    const stoneEffect = await stoneEffectsCol.findOne({ userId });
 
     const dropCooldown = await cooldownsCol.findOne({
       type: "drop",
       userId
     });
 
-    const cooldownTime = 8 * 60 * 1000;
+    let cooldownTime = 8 * 60 * 1000;
+
+    if (stoneEffect?.timeUntil && stoneEffect.timeUntil > now) {
+      cooldownTime = cooldownTime / 2;
+    }
 
     let usedExtraDrop = false;
 
@@ -148,18 +147,11 @@ module.exports = {
       dropCooldown &&
       now - dropCooldown.timestamp < cooldownTime
     ) {
-      const inventoryDoc =
-        await inventoryCol.findOne({
-          userId
-        });
-
-      const extraDrops =
-        inventoryDoc?.items?.extra_drop || 0;
+      const inventoryDoc = await inventoryCol.findOne({ userId });
+      const extraDrops = inventoryDoc?.items?.extra_drop || 0;
 
       if (extraDrops <= 0) {
-        const remaining =
-          cooldownTime - (now - dropCooldown.timestamp);
-
+        const remaining = cooldownTime - (now - dropCooldown.timestamp);
         const minutes = Math.floor(remaining / 60000);
         const seconds = Math.floor((remaining % 60000) / 1000);
 
@@ -169,9 +161,7 @@ module.exports = {
       }
 
       await inventoryCol.updateOne(
-        {
-          userId
-        },
+        { userId },
         {
           $inc: {
             "items.extra_drop": -1
@@ -198,26 +188,36 @@ module.exports = {
       }
     );
 
+    let cardsToDrop = 3;
+    let mindStoneUsed = false;
+
+    if ((stoneEffect?.mindDropsRemaining || 0) > 0) {
+      cardsToDrop = 4;
+      mindStoneUsed = true;
+
+      await stoneEffectsCol.updateOne(
+        { userId },
+        {
+          $inc: {
+            mindDropsRemaining: -1
+          }
+        }
+      );
+    }
+
     const recentDrops = await getRecentDrops(recentDropsCol);
 
     const dropCards = [];
     const usedShows = [];
-
     const claimedUsers = new Set();
 
-    const claimedCards = [
-      false,
-      false,
-      false
-    ];
+    const claimedCards = Array(cardsToDrop).fill(false);
 
-    const attemptedBy = [
-      new Set(),
-      new Set(),
-      new Set()
-    ];
+    const attemptedBy = Array(cardsToDrop)
+      .fill(null)
+      .map(() => new Set());
 
-    while (dropCards.length < 3) {
+    while (dropCards.length < cardsToDrop) {
       const rarity = getRandomTier();
 
       const randomCard = pickWithoutRecent(
@@ -238,34 +238,37 @@ module.exports = {
 
     const dropImage = await createDropImage(dropCards);
 
+    const powerActive =
+      stoneEffect?.powerUntil && stoneEffect.powerUntil > now;
+
+    const timeActive =
+      stoneEffect?.timeUntil && stoneEffect.timeUntil > now;
+
+    const effectText =
+      (usedExtraDrop ? "🌌 **Extra Drop Used!**\n" : "") +
+      (mindStoneUsed ? "🧠 **Mind Stone Active! (4 Cards)**\n" : "") +
+      (powerActive ? "💪 **Power Stone Active!**\n" : "") +
+      (timeActive ? "⏳ **Time Stone Active!**\n" : "");
+
     const dropText =
       "🎴 **A New Drop Has Appeared!**\n" +
       "\u200B\n" +
-      (
-        usedExtraDrop
-          ? "🌌 **Extra Drop Used!**\n\n"
-          : ""
-      ) +
+      effectText +
+      "\n" +
       dropCards.map((card, index) =>
         `**${index + 1}.** ${getTierEmoji(card.tier)} **${card.name}**`
       ).join("\n");
 
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId("claim_0")
-        .setLabel("1️⃣")
-        .setStyle(ButtonStyle.Primary),
+    const row = new ActionRowBuilder();
 
-      new ButtonBuilder()
-        .setCustomId("claim_1")
-        .setLabel("2️⃣")
-        .setStyle(ButtonStyle.Primary),
-
-      new ButtonBuilder()
-        .setCustomId("claim_2")
-        .setLabel("3️⃣")
-        .setStyle(ButtonStyle.Primary)
-    );
+    for (let i = 0; i < cardsToDrop; i++) {
+      row.addComponents(
+        new ButtonBuilder()
+          .setCustomId(`claim_${i}`)
+          .setLabel(`${i + 1}`)
+          .setStyle(ButtonStyle.Primary)
+      );
+    }
 
     const dropMessage = await message.reply({
       content: dropText,
@@ -288,17 +291,28 @@ module.exports = {
       const claimerId = interaction.user.id;
       const claimNow = Date.now();
 
-      const index = parseInt(
-        interaction.customId.split("_")[1]
-      );
+      const index = parseInt(interaction.customId.split("_")[1]);
 
       attemptedBy[index].add(claimerId);
 
-      const priorityTime = 5 * 1000;
+      const claimerEffect = await stoneEffectsCol.findOne({
+        userId: claimerId
+      });
+
+      const dropperPowerActive =
+        stoneEffect?.powerUntil && stoneEffect.powerUntil > claimNow;
+
+      const claimerPowerActive =
+        claimerEffect?.powerUntil && claimerEffect.powerUntil > claimNow;
+
+      const priorityTime = dropperPowerActive
+        ? 6 * 1000
+        : 5 * 1000;
 
       if (
         claimNow - dropStartedAt < priorityTime &&
-        claimerId !== userId
+        claimerId !== userId &&
+        !claimerPowerActive
       ) {
         return interaction.deferUpdate().catch(() => {});
       }
@@ -308,7 +322,11 @@ module.exports = {
         userId: claimerId
       });
 
-      const pickupTime = 4 * 60 * 1000;
+      let pickupTime = 4 * 60 * 1000;
+
+      if (claimerEffect?.timeUntil && claimerEffect.timeUntil > claimNow) {
+        pickupTime = pickupTime / 2;
+      }
 
       let usedExtraGrab = false;
 
@@ -316,24 +334,19 @@ module.exports = {
         pickupCooldown &&
         claimNow - pickupCooldown.timestamp < pickupTime
       ) {
-        const inventoryDoc =
-          await inventoryCol.findOne({
-            userId: claimerId
-          });
+        const inventoryDoc = await inventoryCol.findOne({
+          userId: claimerId
+        });
 
-        const extraGrabs =
-          inventoryDoc?.items?.extra_grab || 0;
+        const extraGrabs = inventoryDoc?.items?.extra_grab || 0;
 
         if (extraGrabs <= 0) {
-          const remaining =
-            pickupTime - (claimNow - pickupCooldown.timestamp);
-
+          const remaining = pickupTime - (claimNow - pickupCooldown.timestamp);
           const minutes = Math.floor(remaining / 60000);
           const seconds = Math.floor((remaining % 60000) / 1000);
 
           return interaction.reply({
-            content:
-              `❌ You can claim again in ${minutes}m ${seconds}s.`,
+            content: `❌ You can claim again in ${minutes}m ${seconds}s.`,
             ephemeral: true
           });
         }
@@ -391,7 +404,6 @@ module.exports = {
       });
 
       const serial = serialDoc.serial;
-
       const code = await generateUniqueCode(collectionsCol);
 
       await collectionsCol.insertOne({
@@ -427,8 +439,7 @@ module.exports = {
         components: [row]
       });
 
-      const challengers =
-        attemptedBy[index].size - 1;
+      const challengers = attemptedBy[index].size - 1;
 
       let claimText;
 
@@ -441,6 +452,15 @@ module.exports = {
           `⚔️ ${interaction.user} fought off ` +
           `${challengers} challenger${challengers === 1 ? "" : "s"} ` +
           `and took ${getTierEmoji(claimedCard.tier)} ` +
+          `**${claimedCard.name}** #${serial} • ${code}!`;
+      } else if (
+        claimerPowerActive &&
+        claimerId !== userId &&
+        claimNow - dropStartedAt < priorityTime
+      ) {
+        claimText =
+          `💪 ${interaction.user} used the **Power Stone** and overpowered priority, claiming ` +
+          `${getTierEmoji(claimedCard.tier)} ` +
           `**${claimedCard.name}** #${serial} • ${code}!`;
       } else {
         claimText =
