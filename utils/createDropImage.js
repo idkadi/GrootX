@@ -7,15 +7,25 @@ const path = require("path");
 
 async function createDropImage(cards) {
 
-  const cardWidth = 220;
-  const cardHeight = 320;
   const spacing = 20;
+
+  // Smaller cards when 4-card drop
+  const cardWidth =
+    cards.length === 4
+      ? 180
+      : 220;
+
+  const cardHeight =
+    cards.length === 4
+      ? 260
+      : 320;
 
   const width =
     (cardWidth * cards.length) +
     (spacing * (cards.length + 1));
 
-  const height = 380;
+  const height =
+    cardHeight + 50;
 
   const canvas =
     createCanvas(width, height);
@@ -23,6 +33,7 @@ async function createDropImage(cards) {
   const ctx =
     canvas.getContext("2d");
 
+  // Background
   ctx.fillStyle =
     "#1e1f22";
 
@@ -33,6 +44,7 @@ async function createDropImage(cards) {
     height
   );
 
+  // Draw cards
   for (let i = 0; i < cards.length; i++) {
 
     const card =
@@ -61,32 +73,6 @@ async function createDropImage(cards) {
       25,
       cardWidth,
       cardHeight
-    );
-
-    // number overlay
-    ctx.fillStyle =
-      "rgba(0,0,0,0.75)";
-
-    ctx.fillRect(
-      x,
-      25,
-      40,
-      40
-    );
-
-    ctx.fillStyle =
-      "#ffffff";
-
-    ctx.font =
-      "bold 24px Arial";
-
-    ctx.textAlign =
-      "center";
-
-    ctx.fillText(
-      String(i + 1),
-      x + 20,
-      52
     );
   }
 
