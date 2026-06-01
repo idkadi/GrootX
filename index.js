@@ -3,20 +3,16 @@ require("dotenv").config();
 const fs = require("fs");
 const path = require("path");
 
-const connectDB =
-  require("./database");
-
-const cards =
-  require("./data/cards");
-
-const autoDrop =
-  require("./systems/autoDrop");
+const connectDB = require("./database");
+const cards = require("./data/cards");
+const autoDrop = require("./systems/autoDrop");
 
 const {
   Client,
   GatewayIntentBits,
   Partials,
-  Collection
+  Collection,
+  ActivityType
 } = require("discord.js");
 
 console.log("\n========== CARD LOADING ==========");
@@ -25,8 +21,7 @@ console.log(`✅ Total Cards Loaded: ${cards.length}`);
 let brokenImages = 0;
 
 cards.forEach(card => {
-  const imagePath =
-    path.join(__dirname, "images", card.image);
+  const imagePath = path.join(__dirname, "images", card.image);
 
   if (!fs.existsSync(imagePath)) {
     console.log(`❌ Missing Image: ${card.image}`);
@@ -45,6 +40,7 @@ console.log("==================================\n");
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildMessageReactions
@@ -56,100 +52,106 @@ const client = new Client({
   ]
 });
 
-client.commands =
-  new Collection();
+client.commands = new Collection();
 
-const commandsPath =
-  path.join(__dirname, "commands");
+const commandsPath = path.join(__dirname, "commands");
 
-const commandFiles =
-  fs.readdirSync(commandsPath)
-    .filter(file => file.endsWith(".js"));
+const commandFiles = fs
+  .readdirSync(commandsPath)
+  .filter(file => file.endsWith(".js"));
 
 for (const file of commandFiles) {
-  const filePath =
-    path.join(commandsPath, file);
-
-  const command =
-    require(filePath);
+  const filePath = path.join(commandsPath, file);
+  const command = require(filePath);
 
   client.commands.set(command.name, command);
 }
 
+function updateBotStatus() {
+  try {
+    const serverCount = client.guilds.cache.size;
+
+    const playerCount = client.guilds.cache.reduce(
+      (total, guild) => total + (guild.memberCount || 0),
+      0
+    );
+
+    client.user.setPresence({
+      activities: [
+        {
+          name: `${playerCount} Heroes • ${serverCount} Servers`,
+          type: ActivityType.Watching
+        }
+      ],
+      status: "online"
+    });
+
+    console.log(
+      `✅ Status updated: ${playerCount} Heroes • ${serverCount} Servers`
+    );
+  } catch (err) {
+    console.error("❌ Status update error:", err);
+  }
+}
+
 async function startReminderChecker(client) {
-  const db =
-    await connectDB();
+  const db = await connectDB();
 
-  const remindersCol =
-    db.collection("reminders");
-
-  const cooldownsCol =
-    db.collection("cooldowns");
+  const remindersCol = db.collection("reminders");
+  const cooldownsCol = db.collection("cooldowns");
 
   setInterval(async () => {
-    const now =
-      Date.now();
+    const now = Date.now();
 
-    const reminders =
-      await remindersCol.find({
-        enabled: true
-      }).toArray();
+    const reminders = await remindersCol.find({
+      enabled: true
+    }).toArray();
 
     for (const reminder of reminders) {
       let cooldownDoc = null;
       let cooldownTime = 0;
 
       if (reminder.type === "drop") {
-        cooldownDoc =
-          await cooldownsCol.findOne({
-            userId: reminder.userId,
-            type: "drop"
-          });
+        cooldownDoc = await cooldownsCol.findOne({
+          userId: reminder.userId,
+          type: "drop"
+        });
 
-        cooldownTime =
-          8 * 60 * 1000;
+        cooldownTime = 8 * 60 * 1000;
       }
 
       else if (reminder.type === "pickup") {
-        cooldownDoc =
-          await cooldownsCol.findOne({
-            userId: reminder.userId,
-            type: "pickup"
-          });
+        cooldownDoc = await cooldownsCol.findOne({
+          userId: reminder.userId,
+          type: "pickup"
+        });
 
-        cooldownTime =
-          5 * 60 * 1000;
+        cooldownTime = 5 * 60 * 1000;
       }
 
       else if (reminder.type === "vote") {
-        cooldownDoc =
-          await cooldownsCol.findOne({
-            userId: reminder.userId,
-            type: "vote"
-          });
+        cooldownDoc = await cooldownsCol.findOne({
+          userId: reminder.userId,
+          type: "vote"
+        });
 
-        cooldownTime =
-          12 * 60 * 60 * 1000;
+        cooldownTime = 12 * 60 * 60 * 1000;
       }
 
       else if (reminder.type === "daily") {
-        cooldownDoc =
-          await db.collection("daily").findOne({
-            userId: reminder.userId
-          });
+        cooldownDoc = await db.collection("daily").findOne({
+          userId: reminder.userId
+        });
 
-        cooldownTime =
-          24 * 60 * 60 * 1000;
+        cooldownTime = 24 * 60 * 60 * 1000;
       }
 
       else if (reminder.type === "weekly") {
-        cooldownDoc =
-          await db.collection("weekly").findOne({
-            userId: reminder.userId
-          });
+        cooldownDoc = await db.collection("weekly").findOne({
+          userId: reminder.userId
+        });
 
-        cooldownTime =
-          7 * 24 * 60 * 60 * 1000;
+        cooldownTime = 7 * 24 * 60 * 60 * 1000;
       }
 
       if (!cooldownDoc?.timestamp) continue;
@@ -205,83 +207,77 @@ async function startReminderChecker(client) {
   }, 60 * 1000);
 }
 
-client.once(
-  "clientReady",
+client.once("clientReady", async () => {
+  await connectDB();
 
-  async () => {
-    await connectDB();
+  console.log(`${client.user.tag} is online!`);
 
-    console.log(
-      `${client.user.tag} is online!`
+  updateBotStatus();
+
+  setInterval(
+    updateBotStatus,
+    5 * 60 * 1000
+  );
+
+  autoDrop(client);
+
+  startReminderChecker(client);
+});
+
+client.on("guildCreate", () => {
+  updateBotStatus();
+});
+
+client.on("guildDelete", () => {
+  updateBotStatus();
+});
+
+client.on("messageCreate", async message => {
+  if (message.author.bot) return;
+
+  const db = await connectDB();
+
+  const prefixesCol = db.collection("prefixes");
+
+  const guildPrefix = await prefixesCol.findOne({
+    guildId: message.guild?.id
+  });
+
+  const PREFIX = guildPrefix?.prefix || "!";
+
+  if (!message.content.startsWith(PREFIX)) return;
+
+  const args = message.content
+    .slice(PREFIX.length)
+    .trim()
+    .split(/ +/);
+
+  const commandName = args.shift().toLowerCase();
+
+  const command =
+    client.commands.get(commandName) ||
+    client.commands.find(cmd =>
+      cmd.aliases &&
+      cmd.aliases.includes(commandName)
     );
 
-    autoDrop(client);
+  if (!command) return;
 
-    startReminderChecker(client);
+  try {
+    await command.execute(
+      message,
+      args,
+      client
+    );
   }
-);
 
-client.on(
-  "messageCreate",
+  catch (error) {
+    console.error(error);
 
-  async message => {
-    if (message.author.bot)
-      return;
-
-    const db =
-      await connectDB();
-
-    const prefixesCol =
-      db.collection("prefixes");
-
-    const guildPrefix =
-      await prefixesCol.findOne({
-        guildId: message.guild?.id
-      });
-
-    const PREFIX =
-      guildPrefix?.prefix || "!";
-
-    if (!message.content.startsWith(PREFIX))
-      return;
-
-    const args =
-      message.content
-        .slice(PREFIX.length)
-        .trim()
-        .split(/ +/);
-
-    const commandName =
-      args.shift().toLowerCase();
-
-    const command =
-      client.commands.get(commandName) ||
-      client.commands.find(cmd =>
-        cmd.aliases &&
-        cmd.aliases.includes(commandName)
-      );
-
-    if (!command)
-      return;
-
-    try {
-      await command.execute(
-        message,
-        args,
-        client
-      );
-    }
-
-    catch (error) {
-      console.error(error);
-
-      message.reply(
-        "❌ An error occurred while executing this command."
-      );
-    }
+    message.reply(
+      "❌ An error occurred while executing this command."
+    );
   }
-);
+});
 
-client.login(
-  process.env.TOKEN
-);
+client.login(process.env.TOKEN);

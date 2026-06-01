@@ -211,6 +211,12 @@ module.exports = {
       false
     ];
 
+    const attemptedBy = [
+      new Set(),
+      new Set(),
+      new Set()
+    ];
+
     while (dropCards.length < 3) {
       const rarity = getRandomTier();
 
@@ -282,22 +288,19 @@ module.exports = {
       const claimerId = interaction.user.id;
       const claimNow = Date.now();
 
-      const priorityTime = 7 * 1000;
+      const index = parseInt(
+        interaction.customId.split("_")[1]
+      );
+
+      attemptedBy[index].add(claimerId);
+
+      const priorityTime = 6 * 1000;
 
       if (
         claimNow - dropStartedAt < priorityTime &&
         claimerId !== userId
       ) {
-        const left =
-          Math.ceil(
-            (priorityTime - (claimNow - dropStartedAt)) / 1000
-          );
-
-        return interaction.reply({
-          content:
-            `⏳ The dropper has priority for ${left}s.`,
-          ephemeral: true
-        });
+        return interaction.deferUpdate().catch(() => {});
       }
 
       const pickupCooldown = await cooldownsCol.findOne({
@@ -348,10 +351,6 @@ module.exports = {
 
         usedExtraGrab = true;
       }
-
-      const index = parseInt(
-        interaction.customId.split("_")[1]
-      );
 
       if (claimedUsers.has(claimerId)) {
         return interaction.reply({
@@ -428,18 +427,34 @@ module.exports = {
         components: [row]
       });
 
-      await interaction.followUp({
-        content:
+      const challengers =
+        attemptedBy[index].size - 1;
+
+      let claimText;
+
+      if (
+        challengers > 0 &&
+        claimerId === userId &&
+        claimNow - dropStartedAt < priorityTime
+      ) {
+        claimText =
+          `⚔️ ${interaction.user} fought off ` +
+          `${challengers} challenger${challengers === 1 ? "" : "s"} ` +
+          `and took ${getTierEmoji(claimedCard.tier)} ` +
+          `**${claimedCard.name}** #${serial} • ${code}!`;
+      } else {
+        claimText =
           `🎉 ${interaction.user} claimed ` +
           `${getTierEmoji(claimedCard.tier)} ` +
-          `**${claimedCard.name}** ` +
-          `#${serial} ` +
-          `• ${code}!` +
-          (
-            usedExtraGrab
-              ? "\n⚡ **Extra Grab Used!**"
-              : ""
-          )
+          `**${claimedCard.name}** #${serial} • ${code}!`;
+      }
+
+      if (usedExtraGrab) {
+        claimText += "\n⚡ **Extra Grab Used!**";
+      }
+
+      await interaction.followUp({
+        content: claimText
       });
     });
   }
