@@ -4,11 +4,9 @@ module.exports = {
   name: "tag",
 
   async execute(message, args) {
-    if (!args[0]) return message.reply("❌ Provide a card code.");
-    if (!args[1]) return message.reply("❌ Provide a tag name.");
-
-    const code = args[0].toLowerCase();
-    const tagName = args[1].toLowerCase();
+    if (!args[0]) {
+      return message.reply("❌ Provide a tag name.");
+    }
 
     const db = await connectDB();
 
@@ -18,13 +16,46 @@ module.exports = {
 
     const userId = message.author.id;
 
-    const card = await collectionsCol.findOne({
-      userId,
-      code
-    });
+    let code;
+    let tagName;
+    let card;
 
-    if (!card) {
-      return message.reply("❌ Card not found.");
+    // !tag tagname  => tag last collected card
+    if (args.length === 1) {
+      tagName = args[0].toLowerCase();
+
+      card = await collectionsCol.findOne(
+        { userId },
+        {
+          sort: {
+            obtainedAt: -1,
+            claimedAt: -1,
+            createdAt: -1,
+            _id: -1
+          }
+        }
+      );
+
+      if (!card) {
+        return message.reply("❌ You have no collected cards.");
+      }
+
+      code = card.code;
+    }
+
+    // !tag code tagname  => old method still works
+    else {
+      code = args[0].toLowerCase();
+      tagName = args[1].toLowerCase();
+
+      card = await collectionsCol.findOne({
+        userId,
+        code
+      });
+
+      if (!card) {
+        return message.reply("❌ Card not found.");
+      }
     }
 
     if (tagName === "remove") {

@@ -89,6 +89,41 @@ const backgrounds = [
     price: 5000,
     file: "venombg.jpeg"
   },
+
+    {
+    id: 12,
+    name: "Thor : Love and Thunder",
+    price: 5000,
+    file: "loveandthunderbg.jpeg"
+  },
+
+   {
+    id: 13,
+    name: "Ms. Marvel",
+    price: 3000,
+    file: "msmarvelbg.jpeg"
+  },
+
+   {
+    id: 14,
+    name: "She Hulk",
+    price: 3000,
+    file: "shehulkbg.jpeg"
+  },
+
+    {
+    id: 15,
+    name: "Dr. Strange : Multiverse of Madness",
+    price: 5000,
+    file: "multiversebg.jpeg"
+  },
+
+    {
+    id: 16,
+    name: "Avengers : Endgame",
+    price: 8000,
+    file: "endgamebg.jpeg"
+  },
   
 
   

@@ -65,6 +65,36 @@ module.exports = [
     name: "Venom",
     file: "venombg.jpeg"
   },
+
+    {
+    id: 12,
+    name: "Thor : Love and Thunder",
+    file: "loveandthunderbg.jpeg"
+  },
+
+   {
+    id: 13,
+    name: "Ms. Marvel",
+    file: "msmarvelbg.jpeg"
+  },
+
+   {
+    id: 14,
+    name: "She Hulk",
+    file: "shehulkbg.jpeg"
+  },
+
+    {
+    id: 15,
+    name: "Dr. Strange : Multiverse of Madness",
+    file: "multiversebg.jpeg"
+  },
+
+    {
+    id: 16,
+    name: "Avengers : Endgame",
+    file: "endgamebg.jpeg"
+  },
   
   
   

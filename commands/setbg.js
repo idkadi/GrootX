@@ -97,6 +97,44 @@ const backgrounds = [
     free: false
   },
 
+   {
+    id: 12,
+    name: "Thor : Love and Thunder",
+    file: "loveandthunderbg.jpeg",
+    free: false
+
+  },
+
+   {
+    id: 13,
+    name: "Ms. Marvel",
+    file: "msmarvelbg.jpeg",
+    free: false
+  },
+
+   {
+    id: 14,
+    name: "She Hulk",
+    file: "shehulkbg.jpeg",
+     free: false
+  },
+
+    {
+    id: 15,
+    name: "Dr. Strange : Multiverse of Madness",
+    file: "multiversebg.jpeg",
+     free: false
+  },
+
+    {
+    id: 16,
+    name: "Avengers : Endgame",
+    file: "endgamebg.jpeg",
+     free: false
+  },
+
+
+
 ];
 
 function makeButtons() {
