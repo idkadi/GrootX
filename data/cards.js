@@ -4538,6 +4538,72 @@ module.exports = [
     image: "legendary/sersiet.jpeg"
   },
 
+  
+   {
+    id: 504,
+    name: "Dreykov",
+    aka: [],
+    appearance: "Black Widow",
+    tier: "common",
+    image: "common/dreykovbw.jpeg"
+  },
+
+  {
+    id: 505,
+    name: "Rick Mason",
+    aka: [],
+    appearance: "Black Widow",
+    tier: "common",
+    image: "common/rickbw.jpeg"
+  },
+
+  {
+    id: 506,
+    name: "Taskmaster",
+    aka: ["Antonia Dreykov"],
+    appearance: "Black Widow",
+    tier: "rare",
+    image: "rare/taskmasterbw.jpeg"
+  },
+
+  {
+    id: 507,
+    name: "Red Guardian",
+    aka: ["Alexei Shostakov"],
+    appearance: "Black Widow",
+    tier: "rare",
+    image: "rare/redbw.jpeg"
+  },
+
+   {
+    id: 508,
+    name: "Melina Vostokoff",
+    aka: [],
+    appearance: "Black Widow",
+    tier: "rare",
+    image: "rare/melinabw.jpeg"
+  },
+
+   {
+    id: 509,
+    name: "Yelena Belova",
+    aka: [],
+    appearance: "Black Widow",
+    tier: "epic",
+    image: "epic/yelenabw.jpeg"
+  },
+
+     {
+    id: 510,
+    name: "Black Widow",
+    aka: ["Natasha Romanoff"],
+    appearance: "Black Widow",
+    tier: "legendary",
+    image: "legendary/blackwidowbw.jpeg"
+  },
+
+
+
 
 
 
