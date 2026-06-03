@@ -4376,6 +4376,175 @@ module.exports = [
     image: "legendary/hulkhulk.jpeg"
   },
 
+    {
+    id: 486,
+    name: "Karun Patel",
+    aka: [],
+    appearance: "Eternals",
+    tier: "common",
+    image: "common/karunet.jpeg"
+  },
+
+     {
+    id: 487,
+    name: "Dane Whitman",
+    aka: [],
+    appearance: "Eternals",
+    tier: "common",
+    image: "common/daneet.jpeg"
+  },
+
+  {
+    id: 488,
+    name: "Jano",
+    aka: [],
+    appearance: "Eternals",
+    tier: "common",
+    image: "common/janoet.jpeg"
+  },
+
+   {
+    id: 489,
+    name: "Pip The Troll",
+    aka: [],
+    appearance: "Eternals",
+    tier: "common",
+    image: "common/pipet.jpeg"
+  },
+
+  {
+    id: 490,
+    name: "Jack",
+    aka: [],
+    appearance: "Eternals",
+    tier: "common",
+    image: "common/jacket.jpeg"
+  },
+
+  {
+    id: 491,
+    name: "Enkidu",
+    aka: [],
+    appearance: "Eternals",
+    tier: "uncommon",
+    image: "uncommon/enkiduet.jpeg"
+  },
+
+   {
+    id: 492,
+    name: "Kro",
+    aka: [],
+    appearance: "Eternals",
+    tier: "rare",
+    image: "rare/kroet.jpeg"
+  },
+
+    {
+    id: 493,
+    name: "Phastos",
+    aka: [],
+    appearance: "Eternals",
+    tier: "rare",
+    image: "rare/phastoset.jpeg"
+  },
+
+    {
+    id: 494,
+    name: "Gilgamesh",
+    aka: [],
+    appearance: "Eternals",
+    tier: "rare",
+    image: "rare/gilet.jpeg"
+  },
+
+   {
+    id: 495,
+    name: "Makkari",
+    aka: [],
+    appearance: "Eternals",
+    tier: "rare",
+    image: "rare/makkariet.jpeg"
+  },
+
+  {
+    id: 496,
+    name: "Ajak",
+    aka: [],
+    appearance: "Eternals",
+    tier: "rare",
+    image: "rare/ajaket.jpeg"
+  },
+
+  {
+    id: 497,
+    name: "Sprite",
+    aka: [],
+    appearance: "Eternals",
+    tier: "rare",
+    image: "rare/spriteet.jpeg"
+  },
+
+   {
+    id: 498,
+    name: "Starfox",
+    aka: ["Eros","Harry Styles"],
+    appearance: "Eternals",
+    tier: "epic",
+    image: "epic/starfoxet.jpeg"
+  },
+
+    {
+    id: 499,
+    name: "Thena",
+    aka: [],
+    appearance: "Eternals",
+    tier: "epic",
+    image: "epic/thenaet.jpeg"
+  },
+
+    {
+    id: 500,
+    name: "Kingo",
+    aka: [],
+    appearance: "Eternals",
+    tier: "epic",
+    image: "epic/kingoet.jpeg"
+  },
+
+   {
+    id: 501,
+    name: "Druig",
+    aka: [],
+    appearance: "Eternals",
+    tier: "epic",
+    image: "epic/druiget.jpeg"
+  },
+
+   {
+    id: 502,
+    name: "Ikaris",
+    aka: [],
+    appearance: "Eternals",
+    tier: "legendary",
+    image: "legendary/ikariset.jpeg"
+  },
+
+   {
+    id: 503,
+    name: "Sersi",
+    aka: [],
+    appearance: "Eternals",
+    tier: "legendary",
+    image: "legendary/sersiet.jpeg"
+  },
+
+
+
+
+
+
+
+
 
 
 
