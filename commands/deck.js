@@ -22,6 +22,10 @@ function getCardData(cardId) {
   return cards.find(c => Number(c.id) === Number(cardId));
 }
 
+function normalizeCode(code) {
+  return String(code || "").trim().toLowerCase();
+}
+
 module.exports = {
   name: "deck",
   aliases: ["battledeck"],
@@ -34,7 +38,7 @@ module.exports = {
 
     const userId = message.author.id;
     const sub = (args[0] || "view").toLowerCase();
-    const code = args[1]?.toUpperCase();
+    const inputCode = normalizeCode(args[1]);
 
     let deck = await decksCol.findOne({ userId });
 
@@ -50,12 +54,14 @@ module.exports = {
       };
     }
 
+    deck.cards = (deck.cards || []).map(normalizeCode);
+
     if (sub === "add") {
-      if (!code) {
+      if (!inputCode) {
         return message.reply("❌ Use: `!deck add CARDCODE`");
       }
 
-      if (deck.cards.includes(code)) {
+      if (deck.cards.includes(inputCode)) {
         return message.reply("❌ This card is already in your deck.");
       }
 
@@ -65,7 +71,7 @@ module.exports = {
 
       const ownedCard = await collectionsCol.findOne({
         userId,
-        code
+        code: { $regex: `^${inputCode}$`, $options: "i" }
       });
 
       if (!ownedCard) {
@@ -79,13 +85,14 @@ module.exports = {
       }
 
       const currentEntries = await collectionsCol
-        .find({
-          userId,
-          code: { $in: deck.cards }
-        })
+        .find({ userId })
         .toArray();
 
-      const currentFullCards = currentEntries
+      const currentDeckEntries = currentEntries.filter(entry =>
+        deck.cards.includes(normalizeCode(entry.code))
+      );
+
+      const currentFullCards = currentDeckEntries
         .map(entry => ({
           entry,
           card: getCardData(entry.cardId)
@@ -112,29 +119,29 @@ module.exports = {
 
       await decksCol.updateOne(
         { userId },
-        { $push: { cards: code } }
+        { $push: { cards: normalizeCode(ownedCard.code) } }
       );
 
       return message.reply(
-        `✅ Added ${getTierEmoji(card.tier)} **${card.name}** \`${code}\` to your battle deck.`
+        `✅ Added ${getTierEmoji(card.tier)} **${card.name}** \`${ownedCard.code}\` to your battle deck.`
       );
     }
 
     if (sub === "remove") {
-      if (!code) {
+      if (!inputCode) {
         return message.reply("❌ Use: `!deck remove CARDCODE`");
       }
 
-      if (!deck.cards.includes(code)) {
+      if (!deck.cards.includes(inputCode)) {
         return message.reply("❌ That card is not in your deck.");
       }
 
       await decksCol.updateOne(
         { userId },
-        { $pull: { cards: code } }
+        { $pull: { cards: inputCode } }
       );
 
-      return message.reply(`✅ Removed \`${code}\` from your battle deck.`);
+      return message.reply(`✅ Removed \`${inputCode}\` from your battle deck.`);
     }
 
     if (sub === "clear") {
@@ -148,15 +155,15 @@ module.exports = {
 
     if (sub === "view") {
       const entries = await collectionsCol
-        .find({
-          userId,
-          code: { $in: deck.cards }
-        })
+        .find({ userId })
         .toArray();
 
       const orderedDeckCards = deck.cards
         .map(deckCode => {
-          const entry = entries.find(e => e.code === deckCode);
+          const entry = entries.find(e =>
+            normalizeCode(e.code) === normalizeCode(deckCode)
+          );
+
           if (!entry) return null;
 
           const card = getCardData(entry.cardId);
