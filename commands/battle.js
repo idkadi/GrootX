@@ -1,6 +1,3 @@
-const connectDB = require("../database");
-const cards = require("../data/cards");
-
 const {
   EmbedBuilder,
   ActionRowBuilder,
@@ -8,280 +5,349 @@ const {
   ButtonStyle
 } = require("discord.js");
 
-const activeBattles = new Map();
+const cards = require("../data/cards");
+const locations = require("../data/locations");
+const activeBattles = require("../data/activeBattles");
+const { calculateBattlePower } = require("../utils/battlePower");
 
-function normalizeCode(code) {
-  return String(code || "").trim().toLowerCase();
+function pickRandom(arr, count) {
+  return [...arr].sort(() => Math.random() - 0.5).slice(0, count);
 }
 
-function getCardData(cardId) {
-  return cards.find(c => Number(c.id) === Number(cardId));
+function makeBattleId() {
+  return Math.random().toString(36).slice(2, 8);
 }
 
-function shuffle(array) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-  return array;
+function getRandomCard() {
+  const card = cards[Math.floor(Math.random() * cards.length)];
+
+  return {
+    ...card,
+    serial: Math.floor(Math.random() * 2000) + 1
+  };
 }
 
-function makeBattleEmbed(battle) {
+function createHand() {
+  return Array.from({ length: 5 }, () => getRandomCard());
+}
+
+function getLocationCards(battle, side, userId) {
+  return battle.board[side].filter(card => card.ownerId === userId);
+}
+
+function getLocationObject(battle, side) {
+  const sides = ["left", "middle", "right"];
+  const index = sides.indexOf(side);
+  return battle.locations[index];
+}
+
+function getLocationPower(battle, side, userId) {
+  const locationCards = getLocationCards(battle, side, userId);
+  const location = getLocationObject(battle, side);
+
+  return locationCards.reduce((total, playedCard) => {
+    const result = calculateBattlePower(playedCard, {
+      serial: playedCard.serial,
+      cardsAtLocation: locationCards,
+      location
+    });
+
+    return total + result.finalPower;
+  }, 0);
+}
+
+function renderBoard(battle) {
+  const sides = ["left", "middle", "right"];
+
+  return sides.map(side => {
+    const location = getLocationObject(battle, side);
+
+    const p1Cards = getLocationCards(battle, side, battle.player1Id);
+    const p2Cards = getLocationCards(battle, side, battle.player2Id);
+
+    const p1Power = getLocationPower(battle, side, battle.player1Id);
+    const p2Power = getLocationPower(battle, side, battle.player2Id);
+
+    const p1List = p1Cards.length
+      ? p1Cards.map(c => `• ${c.name} #${c.serial}`).join("\n")
+      : "No cards";
+
+    const p2List = p2Cards.length
+      ? p2Cards.map(c => `• ${c.name} #${c.serial}`).join("\n")
+      : "No cards";
+
+    return `⬢ **${location.name || location}**
+${location.description || "No effect"}
+
+<@${battle.player1Id}> Power: **${p1Power}**
+${p1List}
+
+<@${battle.player2Id}> Power: **${p2Power}**
+${p2List}`;
+  }).join("\n\n");
+}
+
+function createBattleEmbed(battle) {
   return new EmbedBuilder()
-    .setColor(0x00aeff)
     .setTitle("⚔️ GrootX Battle")
     .setDescription(
-      `**${battle.usernames.p1}** vs **${battle.usernames.p2}**\n` +
-      `Turn **${battle.turn}/${battle.maxTurns}**\n\n` +
-
-      `**Location 1**\n` +
-      `${battle.usernames.p2}: ${battle.board.location1.p2.length} cards\n` +
-      `${battle.usernames.p1}: ${battle.board.location1.p1.length} cards\n\n` +
-
-      `**Location 2**\n` +
-      `${battle.usernames.p2}: ${battle.board.location2.p2.length} cards\n` +
-      `${battle.usernames.p1}: ${battle.board.location2.p1.length} cards\n\n` +
-
-      `**Location 3**\n` +
-      `${battle.usernames.p2}: ${battle.board.location3.p2.length} cards\n` +
-      `${battle.usernames.p1}: ${battle.board.location3.p1.length} cards\n\n` +
-
-      `Click **View Hand** to see your cards.`
-    );
+      `**Turn:** ${battle.turn}/${battle.maxTurns}\n` +
+      `**Current Player:** <@${battle.currentPlayerId}>\n\n` +
+      renderBoard(battle)
+    )
+    .setColor("#7b2cff")
+    .setFooter({ text: "Pick a card first, then choose a location." });
 }
 
-function makeBattleButtons(battleId) {
-  return new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId(`battle_hand_${battleId}`)
-      .setLabel("View Hand")
-      .setStyle(ButtonStyle.Primary),
+function createCardButtons(battle) {
+  const hand = battle.hands[battle.currentPlayerId] || [];
+  const row = new ActionRowBuilder();
 
-    new ButtonBuilder()
-      .setCustomId(`battle_play_${battleId}`)
-      .setLabel("Play Card")
-      .setStyle(ButtonStyle.Success),
+  hand.slice(0, 5).forEach((card, index) => {
+    row.addComponents(
+      new ButtonBuilder()
+        .setCustomId(`battle_card_${battle.id}_${index}`)
+        .setLabel(`${index + 1}. ${card.name.slice(0, 20)}`)
+        .setStyle(ButtonStyle.Primary)
+    );
+  });
 
-    new ButtonBuilder()
-      .setCustomId(`battle_end_${battleId}`)
-      .setLabel("End Turn")
-      .setStyle(ButtonStyle.Secondary)
-  );
+  return [row];
+}
+
+function createLocationButtons(battle) {
+  return [
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`battle_loc_${battle.id}_left`)
+        .setLabel("⬢ Left")
+        .setStyle(ButtonStyle.Success),
+
+      new ButtonBuilder()
+        .setCustomId(`battle_loc_${battle.id}_middle`)
+        .setLabel("⬢ Middle")
+        .setStyle(ButtonStyle.Success),
+
+      new ButtonBuilder()
+        .setCustomId(`battle_loc_${battle.id}_right`)
+        .setLabel("⬢ Right")
+        .setStyle(ButtonStyle.Success)
+    )
+  ];
+}
+
+function switchTurn(battle) {
+  if (battle.currentPlayerId === battle.player1Id) {
+    battle.currentPlayerId = battle.player2Id;
+  } else {
+    battle.currentPlayerId = battle.player1Id;
+    battle.turn++;
+  }
+}
+
+function getWinner(battle) {
+  const sides = ["left", "middle", "right"];
+
+  let p1Wins = 0;
+  let p2Wins = 0;
+
+  for (const side of sides) {
+    const p1Power = getLocationPower(battle, side, battle.player1Id);
+    const p2Power = getLocationPower(battle, side, battle.player2Id);
+
+    if (p1Power > p2Power) p1Wins++;
+    else if (p2Power > p1Power) p2Wins++;
+  }
+
+  if (p1Wins > p2Wins) return battle.player1Id;
+  if (p2Wins > p1Wins) return battle.player2Id;
+
+  return null;
 }
 
 module.exports = {
   name: "battle",
-  aliases: ["fight", "pvp"],
+  aliases: ["fight"],
 
   async execute(message, args) {
-    const opponent = message.mentions.users.first();
+    const target = message.mentions.users.first();
 
-    if (!opponent) {
-      return message.reply("❌ Use: `!battle @user`");
+    if (!target || target.bot || target.id === message.author.id) {
+      return message.reply("Mention a real player to battle.");
     }
 
-    if (opponent.bot) {
-      return message.reply("❌ You can't battle bots.");
+    if (activeBattles.has(message.author.id) || activeBattles.has(target.id)) {
+      return message.reply("One of you is already in a battle.");
     }
 
-    if (opponent.id === message.author.id) {
-      return message.reply("❌ You can't battle yourself.");
-    }
-
-    const db = await connectDB();
-    const decksCol = db.collection("decks");
-    const collectionsCol = db.collection("collections");
-
-    const challengerDeck = await decksCol.findOne({ userId: message.author.id });
-    const opponentDeck = await decksCol.findOne({ userId: opponent.id });
-
-    if (!challengerDeck || !challengerDeck.cards || challengerDeck.cards.length < 15) {
-      return message.reply("❌ You need a full **15-card deck** first.");
-    }
-
-    if (!opponentDeck || !opponentDeck.cards || opponentDeck.cards.length < 15) {
-      return message.reply(`❌ ${opponent.username} needs a full **15-card deck** first.`);
-    }
-
-    const battleId = `${message.author.id}_${opponent.id}_${Date.now()}`;
-
-    const challengeEmbed = new EmbedBuilder()
-      .setColor(0xff0000)
-      .setTitle("⚔️ GrootX Battle Challenge")
-      .setDescription(
-        `${message.author} challenged ${opponent}!\n\n` +
-        `${opponent}, do you accept?`
-      );
-
-    const challengeRow = new ActionRowBuilder().addComponents(
+    const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setCustomId(`battle_accept_${battleId}`)
-        .setLabel("Accept")
+        .setCustomId(`battle_accept_${message.author.id}_${target.id}`)
+        .setLabel("Accept Battle")
         .setStyle(ButtonStyle.Success),
 
       new ButtonBuilder()
-        .setCustomId(`battle_decline_${battleId}`)
+        .setCustomId(`battle_decline_${message.author.id}_${target.id}`)
         .setLabel("Decline")
         .setStyle(ButtonStyle.Danger)
     );
 
-    const msg = await message.reply({
-      embeds: [challengeEmbed],
-      components: [challengeRow]
+    const msg = await message.channel.send({
+      content: `<@${target.id}>, <@${message.author.id}> challenged you to a GrootX Battle!`,
+      components: [row]
     });
 
     const collector = msg.createMessageComponentCollector({
-      time: 10 * 60 * 1000
+      time: 60000
     });
 
     collector.on("collect", async interaction => {
-      if (
-        interaction.customId === `battle_accept_${battleId}` ||
-        interaction.customId === `battle_decline_${battleId}`
-      ) {
-        if (interaction.user.id !== opponent.id) {
-          return interaction.reply({
-            content: "❌ This battle challenge is not for you.",
-            ephemeral: true
-          });
-        }
+      if (interaction.user.id !== target.id) {
+        return interaction.reply({
+          content: "Only the challenged player can use this.",
+          ephemeral: true
+        });
+      }
 
-        if (interaction.customId === `battle_decline_${battleId}`) {
-          return interaction.update({
-            embeds: [
-              new EmbedBuilder()
-                .setColor(0x777777)
-                .setTitle("❌ Battle Declined")
-                .setDescription(`${opponent} declined the battle.`)
-            ],
-            components: []
-          });
-        }
-
-        const allEntries = await collectionsCol
-          .find({
-            userId: { $in: [message.author.id, opponent.id] }
-          })
-          .toArray();
-
-        const makeFullDeck = (userId, deckCodes) => {
-          return deckCodes
-            .map(code => {
-              const entry = allEntries.find(e =>
-                e.userId === userId &&
-                normalizeCode(e.code) === normalizeCode(code)
-              );
-
-              if (!entry) return null;
-
-              const card = getCardData(entry.cardId);
-              if (!card) return null;
-
-              return {
-                code: entry.code,
-                serial: entry.serial,
-                cardId: entry.cardId,
-                name: card.name,
-                tier: card.tier
-              };
-            })
-            .filter(Boolean);
-        };
-
-        const p1Deck = shuffle(makeFullDeck(message.author.id, challengerDeck.cards));
-        const p2Deck = shuffle(makeFullDeck(opponent.id, opponentDeck.cards));
-
-        const battle = {
-          battleId,
-          players: {
-            p1: message.author.id,
-            p2: opponent.id
-          },
-          usernames: {
-            p1: message.author.username,
-            p2: opponent.username
-          },
-          decks: {
-            p1: p1Deck,
-            p2: p2Deck
-          },
-          hands: {
-            p1: p1Deck.splice(0, 5),
-            p2: p2Deck.splice(0, 5)
-          },
-          board: {
-            location1: { p1: [], p2: [] },
-            location2: { p1: [], p2: [] },
-            location3: { p1: [], p2: [] }
-          },
-          turn: 1,
-          maxTurns: 6,
-          status: "active"
-        };
-
-        activeBattles.set(battleId, battle);
+      if (interaction.customId.startsWith("battle_decline")) {
+        collector.stop();
 
         return interaction.update({
-          embeds: [makeBattleEmbed(battle)],
-          components: [makeBattleButtons(battleId)]
+          content: "Battle declined.",
+          components: []
         });
       }
 
-      const battle = activeBattles.get(battleId);
+      const battle = {
+        id: makeBattleId(),
 
-      if (!battle) {
-        return interaction.reply({
-          content: "❌ This battle no longer exists.",
-          ephemeral: true
-        });
-      }
+        player1Id: message.author.id,
+        player2Id: target.id,
+        currentPlayerId: message.author.id,
 
-      const playerKey =
-        interaction.user.id === battle.players.p1
-          ? "p1"
-          : interaction.user.id === battle.players.p2
-            ? "p2"
-            : null;
+        turn: 1,
+        maxTurns: 6,
 
-      if (!playerKey) {
-        return interaction.reply({
-          content: "❌ You are not in this battle.",
-          ephemeral: true
-        });
-      }
+        locations: pickRandom(locations, 3),
 
-      if (interaction.customId === `battle_hand_${battleId}`) {
-        const hand = battle.hands[playerKey];
+        hands: {
+          [message.author.id]: createHand(),
+          [target.id]: createHand()
+        },
 
-        const handText = hand.length
-          ? hand.map((c, i) => {
-              return `**${i + 1}.** \`${c.code}\` • #${c.serial} • **${c.name}**`;
-            }).join("\n")
-          : "Your hand is empty.";
+        selectedCardIndex: null,
 
-        return interaction.reply({
-          content: `🃏 **Your Hand**\n\n${handText}`,
-          ephemeral: true
-        });
-      }
+        board: {
+          left: [],
+          middle: [],
+          right: []
+        },
 
-      if (interaction.customId === `battle_play_${battleId}`) {
-        return interaction.reply({
-          content:
-            "Play command coming next.\n\n" +
-            "Next we add buttons:\n" +
-            "`Card 1` `Card 2` `Card 3` `Card 4` `Card 5`\n" +
-            "then location buttons.",
-          ephemeral: true
-        });
-      }
+        finished: false,
+        winner: null
+      };
 
-      if (interaction.customId === `battle_end_${battleId}`) {
-        return interaction.reply({
-          content: "Turn ending comes after card play is added.",
-          ephemeral: true
-        });
-      }
+      activeBattles.set(message.author.id, battle);
+      activeBattles.set(target.id, battle);
+
+      collector.stop();
+
+      return interaction.update({
+        content: "Battle started!",
+        embeds: [createBattleEmbed(battle)],
+        components: createCardButtons(battle)
+      });
     });
+  },
+
+  async handleButton(interaction) {
+    const battle = activeBattles.get(interaction.user.id);
+
+    if (!battle) {
+      return interaction.reply({
+        content: "You are not in an active battle.",
+        ephemeral: true
+      });
+    }
+
+    if (interaction.user.id !== battle.currentPlayerId) {
+      return interaction.reply({
+        content: "It is not your turn.",
+        ephemeral: true
+      });
+    }
+
+    if (interaction.customId.startsWith(`battle_card_${battle.id}_`)) {
+      const index = Number(interaction.customId.split("_").pop());
+      const hand = battle.hands[interaction.user.id];
+
+      if (!hand[index]) {
+        return interaction.reply({
+          content: "That card is not in your hand.",
+          ephemeral: true
+        });
+      }
+
+      battle.selectedCardIndex = index;
+
+      const selectedCard = hand[index];
+
+      return interaction.update({
+        content: `Selected **${selectedCard.name}**. Now choose a location.`,
+        embeds: [createBattleEmbed(battle)],
+        components: createLocationButtons(battle)
+      });
+    }
+
+    if (interaction.customId.startsWith(`battle_loc_${battle.id}_`)) {
+      const side = interaction.customId.split("_").pop();
+      const hand = battle.hands[interaction.user.id];
+
+      if (battle.selectedCardIndex === null) {
+        return interaction.reply({
+          content: "Pick a card first.",
+          ephemeral: true
+        });
+      }
+
+      const card = hand.splice(battle.selectedCardIndex, 1)[0];
+
+      battle.board[side].push({
+        ...card,
+        ownerId: interaction.user.id
+      });
+
+      battle.selectedCardIndex = null;
+
+      const isFinalMove =
+        battle.turn >= battle.maxTurns &&
+        battle.currentPlayerId === battle.player2Id;
+
+      if (isFinalMove) {
+        battle.finished = true;
+        battle.winner = getWinner(battle);
+
+        activeBattles.delete(battle.player1Id);
+        activeBattles.delete(battle.player2Id);
+
+        const resultText = battle.winner
+          ? `🏆 Battle finished! Winner: <@${battle.winner}>`
+          : "🤝 Battle finished! It's a draw!";
+
+        return interaction.update({
+          content: resultText,
+          embeds: [createBattleEmbed(battle)],
+          components: []
+        });
+      }
+
+      switchTurn(battle);
+
+      return interaction.update({
+        content: `Played **${card.name}** to **${side}**.`,
+        embeds: [createBattleEmbed(battle)],
+        components: createCardButtons(battle)
+      });
+    }
   }
 };
