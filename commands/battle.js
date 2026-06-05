@@ -7,9 +7,11 @@ const {
 
 const locations = require("../data/locations");
 const activeBattles = require("../data/activeBattles");
-
 const getBattleDeck = require("../utils/getBattleDeck");
 const createBattleImage = require("../utils/createBattleImage");
+const { calculateBattlePower } = require("../utils/battlePower");
+
+const SIDES = ["left", "middle", "right"];
 
 function pickRandom(arr, count) {
   return [...arr].sort(() => Math.random() - 0.5).slice(0, count);
@@ -19,21 +21,19 @@ function makeBattleId() {
   return Math.random().toString(36).slice(2, 8);
 }
 
-async function makeBattlePayload(battle, content = null) {
+async function makeBoardPayload(battle, content) {
   const buffer = await createBattleImage(battle);
-
-  const attachment = new AttachmentBuilder(buffer, {
-    name: "battle.png"
-  });
+  const attachment = new AttachmentBuilder(buffer, { name: "battle.png" });
 
   return {
     content,
-    files: [attachment]
+    files: [attachment],
+    components: []
   };
 }
 
-function createCardButtons(battle) {
-  const hand = battle.hands[battle.currentPlayerId] || [];
+function createCardButtons(battle, userId) {
+  const hand = battle.hands[userId] || [];
   const row = new ActionRowBuilder();
 
   hand.slice(0, 5).forEach((item, index) => {
@@ -49,24 +49,45 @@ function createCardButtons(battle) {
 }
 
 function createLocationButtons(battle) {
-  return [
-    new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId(`battle_loc_${battle.id}_left`)
-        .setLabel("Left")
-        .setStyle(ButtonStyle.Success),
+  const row = new ActionRowBuilder();
 
-      new ButtonBuilder()
-        .setCustomId(`battle_loc_${battle.id}_middle`)
-        .setLabel("Middle")
-        .setStyle(ButtonStyle.Success),
+  SIDES.forEach((side, i) => {
+    const loc = battle.locations[i];
 
+    row.addComponents(
       new ButtonBuilder()
-        .setCustomId(`battle_loc_${battle.id}_right`)
-        .setLabel("Right")
+        .setCustomId(`battle_loc_${battle.id}_${side}`)
+        .setLabel(loc.name || loc)
         .setStyle(ButtonStyle.Success)
-    )
-  ];
+    );
+  });
+
+  return [row];
+}
+
+async function sendPrivateHand(client, battle, userId) {
+  const user = await client.users.fetch(userId);
+  const hand = battle.hands[userId] || [];
+
+  if (!hand.length) {
+    return user.send("You have no cards in hand.");
+  }
+
+  return user.send({
+    content:
+      `⚔️ **GrootX Battle**\n` +
+      `Turn **${battle.turn}/${battle.maxTurns}**\n` +
+      `Pick a card privately:`,
+    components: createCardButtons(battle, userId)
+  });
+}
+
+async function editPublicBoard(client, battle, content) {
+  const channel = await client.channels.fetch(battle.channelId);
+  const msg = await channel.messages.fetch(battle.messageId);
+  const payload = await makeBoardPayload(battle, content);
+
+  return msg.edit(payload);
 }
 
 function switchTurn(battle) {
@@ -80,18 +101,13 @@ function switchTurn(battle) {
 
 function drawCard(battle, userId) {
   const deck = battle.decks[userId];
+  if (!deck || !deck.length) return;
 
-  if (!deck || deck.length === 0) return;
-
-  const nextCard = deck.shift();
-  battle.hands[userId].push(nextCard);
+  battle.hands[userId].push(deck.shift());
 }
 
 function getLocationPower(battle, side, userId) {
-  const { calculateBattlePower } = require("../utils/battlePower");
-
-  const sides = ["left", "middle", "right"];
-  const location = battle.locations[sides.indexOf(side)];
+  const location = battle.locations[SIDES.indexOf(side)];
 
   const locationCards = battle.board[side].filter(
     item => item.ownerId === userId
@@ -109,12 +125,10 @@ function getLocationPower(battle, side, userId) {
 }
 
 function getWinner(battle) {
-  const sides = ["left", "middle", "right"];
-
   let p1Wins = 0;
   let p2Wins = 0;
 
-  for (const side of sides) {
+  for (const side of SIDES) {
     const p1 = getLocationPower(battle, side, battle.player1Id);
     const p2 = getLocationPower(battle, side, battle.player2Id);
 
@@ -160,9 +174,7 @@ module.exports = {
       components: [row]
     });
 
-    const collector = msg.createMessageComponentCollector({
-      time: 60000
-    });
+    const collector = msg.createMessageComponentCollector({ time: 60000 });
 
     collector.on("collect", async interaction => {
       if (interaction.user.id !== target.id) {
@@ -174,7 +186,6 @@ module.exports = {
 
       if (interaction.customId.startsWith("battle_decline_")) {
         collector.stop();
-
         return interaction.update({
           content: "Battle declined.",
           components: []
@@ -219,6 +230,9 @@ module.exports = {
 
         currentPlayerId: message.author.id,
 
+        channelId: message.channel.id,
+        messageId: msg.id,
+
         turn: 1,
         maxTurns: 6,
 
@@ -251,15 +265,20 @@ module.exports = {
 
       collector.stop();
 
-      const payload = await makeBattlePayload(
+      const payload = await makeBoardPayload(
         battle,
-        `⚔️ Battle started! <@${battle.currentPlayerId}> pick a card.`
+        `⚔️ Battle started! <@${battle.currentPlayerId}> is choosing privately.`
       );
 
-      return interaction.update({
-        ...payload,
-        components: createCardButtons(battle)
-      });
+      await interaction.update(payload);
+
+      try {
+        await sendPrivateHand(message.client, battle, battle.currentPlayerId);
+      } catch {
+        await msg.edit({
+          content: `⚠️ Could not DM <@${battle.currentPlayerId}>. Please enable DMs.`
+        });
+      }
     });
   },
 
@@ -299,16 +318,10 @@ module.exports = {
       }
 
       battle.selectedCardIndex = index;
-
       const selected = hand[index];
 
-      const payload = await makeBattlePayload(
-        battle,
-        `Selected **${selected.card.name}**. Choose a location.`
-      );
-
       return interaction.update({
-        ...payload,
+        content: `Selected **${selected.card.name}**. Choose location:`,
         components: createLocationButtons(battle)
       });
     }
@@ -316,7 +329,7 @@ module.exports = {
     if (interaction.customId.startsWith(`battle_loc_${battle.id}_`)) {
       const side = interaction.customId.split("_").pop();
 
-      if (!["left", "middle", "right"].includes(side)) {
+      if (!SIDES.includes(side)) {
         return interaction.reply({
           content: "Invalid location.",
           ephemeral: true
@@ -341,6 +354,11 @@ module.exports = {
 
       battle.selectedCardIndex = null;
 
+      await interaction.update({
+        content: `✅ Played **${played.card.name}** to **${side}**.`,
+        components: []
+      });
+
       const finalMove =
         battle.turn >= battle.maxTurns &&
         battle.currentPlayerId === battle.player2Id;
@@ -356,26 +374,27 @@ module.exports = {
           ? `🏆 Battle finished! Winner: <@${battle.winner}>`
           : "🤝 Battle finished! It's a draw!";
 
-        const payload = await makeBattlePayload(battle, resultText);
-
-        return interaction.update({
-          ...payload,
-          components: []
-        });
+        return editPublicBoard(interaction.client, battle, resultText);
       }
 
       drawCard(battle, interaction.user.id);
       switchTurn(battle);
 
-      const payload = await makeBattlePayload(
+      await editPublicBoard(
+        interaction.client,
         battle,
-        `Played **${played.card.name}** to **${side}**.\n<@${battle.currentPlayerId}> pick a card.`
+        `Played **${played.card.name}** to **${side}**.\n<@${battle.currentPlayerId}> is choosing privately.`
       );
 
-      return interaction.update({
-        ...payload,
-        components: createCardButtons(battle)
-      });
+      try {
+        await sendPrivateHand(interaction.client, battle, battle.currentPlayerId);
+      } catch {
+        await editPublicBoard(
+          interaction.client,
+          battle,
+          `⚠️ Could not DM <@${battle.currentPlayerId}>. Please enable DMs.`
+        );
+      }
     }
   }
 };

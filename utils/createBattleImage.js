@@ -15,8 +15,7 @@ function getLocationCards(battle, side, userId) {
 }
 
 function getLocationObject(battle, side) {
-  const index = SIDES.indexOf(side);
-  return battle.locations[index];
+  return battle.locations[SIDES.indexOf(side)];
 }
 
 function getLocationPower(battle, side, userId) {
@@ -34,22 +33,42 @@ function getLocationPower(battle, side, userId) {
   }, 0);
 }
 
+function drawRoundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function drawHex(ctx, x, y, w, h) {
+  const cut = 35;
+
+  ctx.beginPath();
+  ctx.moveTo(x + cut, y);
+  ctx.lineTo(x + w - cut, y);
+  ctx.lineTo(x + w, y + h / 2);
+  ctx.lineTo(x + w - cut, y + h);
+  ctx.lineTo(x + cut, y + h);
+  ctx.lineTo(x, y + h / 2);
+  ctx.closePath();
+}
+
 async function drawCard(ctx, item, x, y, w, h) {
-  if (!item) return;
+  if (!item || !item.card) return;
 
   try {
-    const imagePath = path.join(
-      __dirname,
-      "..",
-      "images",
-      item.card.image
-    );
-
+    const imagePath = path.join(__dirname, "..", "images", item.card.image);
     const img = await loadImage(imagePath);
     ctx.drawImage(img, x, y, w, h);
   } catch {
-    ctx.fillStyle = "#2b2d31";
-    ctx.fillRect(x, y, w, h);
+    return;
   }
 
   ctx.strokeStyle = "#ffffff";
@@ -60,93 +79,105 @@ async function drawCard(ctx, item, x, y, w, h) {
   ctx.fillRect(x, y + h - 28, w, 28);
 
   ctx.fillStyle = "#ffffff";
-  ctx.font = "13px Arial";
+  ctx.font = "bold 13px Arial";
   ctx.fillText(`#${item.serial}`, x + 6, y + h - 10);
 }
 
+async function drawCardsRow(ctx, cards, centerX, y) {
+  const cardW = 95;
+  const cardH = 135;
+  const gap = 8;
+
+  const shown = cards.slice(0, 3);
+  const totalW = shown.length * cardW + Math.max(0, shown.length - 1) * gap;
+  let startX = centerX - totalW / 2;
+
+  for (let i = 0; i < shown.length; i++) {
+    await drawCard(ctx, shown[i], startX + i * (cardW + gap), y, cardW, cardH);
+  }
+}
+
 async function createBattleImage(battle) {
-  const width = 1100;
+  const width = 1150;
   const height = 720;
 
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
 
-  ctx.fillStyle = "#111217";
+  ctx.fillStyle = "#101116";
   ctx.fillRect(0, 0, width, height);
 
   ctx.fillStyle = "#ffffff";
   ctx.font = "bold 34px Arial";
-  ctx.fillText("⚔️ GrootX Battle", 40, 50);
+  ctx.fillText("⚔️ GrootX Battle", 40, 48);
 
   ctx.font = "22px Arial";
-  ctx.fillText(`Turn ${battle.turn}/${battle.maxTurns}`, 40, 85);
+  ctx.fillText(`Turn ${battle.turn}/${battle.maxTurns}`, 40, 82);
 
-  ctx.fillText(
-    `${battle.player1Name || "Player 1"} vs ${battle.player2Name || "Player 2"}`,
-    780,
-    55
-  );
+  ctx.font = "bold 24px Arial";
+  ctx.fillText(`${battle.player1Name || "Player 1"}`, 480, 52);
+  ctx.font = "20px Arial";
+  ctx.fillText("VS", 555, 82);
+  ctx.font = "bold 24px Arial";
+  ctx.fillText(`${battle.player2Name || "Player 2"}`, 590, 52);
 
-  const locW = 320;
-  const locH = 155;
-  const gap = 30;
-  const startX = 40;
-  const locY = 115;
+  const colW = 340;
+  const gap = 25;
+  const startX = 45;
+
+  const p1CardY = 115;
+  const locY = 280;
+  const p2CardY = 455;
+
+  const locW = 300;
+  const locH = 115;
 
   for (let i = 0; i < 3; i++) {
     const side = SIDES[i];
+    const x = startX + i * (colW + gap);
+    const centerX = x + colW / 2;
+
     const location = getLocationObject(battle, side);
 
-    const x = startX + i * (locW + gap);
+    const p1Cards = getLocationCards(battle, side, battle.player1Id);
+    const p2Cards = getLocationCards(battle, side, battle.player2Id);
+
+    await drawCardsRow(ctx, p1Cards, centerX, p1CardY);
+
+    const hexX = centerX - locW / 2;
+
+    drawHex(ctx, hexX, locY, locW, locH);
+    ctx.fillStyle = "#211833";
+    ctx.fill();
+
+    ctx.strokeStyle = "#8f5cff";
+    ctx.lineWidth = 4;
+    ctx.stroke();
 
     const p1Power = getLocationPower(battle, side, battle.player1Id);
     const p2Power = getLocationPower(battle, side, battle.player2Id);
 
-    ctx.fillStyle = "#20222b";
-    ctx.fillRect(x, locY, locW, locH);
-
-    ctx.strokeStyle = "#7b2cff";
-    ctx.lineWidth = 4;
-    ctx.strokeRect(x, locY, locW, locH);
-
     ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 26px Arial";
-    ctx.fillText(shortText(location.name || location, 16), x + 18, locY + 40);
+    ctx.font = "bold 25px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(shortText(location.name || location, 18), centerX, locY + 38);
 
-    ctx.font = "16px Arial";
-    ctx.fillStyle = "#c7c7c7";
-    ctx.fillText(shortText(location.description || "Location boost active", 30), x + 18, locY + 70);
+    ctx.font = "bold 30px Arial";
+    ctx.fillText(`${p1Power} - ${p2Power}`, centerX, locY + 78);
 
-    ctx.font = "bold 24px Arial";
-    ctx.fillStyle = "#ffffff";
-    ctx.fillText(`${battle.player1Name || "P1"}: ${p1Power}`, x + 18, locY + 112);
-    ctx.fillText(`${battle.player2Name || "P2"}: ${p2Power}`, x + 170, locY + 112);
+    ctx.font = "14px Arial";
+    ctx.fillStyle = "#cfc6ff";
+    ctx.fillText(shortText(location.description || "Location boost", 32), centerX, locY + 101);
+
+    ctx.textAlign = "left";
+
+    await drawCardsRow(ctx, p2Cards, centerX, p2CardY);
   }
 
   ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 22px Arial";
-  ctx.fillText(`${battle.player2Name || "Player 2"} Board`, 40, 320);
-
-  ctx.fillText(`${battle.player1Name || "Player 1"} Board`, 40, 545);
-
-  const cardW = 78;
-  const cardH = 110;
-
-  for (let i = 0; i < 3; i++) {
-    const side = SIDES[i];
-    const xBase = startX + i * (locW + gap);
-
-    const p2Cards = getLocationCards(battle, side, battle.player2Id);
-    const p1Cards = getLocationCards(battle, side, battle.player1Id);
-
-    for (let j = 0; j < Math.min(p2Cards.length, 3); j++) {
-      await drawCard(ctx, p2Cards[j], xBase + j * 88, 340, cardW, cardH);
-    }
-
-    for (let j = 0; j < Math.min(p1Cards.length, 3); j++) {
-      await drawCard(ctx, p1Cards[j], xBase + j * 88, 565, cardW, cardH);
-    }
-  }
+  ctx.font = "bold 24px Arial";
+  ctx.fillText(`${battle.player1Name || "Player 1"} cards`, 40, 110);
+  ctx.fillText(`${battle.player2Name || "Player 2"} cards`, 40, 650);
 
   return canvas.toBuffer();
 }
