@@ -84,39 +84,6 @@ module.exports = {
         return message.reply("❌ Card data not found.");
       }
 
-      const currentEntries = await collectionsCol
-        .find({ userId })
-        .toArray();
-
-      const currentDeckEntries = currentEntries.filter(entry =>
-        deck.cards.includes(normalizeCode(entry.code))
-      );
-
-      const currentFullCards = currentDeckEntries
-        .map(entry => ({
-          entry,
-          card: getCardData(entry.cardId)
-        }))
-        .filter(x => x.card);
-
-      const legendaryCount = currentFullCards.filter(
-        x => x.card.tier.toLowerCase() === "legendary"
-      ).length;
-
-      const epicCount = currentFullCards.filter(
-        x => x.card.tier.toLowerCase() === "epic"
-      ).length;
-
-      const tier = card.tier.toLowerCase();
-
-      if (tier === "legendary" && legendaryCount >= 5) {
-        return message.reply("❌ You can only have **5 Legendary** cards in your deck.");
-      }
-
-      if (tier === "epic" && epicCount >= 7) {
-        return message.reply("❌ You can only have **7 Epic** cards in your deck.");
-      }
-
       await decksCol.updateOne(
         { userId },
         { $push: { cards: normalizeCode(ownedCard.code) } }
@@ -176,14 +143,6 @@ module.exports = {
         })
         .filter(Boolean);
 
-      const legendaryCount = orderedDeckCards.filter(
-        x => x.card.tier.toLowerCase() === "legendary"
-      ).length;
-
-      const epicCount = orderedDeckCards.filter(
-        x => x.card.tier.toLowerCase() === "epic"
-      ).length;
-
       const buffer = await createDeckImage(
         orderedDeckCards,
         message.author.username
@@ -208,10 +167,7 @@ module.exports = {
         .setDescription(list)
         .setImage("attachment://battle-deck.png")
         .setFooter({
-          text:
-            `Cards: ${orderedDeckCards.length}/15 • ` +
-            `Legendary: ${legendaryCount}/5 • ` +
-            `Epic: ${epicCount}/7`
+          text: `Cards: ${orderedDeckCards.length}/15`
         });
 
       return message.reply({
