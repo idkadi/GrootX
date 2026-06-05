@@ -287,20 +287,16 @@ client.on("interactionCreate", async interaction => {
       if (
         battleCommand &&
         typeof battleCommand.handleButton === "function" &&
-        interaction.customId.startsWith("battle_")
+        (
+          interaction.customId.startsWith("battle_card_") ||
+          interaction.customId.startsWith("battle_loc_")
+        )
       ) {
         return battleCommand.handleButton(interaction);
       }
     }
   } catch (error) {
     console.error("❌ Interaction error:", error);
-
-    if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({
-        content: "❌ Something went wrong with this interaction.",
-        ephemeral: true
-      });
-    }
   }
 });
 
