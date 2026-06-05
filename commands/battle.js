@@ -7,8 +7,10 @@ const {
 
 const locations = require("../data/locations");
 const activeBattles = require("../data/activeBattles");
+
 const getBattleDeck = require("../utils/getBattleDeck");
 const createBattleImage = require("../utils/createBattleImage");
+const createHandImage = require("../utils/createHandImage");
 const { calculateBattlePower } = require("../utils/battlePower");
 
 const SIDES = ["left", "middle", "right"];
@@ -21,14 +23,28 @@ function makeBattleId() {
   return Math.random().toString(36).slice(2, 8);
 }
 
-async function makeBoardPayload(battle, content) {
+function createOpenHandButton(battle) {
+  return [
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`battle_open_${battle.id}`)
+        .setLabel("Open Private Hand")
+        .setStyle(ButtonStyle.Primary)
+    )
+  ];
+}
+
+async function makeBoardPayload(battle, content, finished = false) {
   const buffer = await createBattleImage(battle);
-  const attachment = new AttachmentBuilder(buffer, { name: "battle.png" });
 
   return {
     content,
-    files: [attachment],
-    components: []
+    files: [
+      new AttachmentBuilder(buffer, {
+        name: "battle.png"
+      })
+    ],
+    components: finished ? [] : createOpenHandButton(battle)
   };
 }
 
@@ -65,27 +81,34 @@ function createLocationButtons(battle) {
   return [row];
 }
 
-async function sendPrivateHand(client, battle, userId) {
-  const user = await client.users.fetch(userId);
-  const hand = battle.hands[userId] || [];
+async function sendPrivateHand(interaction, battle) {
+  const hand = battle.hands[interaction.user.id] || [];
 
   if (!hand.length) {
-    return user.send("You have no cards in hand.");
+    return interaction.reply({
+      content: "You have no cards in hand.",
+      ephemeral: true
+    });
   }
 
-  return user.send({
-    content:
-      `⚔️ **GrootX Battle**\n` +
-      `Turn **${battle.turn}/${battle.maxTurns}**\n` +
-      `Pick a card privately:`,
-    components: createCardButtons(battle, userId)
+  const buffer = await createHandImage(hand);
+
+  return interaction.reply({
+    content: "Pick a card:",
+    files: [
+      new AttachmentBuilder(buffer, {
+        name: "hand.png"
+      })
+    ],
+    components: createCardButtons(battle, interaction.user.id),
+    ephemeral: true
   });
 }
 
-async function editPublicBoard(client, battle, content) {
+async function editPublicBoard(client, battle, content, finished = false) {
   const channel = await client.channels.fetch(battle.channelId);
   const msg = await channel.messages.fetch(battle.messageId);
-  const payload = await makeBoardPayload(battle, content);
+  const payload = await makeBoardPayload(battle, content, finished);
 
   return msg.edit(payload);
 }
@@ -174,7 +197,9 @@ module.exports = {
       components: [row]
     });
 
-    const collector = msg.createMessageComponentCollector({ time: 60000 });
+    const collector = msg.createMessageComponentCollector({
+      time: 60000
+    });
 
     collector.on("collect", async interaction => {
       if (interaction.user.id !== target.id) {
@@ -186,6 +211,7 @@ module.exports = {
 
       if (interaction.customId.startsWith("battle_decline_")) {
         collector.stop();
+
         return interaction.update({
           content: "Battle declined.",
           components: []
@@ -267,18 +293,10 @@ module.exports = {
 
       const payload = await makeBoardPayload(
         battle,
-        `⚔️ Battle started! <@${battle.currentPlayerId}> is choosing privately.`
+        `⚔️ Battle started! <@${battle.currentPlayerId}> click **Open Private Hand**.`
       );
 
-      await interaction.update(payload);
-
-      try {
-        await sendPrivateHand(message.client, battle, battle.currentPlayerId);
-      } catch {
-        await msg.edit({
-          content: `⚠️ Could not DM <@${battle.currentPlayerId}>. Please enable DMs.`
-        });
-      }
+      return interaction.update(payload);
     });
   },
 
@@ -306,6 +324,10 @@ module.exports = {
       });
     }
 
+    if (interaction.customId.startsWith(`battle_open_${battle.id}`)) {
+      return sendPrivateHand(interaction, battle);
+    }
+
     if (interaction.customId.startsWith(`battle_card_${battle.id}_`)) {
       const index = Number(interaction.customId.split("_").pop());
       const hand = battle.hands[interaction.user.id];
@@ -318,10 +340,10 @@ module.exports = {
       }
 
       battle.selectedCardIndex = index;
-      const selected = hand[index];
 
       return interaction.update({
-        content: `Selected **${selected.card.name}**. Choose location:`,
+        content: `Selected **${hand[index].card.name}**. Choose location:`,
+        files: [],
         components: createLocationButtons(battle)
       });
     }
@@ -356,6 +378,7 @@ module.exports = {
 
       await interaction.update({
         content: `✅ Played **${played.card.name}** to **${side}**.`,
+        files: [],
         components: []
       });
 
@@ -374,27 +397,17 @@ module.exports = {
           ? `🏆 Battle finished! Winner: <@${battle.winner}>`
           : "🤝 Battle finished! It's a draw!";
 
-        return editPublicBoard(interaction.client, battle, resultText);
+        return editPublicBoard(interaction.client, battle, resultText, true);
       }
 
       drawCard(battle, interaction.user.id);
       switchTurn(battle);
 
-      await editPublicBoard(
+      return editPublicBoard(
         interaction.client,
         battle,
-        `Played **${played.card.name}** to **${side}**.\n<@${battle.currentPlayerId}> is choosing privately.`
+        `Played **${played.card.name}** to **${side}**.\n<@${battle.currentPlayerId}> click **Open Private Hand**.`
       );
-
-      try {
-        await sendPrivateHand(interaction.client, battle, battle.currentPlayerId);
-      } catch {
-        await editPublicBoard(
-          interaction.client,
-          battle,
-          `⚠️ Could not DM <@${battle.currentPlayerId}>. Please enable DMs.`
-        );
-      }
     }
   }
 };

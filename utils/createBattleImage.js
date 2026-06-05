@@ -1,12 +1,17 @@
 const { createCanvas, loadImage } = require("canvas");
 const path = require("path");
-
 const { calculateBattlePower } = require("./battlePower");
 
 const SIDES = ["left", "middle", "right"];
 
+function cleanText(text = "") {
+  return String(text)
+    .replace(/[^\x20-\x7E]/g, "")
+    .trim();
+}
+
 function shortText(text, max = 18) {
-  text = String(text || "");
+  text = cleanText(text);
   return text.length > max ? text.slice(0, max - 3) + "..." : text;
 }
 
@@ -33,23 +38,8 @@ function getLocationPower(battle, side, userId) {
   }, 0);
 }
 
-function drawRoundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
-}
-
 function drawHex(ctx, x, y, w, h) {
   const cut = 35;
-
   ctx.beginPath();
   ctx.moveTo(x + cut, y);
   ctx.lineTo(x + w - cut, y);
@@ -76,11 +66,11 @@ async function drawCard(ctx, item, x, y, w, h) {
   ctx.strokeRect(x, y, w, h);
 
   ctx.fillStyle = "rgba(0,0,0,0.75)";
-  ctx.fillRect(x, y + h - 28, w, 28);
+  ctx.fillRect(x, y + h - 26, w, 26);
 
   ctx.fillStyle = "#ffffff";
   ctx.font = "bold 13px Arial";
-  ctx.fillText(`#${item.serial}`, x + 6, y + h - 10);
+  ctx.fillText(`#${item.serial}`, x + 6, y + h - 9);
 }
 
 async function drawCardsRow(ctx, cards, centerX, y) {
@@ -90,7 +80,7 @@ async function drawCardsRow(ctx, cards, centerX, y) {
 
   const shown = cards.slice(0, 3);
   const totalW = shown.length * cardW + Math.max(0, shown.length - 1) * gap;
-  let startX = centerX - totalW / 2;
+  const startX = centerX - totalW / 2;
 
   for (let i = 0; i < shown.length; i++) {
     await drawCard(ctx, shown[i], startX + i * (cardW + gap), y, cardW, cardH);
@@ -109,17 +99,19 @@ async function createBattleImage(battle) {
 
   ctx.fillStyle = "#ffffff";
   ctx.font = "bold 34px Arial";
-  ctx.fillText("⚔️ GrootX Battle", 40, 48);
+  ctx.fillText("GrootX Battle", 40, 48);
 
   ctx.font = "22px Arial";
   ctx.fillText(`Turn ${battle.turn}/${battle.maxTurns}`, 40, 82);
 
   ctx.font = "bold 24px Arial";
-  ctx.fillText(`${battle.player1Name || "Player 1"}`, 480, 52);
+  ctx.fillText(cleanText(battle.player1Name || "Player 1"), 450, 52);
+
   ctx.font = "20px Arial";
   ctx.fillText("VS", 555, 82);
+
   ctx.font = "bold 24px Arial";
-  ctx.fillText(`${battle.player2Name || "Player 2"}`, 590, 52);
+  ctx.fillText(cleanText(battle.player2Name || "Player 2"), 610, 52);
 
   const colW = 340;
   const gap = 25;
@@ -176,8 +168,8 @@ async function createBattleImage(battle) {
 
   ctx.fillStyle = "#ffffff";
   ctx.font = "bold 24px Arial";
-  ctx.fillText(`${battle.player1Name || "Player 1"} cards`, 40, 110);
-  ctx.fillText(`${battle.player2Name || "Player 2"} cards`, 40, 650);
+  ctx.fillText(`${cleanText(battle.player1Name || "Player 1")} cards`, 40, 110);
+  ctx.fillText(`${cleanText(battle.player2Name || "Player 2")} cards`, 40, 650);
 
   return canvas.toBuffer();
 }

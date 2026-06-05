@@ -288,8 +288,9 @@ client.on("interactionCreate", async interaction => {
         battleCommand &&
         typeof battleCommand.handleButton === "function" &&
         (
-          interaction.customId.startsWith("battle_card_") ||
-          interaction.customId.startsWith("battle_loc_")
+          interaction.customId.startsWith("battle_open_") ||
+interaction.customId.startsWith("battle_card_") ||
+interaction.customId.startsWith("battle_loc_")
         )
       ) {
         return battleCommand.handleButton(interaction);
