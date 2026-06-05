@@ -143,24 +143,18 @@ module.exports = {
         })
         .filter(Boolean);
 
-      const buffer = await createDeckImage(
-        orderedDeckCards,
-        message.author.username
-      );
+      const buffer = await createDeckImage(orderedDeckCards);
 
       const attachment = new AttachmentBuilder(buffer, {
         name: "battle-deck.png"
       });
 
-     
-
       const embed = new EmbedBuilder()
         .setColor(0x00aeff)
         .setTitle("⚔️ GrootX Battle Deck")
-        .setDescription(list)
         .setImage("attachment://battle-deck.png")
         .setFooter({
-          text: `Cards: ${orderedDeckCards.length}/15`
+          text: `${orderedDeckCards.length}/15 Cards`
         });
 
       return message.reply({
