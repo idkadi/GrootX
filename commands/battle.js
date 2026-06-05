@@ -1,10 +1,12 @@
 const connectDB = require("../database");
+const createBattleImage = require("../utils/createBattleImage");
 
 const {
   EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
-  ButtonStyle
+  ButtonStyle,
+  AttachmentBuilder
 } = require("discord.js");
 
 const activeBattles = new Map();
@@ -39,11 +41,11 @@ module.exports = {
       userId: opponent.id
     });
 
-    if (!challengerDeck || challengerDeck.cards.length < 15) {
+    if (!challengerDeck || !challengerDeck.cards || challengerDeck.cards.length < 15) {
       return message.reply("❌ You need a full **15-card deck** first.");
     }
 
-    if (!opponentDeck || opponentDeck.cards.length < 15) {
+    if (!opponentDeck || !opponentDeck.cards || opponentDeck.cards.length < 15) {
       return message.reply(`❌ ${opponent.username} needs a full **15-card deck** first.`);
     }
 
@@ -158,19 +160,25 @@ module.exports = {
 
         activeBattles.set(battleId, battle);
 
+        const buffer = await createBattleImage(battle);
+
+        const attachment = new AttachmentBuilder(buffer, {
+          name: "battle-board.png"
+        });
+
+        const battleEmbed = new EmbedBuilder()
+          .setColor(0x00aeff)
+          .setTitle("Battle Started")
+          .setDescription(
+            `**${message.author.username}** vs **${opponent.username}**\n` +
+            `Turn **1/6**\n\n` +
+            `Both players drew **5 cards**.`
+          )
+          .setImage("attachment://battle-board.png");
+
         return interaction.update({
-          embeds: [
-            new EmbedBuilder()
-              .setColor(0x00aeff)
-              .setTitle("⚔️ Battle Started")
-              .setDescription(
-                `**${message.author.username}** vs **${opponent.username}**\n\n` +
-                `Turn: **1/6**\n\n` +
-                `🃏 Both players drew **5 cards**.\n` +
-                `📍 3 locations created.\n\n` +
-                `Next step: add battle board + play card buttons.`
-              )
-          ],
+          embeds: [battleEmbed],
+          files: [attachment],
           components: []
         });
       }
