@@ -152,14 +152,7 @@ module.exports = {
         name: "battle-deck.png"
       });
 
-      const list = orderedDeckCards.length
-        ? orderedDeckCards.map((x, i) => {
-            return (
-              `**${i + 1}.** ${getTierEmoji(x.card.tier)} ` +
-              `\`${x.entry.code}\` • #${x.entry.serial} • **${x.card.name}**`
-            );
-          }).join("\n")
-        : "No cards added yet.";
+     
 
       const embed = new EmbedBuilder()
         .setColor(0x00aeff)
