@@ -1,26 +1,43 @@
 module.exports = [
   {
     name: "Asgard",
-    description: "+3 Asgardians"
+    image: "asgard.png",
+    description: "+3 Power to Asgardian cards",
+    bonusTag: "Asgardian",
+    bonusPower: 3,
+    revealTurn: 1
   },
-
   {
     name: "Wakanda",
-    description: "+3 Wakandan cards"
+    image: "wakanda.png",
+    description: "+3 Power to Wakandan cards",
+    bonusTag: "Wakandan",
+    bonusPower: 3,
+    revealTurn: 2
   },
-
   {
     name: "Titan",
-    description: "+3 Villains"
+    image: "titan.png",
+    description: "+3 Power to Villain cards",
+    bonusTag: "Villain",
+    bonusPower: 3,
+    revealTurn: 3
   },
-
   {
     name: "Avengers HQ",
-    description: "+3 Avengers"
+    image: "avengers.png",
+    description: "+3 Power to Avengers cards",
+    bonusTag: "Avenger",
+    bonusPower: 3,
+    revealTurn: 1
   },
-
   {
     name: "Knowhere",
-    description: "+3 Cosmic cards"
-  }
+    image: "knowhere.png",
+    description: "+3 Power to Cosmic cards",
+    bonusTag: "Cosmic",
+    bonusPower: 3,
+    revealTurn: 2
+  },
+ 
 ];

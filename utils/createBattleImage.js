@@ -1,13 +1,24 @@
-const { createCanvas, loadImage } = require("canvas");
+const { createCanvas, loadImage, registerFont } = require("canvas");
 const path = require("path");
+const fs = require("fs");
 const { calculateBattlePower } = require("./battlePower");
+
+try {
+  registerFont("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", {
+    family: "DejaVuSans"
+  });
+  registerFont("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", {
+    family: "DejaVuSans",
+    weight: "bold"
+  });
+} catch (err) {
+  console.log("Battle font load failed:", err.message);
+}
 
 const SIDES = ["left", "middle", "right"];
 
 function cleanText(text = "") {
-  return String(text)
-    .replace(/[^\x20-\x7E]/g, "")
-    .trim();
+  return String(text).replace(/[^\x20-\x7E]/g, "").trim();
 }
 
 function shortText(text, max = 18) {
@@ -15,8 +26,13 @@ function shortText(text, max = 18) {
   return text.length > max ? text.slice(0, max - 3) + "..." : text;
 }
 
+function isRevealed(battle, index) {
+  const loc = battle.locations[index];
+  return battle.turn >= (loc.revealTurn || index + 1);
+}
+
 function getLocationCards(battle, side, userId) {
-  return battle.board[side].filter(c => c.ownerId === userId);
+  return (battle.board?.[side] || []).filter(c => c.ownerId === userId);
 }
 
 function getLocationObject(battle, side) {
@@ -38,9 +54,22 @@ function getLocationPower(battle, side, userId) {
   }, 0);
 }
 
-function drawHex(ctx, x, y, w, h) {
-  const cut = 40;
+function roundedRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
 
+function drawHexPath(ctx, x, y, w, h) {
+  const cut = 52;
   ctx.beginPath();
   ctx.moveTo(x + cut, y);
   ctx.lineTo(x + w - cut, y);
@@ -51,99 +80,108 @@ function drawHex(ctx, x, y, w, h) {
   ctx.closePath();
 }
 
-async function drawCard(ctx, item, x, y, w, h) {
-  if (!item || !item.card) return;
+async function drawLocationImage(ctx, location, x, y, w, h) {
+  const imageName = location.image;
+  if (!imageName) return false;
+
+  const possiblePaths = [
+    path.join(__dirname, "..", "assets", "locations", imageName),
+    path.join(__dirname, "..", "images", "locations", imageName),
+    path.join(__dirname, "..", "locations", imageName)
+  ];
+
+  const imagePath = possiblePaths.find(p => fs.existsSync(p));
+  if (!imagePath) return false;
 
   try {
-    const imagePath = path.join(__dirname, "..", "images", item.card.image);
     const img = await loadImage(imagePath);
+    ctx.save();
+    drawHexPath(ctx, x, y, w, h);
+    ctx.clip();
     ctx.drawImage(img, x, y, w, h);
+    ctx.fillStyle = "rgba(0,0,0,0.38)";
+    ctx.fillRect(x, y, w, h);
+    ctx.restore();
+    return true;
   } catch {
-    return;
-  }
-
-  ctx.strokeStyle = "#ffffff";
-  ctx.lineWidth = 2;
-  ctx.strokeRect(x, y, w, h);
-
-  ctx.fillStyle = "rgba(0,0,0,0.75)";
-  ctx.fillRect(x, y + h - 24, w, 24);
-
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 13px sans-serif";
-  ctx.fillText(`#${item.serial}`, x + 6, y + h - 8);
-}
-
-async function drawCardsRow(ctx, cards, centerX, y) {
-  const cardW = 95;
-  const cardH = 135;
-  const gap = 8;
-
-  const shown = cards.slice(0, 3);
-  const totalW = shown.length * cardW + Math.max(0, shown.length - 1) * gap;
-  const startX = centerX - totalW / 2;
-
-  for (let i = 0; i < shown.length; i++) {
-    await drawCard(ctx, shown[i], startX + i * (cardW + gap), y, cardW, cardH);
+    return false;
   }
 }
 
 async function createBattleImage(battle) {
   const width = 1150;
-  const height = 720;
-
+  const height = 680;
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
 
-  ctx.fillStyle = "#101116";
-  ctx.fillRect(0, 0, width, height);
+  const bgPath = path.join(__dirname, "..", "assets", "battle_bg.jpg");
+  if (fs.existsSync(bgPath)) {
+    try {
+      const bg = await loadImage(bgPath);
+      ctx.drawImage(bg, 0, 0, width, height);
+    } catch {
+      ctx.fillStyle = "#101116";
+      ctx.fillRect(0, 0, width, height);
+    }
+  } else {
+    const gradient = ctx.createLinearGradient(0, 0, width, height);
+    gradient.addColorStop(0, "#150d2e");
+    gradient.addColorStop(0.45, "#251440");
+    gradient.addColorStop(1, "#070912");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, width, height);
+  }
 
+  ctx.textAlign = "center";
   ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 34px sans-serif";
-  ctx.fillText("GrootX Battle", 40, 48);
+  ctx.font = "bold 34px DejaVuSans";
+  ctx.fillText(`${shortText(battle.player1Name, 16)} VS ${shortText(battle.player2Name, 16)}`, width / 2, 55);
 
-  ctx.font = "22px sans-serif";
-  ctx.fillText(`Turn ${battle.turn}/${battle.maxTurns}`, 40, 82);
+  ctx.font = "bold 30px DejaVuSans";
+  ctx.fillText(`TURN ${battle.turn}/${battle.maxTurns}`, width / 2, 100);
 
-  ctx.font = "bold 24px sans-serif";
-  ctx.fillText(shortText(battle.player1Name || "Player 1", 18), 430, 52);
-
-  ctx.font = "20px sans-serif";
-  ctx.fillText("VS", 555, 82);
-
-  ctx.font = "bold 24px sans-serif";
-  ctx.fillText(shortText(battle.player2Name || "Player 2", 18), 610, 52);
-
-  const colW = 340;
-  const gap = 25;
-  const startX = 45;
-
-  const p1CardY = 115;
-  const locY = 280;
-  const p2CardY = 455;
-
-  const locW = 300;
-  const locH = 115;
+  const locW = 320;
+  const locH = 250;
+  const startX = 60;
+  const gap = 35;
+  const locY = 210;
 
   for (let i = 0; i < 3; i++) {
     const side = SIDES[i];
-    const x = startX + i * (colW + gap);
-    const centerX = x + colW / 2;
+    const location = battle.locations[i];
+    const x = startX + i * (locW + gap);
+    const centerX = x + locW / 2;
+    const revealed = isRevealed(battle, i);
 
-    const location = getLocationObject(battle, side);
-
-    const p1Cards = getLocationCards(battle, side, battle.player1Id);
-    const p2Cards = getLocationCards(battle, side, battle.player2Id);
-
-    await drawCardsRow(ctx, p1Cards, centerX, p1CardY);
-
-    const hexX = centerX - locW / 2;
-
-    drawHex(ctx, hexX, locY, locW, locH);
-    ctx.fillStyle = "#211833";
+    drawHexPath(ctx, x, locY, locW, locH);
+    ctx.fillStyle = "#1a1530";
     ctx.fill();
 
-    ctx.strokeStyle = "#8f5cff";
+    if (revealed) {
+      const hasImage = await drawLocationImage(ctx, location, x, locY, locW, locH);
+      if (!hasImage) {
+        drawHexPath(ctx, x, locY, locW, locH);
+        ctx.fillStyle = "#211833";
+        ctx.fill();
+      }
+    } else {
+      drawHexPath(ctx, x, locY, locW, locH);
+      ctx.fillStyle = "#17152a";
+      ctx.fill();
+      ctx.fillStyle = "rgba(110,80,255,0.25)";
+      ctx.fill();
+    }
+
+    drawHexPath(ctx, x, locY, locW, locH);
+    ctx.strokeStyle = revealed ? "#9b6cff" : "#55506c";
+    ctx.lineWidth = 6;
+    ctx.stroke();
+
+    ctx.save();
+    roundedRect(ctx, centerX - 75, locY - 26, 150, 54, 18);
+    ctx.fillStyle = "#3b2a30";
+    ctx.fill();
+    ctx.strokeStyle = "#b68a73";
     ctx.lineWidth = 4;
     ctx.stroke();
 
@@ -151,30 +189,42 @@ async function createBattleImage(battle) {
     const p2Power = getLocationPower(battle, side, battle.player2Id);
 
     ctx.fillStyle = "#ffffff";
-    ctx.textAlign = "center";
+    ctx.font = "bold 30px DejaVuSans";
+    ctx.fillText(`${p1Power}`, centerX, locY + 11);
+    ctx.restore();
 
-    ctx.font = "bold 25px sans-serif";
-    ctx.fillText(shortText(location.name || location, 18), centerX, locY + 38);
+    ctx.save();
+    roundedRect(ctx, centerX - 75, locY + locH - 28, 150, 54, 18);
+    ctx.fillStyle = "#3b2a30";
+    ctx.fill();
+    ctx.strokeStyle = "#b68a73";
+    ctx.lineWidth = 4;
+    ctx.stroke();
 
-    ctx.font = "bold 30px sans-serif";
-    ctx.fillText(`${p1Power} - ${p2Power}`, centerX, locY + 78);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 30px DejaVuSans";
+    ctx.fillText(`${p2Power}`, centerX, locY + locH + 9);
+    ctx.restore();
 
-    ctx.font = "14px sans-serif";
-    ctx.fillStyle = "#cfc6ff";
-    ctx.fillText(shortText(location.description || "Location boost", 32), centerX, locY + 101);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 30px DejaVuSans";
+    ctx.fillText(revealed ? shortText(location.name, 17) : "???", centerX, locY + 105);
 
-    ctx.textAlign = "left";
+    ctx.font = "bold 20px DejaVuSans";
+    ctx.fillStyle = "#e9e4ff";
+    ctx.fillText(
+      revealed ? shortText(location.description || "", 26) : `Reveals Turn ${location.revealTurn || i + 1}`,
+      centerX,
+      locY + 145
+    );
 
-    await drawCardsRow(ctx, p2Cards, centerX, p2CardY);
+    ctx.font = "bold 22px DejaVuSans";
+    ctx.fillStyle = "#cfd5ff";
+    ctx.fillText(`${battle.player1Name}: ${p1Power}`, centerX, locY + 185);
+    ctx.fillText(`${battle.player2Name}: ${p2Power}`, centerX, locY + 215);
   }
 
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 24px sans-serif";
-
-  ctx.fillText(`${shortText(battle.player1Name || "Player 1", 18)} cards`, 40, 110);
-  ctx.fillText(`${shortText(battle.player2Name || "Player 2", 18)} cards`, 40, 650);
-
-  return canvas.toBuffer();
+  return canvas.toBuffer("image/png");
 }
 
 module.exports = createBattleImage;

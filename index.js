@@ -281,23 +281,37 @@ client.on("messageCreate", async message => {
 });
 client.on("interactionCreate", async interaction => {
   try {
-    if (interaction.isButton()) {
-      const battleCommand = client.commands.get("battle");
+    if (!interaction.isButton()) return;
 
-      if (
-        battleCommand &&
-        typeof battleCommand.handleButton === "function" &&
-        (
-          interaction.customId.startsWith("battle_open_") ||
-interaction.customId.startsWith("battle_card_") ||
-interaction.customId.startsWith("battle_loc_")
-        )
-      ) {
-        return battleCommand.handleButton(interaction);
-      }
+    const battleCommand = client.commands.get("battle");
+
+    const isBattleGameplayButton =
+      interaction.customId.startsWith("battle_open_") ||
+      interaction.customId.startsWith("battle_card_") ||
+      interaction.customId.startsWith("battle_loc_") ||
+      interaction.customId.startsWith("battle_forfeit_");
+
+    if (
+      isBattleGameplayButton &&
+      battleCommand &&
+      typeof battleCommand.handleButton === "function"
+    ) {
+      return battleCommand.handleButton(interaction);
     }
+
   } catch (error) {
     console.error("❌ Interaction error:", error);
+
+    const payload = {
+      content: "❌ Something went wrong with this button.",
+      ephemeral: true
+    };
+
+    if (interaction.deferred || interaction.replied) {
+      await interaction.followUp(payload).catch(() => {});
+    } else {
+      await interaction.reply(payload).catch(() => {});
+    }
   }
 });
 
