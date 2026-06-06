@@ -4,7 +4,7 @@ module.exports = {
   name: "wipedecks",
 
   async execute(message) {
-    if (message.author.id !== "YOUR_DISCORD_ID") {
+    if (message.author.id !== "859803575995727872") {
       return message.reply("❌ Owner only.");
     }
 
