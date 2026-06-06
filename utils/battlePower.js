@@ -1,18 +1,20 @@
-const TIER_STATS = {
-  common: { attack: 4, defense: 1 },
-  uncommon: { attack: 6, defense: 2 },
-  rare: { attack: 8, defense: 3 },
-  epic: { attack: 12, defense: 4 },
-  legendary: { attack: 16, defense: 5 }
+const TIER_POWER = {
+  common: 1,
+  uncommon: 2,
+  rare: 3,
+  epic: 5,
+  legendary: 7
 };
 
 function normalize(text = "") {
   return String(text).trim().toLowerCase();
 }
 
-function getTierStats(card) {
+function getBasePower(card) {
+  if (typeof card.power === "number") return card.power;
+
   const tier = normalize(card.tier);
-  return TIER_STATS[tier] || TIER_STATS.common;
+  return TIER_POWER[tier] || 1;
 }
 
 function getSerialBoost(serial) {
@@ -30,27 +32,27 @@ function getSerialBoost(serial) {
 function getSynergyBoost(card, cardsAtLocation = []) {
   let boost = 0;
 
-  const sameNameCount = cardsAtLocation.filter(c =>
+  const sameName = cardsAtLocation.filter(c =>
     normalize(c.name) === normalize(card.name)
   ).length;
 
-  const sameAppearanceCount = cardsAtLocation.filter(c =>
+  const sameAppearance = cardsAtLocation.filter(c =>
     normalize(c.appearance) === normalize(card.appearance)
   ).length;
 
-  if (sameNameCount > 1) boost += sameNameCount - 1;
-  if (sameAppearanceCount > 1) boost += sameAppearanceCount - 1;
+  if (sameName > 1) boost += sameName - 1;
+  if (sameAppearance > 1) boost += sameAppearance - 1;
 
   return boost;
 }
 
 function getLocationBoost(card, location) {
-  const locName = normalize(location?.name || location);
+  const loc = normalize(location?.name || location);
   const name = normalize(card.name);
-  const aka = (card.aka || []).map(a => normalize(a));
   const appearance = normalize(card.appearance);
+  const aka = (card.aka || []).map(a => normalize(a));
 
-  if (locName.includes("asgard")) {
+  if (loc.includes("asgard")) {
     if (
       name.includes("thor") ||
       name.includes("loki") ||
@@ -61,24 +63,23 @@ function getLocationBoost(card, location) {
     ) return 3;
   }
 
-  if (locName.includes("wakanda")) {
+  if (loc.includes("wakanda")) {
     if (
       name.includes("black panther") ||
       name.includes("shuri") ||
       name.includes("okoye") ||
-      name.includes("namor") ||
       appearance.includes("black panther") ||
       aka.includes("black panther")
     ) return 3;
   }
 
-  if (locName.includes("titan")) {
+  if (loc.includes("titan")) {
     if (
       name.includes("thanos") ||
       name.includes("ultron") ||
       name.includes("kang") ||
       name.includes("knull") ||
-      name.includes("green goblin") ||
+      name.includes("goblin") ||
       name.includes("venom") ||
       name.includes("carnage") ||
       name.includes("kingpin") ||
@@ -86,7 +87,7 @@ function getLocationBoost(card, location) {
     ) return 3;
   }
 
-  if (locName.includes("avengers")) {
+  if (loc.includes("avengers")) {
     if (
       name.includes("iron man") ||
       name.includes("captain america") ||
@@ -100,13 +101,12 @@ function getLocationBoost(card, location) {
     ) return 3;
   }
 
-  if (locName.includes("knowhere")) {
+  if (loc.includes("knowhere")) {
     if (
       name.includes("venom") ||
       name.includes("knull") ||
       name.includes("galactus") ||
       name.includes("silver surfer") ||
-      name.includes("loki") ||
       appearance.includes("guardians") ||
       appearance.includes("fantastic four")
     ) return 3;
@@ -116,32 +116,23 @@ function getLocationBoost(card, location) {
 }
 
 function calculateBattlePower(card, options = {}) {
-  const stats = getTierStats(card);
-
-  const basePower = stats.attack - stats.defense;
+  const basePower = getBasePower(card);
   const serialBoost = getSerialBoost(options.serial);
   const synergyBoost = getSynergyBoost(card, options.cardsAtLocation || []);
   const locationBoost = getLocationBoost(card, options.location);
 
-  const finalPower =
-    basePower +
-    serialBoost +
-    synergyBoost +
-    locationBoost;
-
   return {
-    attack: stats.attack,
-    defense: stats.defense,
     basePower,
     serialBoost,
     synergyBoost,
     locationBoost,
-    finalPower
+    finalPower: basePower + serialBoost + synergyBoost + locationBoost
   };
 }
 
 module.exports = {
   calculateBattlePower,
+  getBasePower,
   getSerialBoost,
   getSynergyBoost,
   getLocationBoost
