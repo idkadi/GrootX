@@ -2,12 +2,12 @@ const { createCanvas, loadImage } = require("canvas");
 const path = require("path");
 
 async function createDeckImage(deckCards) {
-  const cols = 5;
+  const cols = 4;
   const rows = 3;
-  const spacing = 10;
+  const spacing = 12;
 
-  const cardWidth = 120;
-  const cardHeight = 170;
+  const cardWidth = 130;
+  const cardHeight = 185;
 
   const width = cols * cardWidth + spacing * (cols + 1);
   const height = rows * cardHeight + spacing * (rows + 1);
@@ -15,10 +15,10 @@ async function createDeckImage(deckCards) {
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
 
-  ctx.fillStyle = "#1e1f22";
+  ctx.fillStyle = "#14151a";
   ctx.fillRect(0, 0, width, height);
 
-  for (let i = 0; i < 15; i++) {
+  for (let i = 0; i < 12; i++) {
     const row = Math.floor(i / cols);
     const col = i % cols;
 
@@ -28,12 +28,18 @@ async function createDeckImage(deckCards) {
     const item = deckCards[i];
 
     if (!item) {
-      ctx.fillStyle = "#2b2d31";
+      ctx.fillStyle = "#24262d";
       ctx.fillRect(x, y, cardWidth, cardHeight);
 
       ctx.strokeStyle = "#555";
       ctx.lineWidth = 2;
       ctx.strokeRect(x, y, cardWidth, cardHeight);
+
+      ctx.fillStyle = "#888";
+      ctx.font = "bold 28px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("+", x + cardWidth / 2, y + cardHeight / 2 + 10);
+
       continue;
     }
 
@@ -48,7 +54,7 @@ async function createDeckImage(deckCards) {
       const image = await loadImage(imagePath);
       ctx.drawImage(image, x, y, cardWidth, cardHeight);
     } catch {
-      ctx.fillStyle = "#2b2d31";
+      ctx.fillStyle = "#24262d";
       ctx.fillRect(x, y, cardWidth, cardHeight);
 
       ctx.strokeStyle = "#555";
@@ -57,7 +63,7 @@ async function createDeckImage(deckCards) {
     }
   }
 
-  return canvas.toBuffer();
+  return canvas.toBuffer("image/png");
 }
 
 module.exports = createDeckImage;

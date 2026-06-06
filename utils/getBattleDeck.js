@@ -1,6 +1,8 @@
 const cards = require("../data/cards");
 const connectDB = require("../database");
 
+const REQUIRED_DECK_SIZE = 12;
+
 function normalizeCode(code) {
   return String(code || "").trim().toLowerCase();
 }
@@ -22,6 +24,16 @@ async function getBattleDeck(userId) {
       ok: false,
       reason: "NO_DECK",
       cards: []
+    };
+  }
+
+  if (deck.cards.length !== REQUIRED_DECK_SIZE) {
+    return {
+      ok: false,
+      reason: "INCOMPLETE_DECK",
+      cards: [],
+      required: REQUIRED_DECK_SIZE,
+      current: deck.cards.length
     };
   }
 
@@ -51,11 +63,13 @@ async function getBattleDeck(userId) {
     })
     .filter(Boolean);
 
-  if (orderedDeck.length === 0) {
+  if (orderedDeck.length !== REQUIRED_DECK_SIZE) {
     return {
       ok: false,
-      reason: "NO_VALID_CARDS",
-      cards: []
+      reason: "INVALID_DECK_CARDS",
+      cards: [],
+      required: REQUIRED_DECK_SIZE,
+      current: orderedDeck.length
     };
   }
 

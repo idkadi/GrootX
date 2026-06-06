@@ -12,8 +12,6 @@ try {
     family: "BattleFont",
     weight: "bold"
   });
-
-  console.log("✅ Battle fonts loaded");
 } catch (err) {
   console.error("❌ Font load failed:", err.message);
 }
@@ -102,7 +100,6 @@ async function drawCard(ctx, item, x, y, w, h) {
   if (!item?.card?.image) return;
 
   const imagePath = path.join(__dirname, "..", "images", item.card.image);
-
   if (!fs.existsSync(imagePath)) return;
 
   try {
@@ -111,28 +108,24 @@ async function drawCard(ctx, item, x, y, w, h) {
   } catch {}
 }
 
-async function drawSnapStack(ctx, cards, centerX, baseY, isTop = true) {
+async function drawCardGrid(ctx, cards, centerX, y) {
   const shown = cards.slice(0, 4);
   if (!shown.length) return;
 
-  const cardW = 86;
-  const cardH = 122;
+  const cardW = 78;
+  const cardH = 110;
+  const gapX = 8;
+  const gapY = 8;
 
-  const positionsTop = [
-    { x: -45, y: 0 },
-    { x: 35, y: 0 },
-    { x: -45, y: 92 },
-    { x: 35, y: 92 }
+  const positions = [
+    { col: 0, row: 0 },
+    { col: 1, row: 0 },
+    { col: 0, row: 1 },
+    { col: 1, row: 1 }
   ];
 
-  const positionsBottom = [
-    { x: -45, y: 92 },
-    { x: 35, y: 92 },
-    { x: -45, y: 0 },
-    { x: 35, y: 0 }
-  ];
-
-  const positions = isTop ? positionsTop : positionsBottom;
+  const totalW = cardW * 2 + gapX;
+  const startX = centerX - totalW / 2;
 
   for (let i = 0; i < shown.length; i++) {
     const pos = positions[i];
@@ -140,8 +133,8 @@ async function drawSnapStack(ctx, cards, centerX, baseY, isTop = true) {
     await drawCard(
       ctx,
       shown[i],
-      centerX + pos.x - cardW / 2,
-      baseY + pos.y,
+      startX + pos.col * (cardW + gapX),
+      y + pos.row * (cardH + gapY),
       cardW,
       cardH
     );
@@ -150,7 +143,7 @@ async function drawSnapStack(ctx, cards, centerX, baseY, isTop = true) {
 
 async function createBattleImage(battle) {
   const width = 1150;
-  const height = 680;
+  const height = 820;
 
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
@@ -180,7 +173,7 @@ async function createBattleImage(battle) {
   const locH = 185;
   const startX = 70;
   const gap = 55;
-  const locY = 250;
+  const locY = 330;
 
   for (let i = 0; i < 3; i++) {
     const side = SIDES[i];
@@ -192,7 +185,7 @@ async function createBattleImage(battle) {
     const p1Cards = getLocationCards(battle, side, battle.player1Id);
     const p2Cards = getLocationCards(battle, side, battle.player2Id);
 
-    await drawSnapStack(ctx, p1Cards, centerX, 105, true);
+    await drawCardGrid(ctx, p1Cards, centerX, 70);
 
     await drawLocation(ctx, location, x, locY, locW, locH);
 
@@ -219,7 +212,7 @@ async function createBattleImage(battle) {
 
     ctx.fillStyle = "#ffffff";
     ctx.font = font(28, true);
-    ctx.fillText(shortText(location.name, 15), centerX, locY + 88);
+    ctx.fillText(shortText(location.name, 15), centerX, locY + 105);
 
     ctx.fillStyle = "#3b2a30";
     ctx.strokeStyle = "#c49a82";
@@ -233,7 +226,7 @@ async function createBattleImage(battle) {
     ctx.font = font(26, true);
     ctx.fillText(String(p2Power), centerX, locY + locH + 14);
 
-    await drawSnapStack(ctx, p2Cards, centerX, 445, false);
+    await drawCardGrid(ctx, p2Cards, centerX, 570);
   }
 
   return canvas.toBuffer("image/png");

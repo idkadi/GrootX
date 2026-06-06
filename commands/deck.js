@@ -7,6 +7,10 @@ const {
   AttachmentBuilder
 } = require("discord.js");
 
+const MAX_DECK_SIZE = 12;
+const MAX_LEGENDARY = 4;
+const MAX_EPIC = 4;
+
 function getTierEmoji(tier) {
   switch ((tier || "").toLowerCase()) {
     case "common": return "<:common:1504510702956839033>";
@@ -65,8 +69,10 @@ module.exports = {
         return message.reply("❌ This card is already in your deck.");
       }
 
-      if (deck.cards.length >= 15) {
-        return message.reply("❌ Your deck is full. Max deck size is **15 cards**.");
+      if (deck.cards.length >= MAX_DECK_SIZE) {
+        return message.reply(
+          `❌ Your deck is full. Max deck size is **${MAX_DECK_SIZE} cards**.`
+        );
       }
 
       const ownedCard = await collectionsCol.findOne({
@@ -82,6 +88,43 @@ module.exports = {
 
       if (!card) {
         return message.reply("❌ Card data not found.");
+      }
+
+      const entries = await collectionsCol.find({ userId }).toArray();
+
+      const currentDeckCards = deck.cards
+        .map(code =>
+          entries.find(
+            e => normalizeCode(e.code) === normalizeCode(code)
+          )
+        )
+        .filter(Boolean);
+
+      let legendaryCount = 0;
+      let epicCount = 0;
+
+      for (const entry of currentDeckCards) {
+        const deckCard = getCardData(entry.cardId);
+        if (!deckCard) continue;
+
+        const tier = (deckCard.tier || "").toLowerCase();
+
+        if (tier === "legendary") legendaryCount++;
+        if (tier === "epic") epicCount++;
+      }
+
+      const newTier = (card.tier || "").toLowerCase();
+
+      if (newTier === "legendary" && legendaryCount >= MAX_LEGENDARY) {
+        return message.reply(
+          `❌ You can only have **${MAX_LEGENDARY} Legendary** cards in a battle deck.`
+        );
+      }
+
+      if (newTier === "epic" && epicCount >= MAX_EPIC) {
+        return message.reply(
+          `❌ You can only have **${MAX_EPIC} Epic** cards in a battle deck.`
+        );
       }
 
       await decksCol.updateOne(
@@ -154,7 +197,7 @@ module.exports = {
         .setTitle("⚔️ GrootX Battle Deck")
         .setImage("attachment://battle-deck.png")
         .setFooter({
-          text: `${orderedDeckCards.length}/15 Cards`
+          text: `${orderedDeckCards.length}/${MAX_DECK_SIZE} Cards • Max ${MAX_LEGENDARY} Legendary • Max ${MAX_EPIC} Epic`
         });
 
       return message.reply({
