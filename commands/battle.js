@@ -35,6 +35,52 @@ function getOpponentId(battle, userId) {
   return userId === battle.player1Id ? battle.player2Id : battle.player1Id;
 }
 
+function getCardCost(card) {
+  const tier = (card?.tier || "").toLowerCase();
+
+  if (tier === "legendary") return 3;
+  if (tier === "epic") return 2;
+
+  return 1;
+}
+
+function getTurnEnergy(battle) {
+  return Math.min(battle.turn, 6);
+}
+
+function getUsedEnergy(battle, userId) {
+  const selected = battle.tempSelections[userId] || [];
+  const hand = battle.hands[userId] || [];
+
+  return selected.reduce((total, move) => {
+    const item = hand[move.cardIndex];
+    if (!item) return total;
+
+    return total + getCardCost(item.card);
+  }, 0);
+}
+
+function getRemainingEnergy(battle, userId) {
+  return getTurnEnergy(battle) - getUsedEnergy(battle, userId);
+}
+
+function formatSelectionText(battle, userId) {
+  const selected = battle.tempSelections[userId] || [];
+  const hand = battle.hands[userId] || [];
+
+  if (!selected.length) return "No cards selected yet.";
+
+  return selected
+    .map((move, i) => {
+      const item = hand[move.cardIndex];
+      const name = item?.card?.name || "Unknown Card";
+      const cost = item?.card ? getCardCost(item.card) : "?";
+
+      return `${i + 1}. ${name} → ${move.side} (${cost} Energy)`;
+    })
+    .join("\n");
+}
+
 function createBattleButtons(battle, finished = false) {
   if (finished) return [];
 
@@ -58,17 +104,29 @@ async function makeBoardPayload(battle, content, finished = false) {
 
   return {
     content,
-    files: [new AttachmentBuilder(buffer, { name: `battle_turn_${battle.turn}.png` })],
+    files: [
+      new AttachmentBuilder(buffer, {
+        name: `battle_turn_${battle.turn}.png`
+      })
+    ],
     components: createBattleButtons(battle, finished)
   };
 }
 
 function createCardButtons(battle, userId) {
   const hand = battle.hands[userId] || [];
+  const selected = battle.tempSelections[userId] || [];
+  const selectedIndexes = selected.map(move => move.cardIndex);
+
   const rows = [];
   let row = new ActionRowBuilder();
 
   hand.slice(0, 5).forEach((item, index) => {
+    const cost = getCardCost(item.card);
+    const disabled =
+      selectedIndexes.includes(index) ||
+      cost > getRemainingEnergy(battle, userId);
+
     if (row.components.length === 5) {
       rows.push(row);
       row = new ActionRowBuilder();
@@ -77,12 +135,30 @@ function createCardButtons(battle, userId) {
     row.addComponents(
       new ButtonBuilder()
         .setCustomId(`battle_card_${battle.id}_${index}`)
-        .setLabel(`${index + 1}. ${item.card.name.slice(0, 18)}`)
-        .setStyle(ButtonStyle.Primary)
+        .setLabel(`${index + 1}. ${item.card.name.slice(0, 12)} (${cost})`)
+        .setStyle(disabled ? ButtonStyle.Secondary : ButtonStyle.Primary)
+        .setDisabled(disabled)
     );
   });
 
   if (row.components.length) rows.push(row);
+
+  rows.push(
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`battle_lock_${battle.id}`)
+        .setLabel("Lock Turn")
+        .setStyle(ButtonStyle.Success)
+        .setDisabled(!selected.length),
+
+      new ButtonBuilder()
+        .setCustomId(`battle_clear_${battle.id}`)
+        .setLabel("Clear Picks")
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(!selected.length)
+    )
+  );
+
   return rows;
 }
 
@@ -104,11 +180,12 @@ function createLocationButtons(battle, cardIndex) {
 }
 
 async function sendPrivateHand(interaction, battle) {
-  const hand = battle.hands[interaction.user.id] || [];
+  const userId = interaction.user.id;
+  const hand = battle.hands[userId] || [];
 
-  if (battle.pendingMoves[interaction.user.id]) {
+  if (battle.lockedPlayers[userId]) {
     return interaction.reply({
-      content: "✅ You already locked your move this turn. Wait for your opponent.",
+      content: "✅ You already locked your turn. Wait for your opponent.",
       ephemeral: true
     });
   }
@@ -120,19 +197,33 @@ async function sendPrivateHand(interaction, battle) {
     });
   }
 
+  const energy = getTurnEnergy(battle);
+  const remaining = getRemainingEnergy(battle, userId);
+
   const buffer = await createHandImage(hand);
 
   return interaction.reply({
-    content: `Turn ${battle.turn}/${battle.maxTurns} — Pick a card privately:`,
-    files: [new AttachmentBuilder(buffer, { name: "hand.png" })],
-    components: createCardButtons(battle, interaction.user.id),
+    content:
+      `Turn ${battle.turn}/${battle.maxTurns}\n` +
+      `⚡ Energy: ${remaining}/${energy} remaining\n\n` +
+      `Selected:\n${formatSelectionText(battle, userId)}\n\n` +
+      `Pick a card, choose a location, then press **Lock Turn**.`,
+    files: [
+      new AttachmentBuilder(buffer, {
+        name: "hand.png"
+      })
+    ],
+    components: createCardButtons(battle, userId),
     ephemeral: true
   });
 }
 
 function getLocationPower(battle, side, userId) {
   const location = battle.locations[SIDES.indexOf(side)];
-  const locationCards = battle.board[side].filter(item => item.ownerId === userId);
+
+  const locationCards = battle.board[side].filter(
+    item => item.ownerId === userId
+  );
 
   return locationCards.reduce((total, item) => {
     const result = calculateBattlePower(item.card, {
@@ -173,6 +264,7 @@ function getWinner(battle) {
 
 function drawCard(battle, userId) {
   const deck = battle.decks[userId];
+
   if (!deck || !deck.length) return;
   if ((battle.hands[userId] || []).length >= 5) return;
 
@@ -183,6 +275,7 @@ async function sendNewBoardMessage(client, battle, content, finished = false) {
   const channel = await client.channels.fetch(battle.channelId);
   const payload = await makeBoardPayload(battle, content, finished);
   const msg = await channel.send(payload);
+
   battle.messageId = msg.id;
   return msg;
 }
@@ -203,6 +296,7 @@ async function finishBattle(client, battle, winnerId, reason = "") {
   await sendNewBoardMessage(client, battle, text, true);
 
   const winGif = getGif("battle_win.gif");
+
   if (winGif && winnerId) {
     await channel.send({
       content: `🏆 <@${winnerId}> wins the GrootX Battle!`,
@@ -212,39 +306,55 @@ async function finishBattle(client, battle, winnerId, reason = "") {
 }
 
 async function revealIfBothLocked(interaction, battle) {
-  const p1Move = battle.pendingMoves[battle.player1Id];
-  const p2Move = battle.pendingMoves[battle.player2Id];
+  const p1Locked = battle.lockedPlayers[battle.player1Id];
+  const p2Locked = battle.lockedPlayers[battle.player2Id];
 
-  if (!p1Move || !p2Move) {
+  if (!p1Locked || !p2Locked) {
     return sendNewBoardMessage(
       interaction.client,
       battle,
-      `✅ <@${interaction.user.id}> locked their move.\nWaiting for the other player...`
+      `✅ <@${interaction.user.id}> locked their turn.\nWaiting for the other player...`
     );
   }
 
   const revealed = [];
 
   for (const userId of [battle.player1Id, battle.player2Id]) {
-    const move = battle.pendingMoves[userId];
+    const moves = battle.pendingMoves[userId] || [];
     const hand = battle.hands[userId];
 
-    if (!hand || !hand[move.cardIndex]) continue;
+    const sortedMoves = [...moves].sort((a, b) => b.cardIndex - a.cardIndex);
 
-    const played = hand.splice(move.cardIndex, 1)[0];
+    for (const move of sortedMoves) {
+      if (!hand || !hand[move.cardIndex]) continue;
 
-    battle.board[move.side].push({
-      ...played,
-      ownerId: userId,
-      revealedTurn: battle.turn
-    });
+      const played = hand.splice(move.cardIndex, 1)[0];
 
-    revealed.push(`<@${userId}> played **${played.card.name}** to **${move.side}**.`);
+      battle.board[move.side].push({
+        ...played,
+        ownerId: userId,
+        revealedTurn: battle.turn
+      });
+
+      revealed.push(
+        `<@${userId}> played **${played.card.name}** to **${move.side}**.`
+      );
+    }
   }
 
   battle.pendingMoves = {
-    [battle.player1Id]: null,
-    [battle.player2Id]: null
+    [battle.player1Id]: [],
+    [battle.player2Id]: []
+  };
+
+  battle.tempSelections = {
+    [battle.player1Id]: [],
+    [battle.player2Id]: []
+  };
+
+  battle.lockedPlayers = {
+    [battle.player1Id]: false,
+    [battle.player2Id]: false
   };
 
   drawCard(battle, battle.player1Id);
@@ -262,7 +372,8 @@ async function revealIfBothLocked(interaction, battle) {
   return sendNewBoardMessage(
     interaction.client,
     battle,
-    `🔁 Reveal complete!\n${revealed.join("\n")}\n\nTurn ${battle.turn}/${battle.maxTurns}: both players choose privately.`
+    `🔁 Reveal complete!\n${revealed.join("\n") || "No cards were played."}\n\n` +
+      `Turn ${battle.turn}/${battle.maxTurns}: both players have **${getTurnEnergy(battle)} Energy**.`
   );
 }
 
@@ -295,6 +406,7 @@ module.exports = {
 
     const files = [];
     const challengeGif = getGif("battle_challenge.gif");
+
     if (challengeGif) files.push(new AttachmentBuilder(challengeGif));
 
     const msg = await message.channel.send({
@@ -303,7 +415,9 @@ module.exports = {
       components: [row]
     });
 
-    const collector = msg.createMessageComponentCollector({ time: 60000 });
+    const collector = msg.createMessageComponentCollector({
+      time: 60000
+    });
 
     collector.on("collect", async interaction => {
       if (interaction.user.id !== target.id) {
@@ -315,6 +429,7 @@ module.exports = {
 
       if (interaction.customId.startsWith("battle_decline_")) {
         collector.stop();
+
         return interaction.update({
           content: "Battle declined.",
           files: [],
@@ -327,14 +442,18 @@ module.exports = {
 
       if (!p1DeckResult.ok) {
         return interaction.reply({
-          content: `<@${message.author.id}> has no valid battle deck.`,
+          content:
+            `<@${message.author.id}> has no valid battle deck.\n` +
+            `They need exactly **12 valid cards**.`,
           ephemeral: true
         });
       }
 
       if (!p2DeckResult.ok) {
         return interaction.reply({
-          content: `<@${target.id}> has no valid battle deck.`,
+          content:
+            `<@${target.id}> has no valid battle deck.\n` +
+            `They need exactly **12 valid cards**.`,
           ephemeral: true
         });
       }
@@ -342,9 +461,9 @@ module.exports = {
       const p1Deck = [...p1DeckResult.cards].sort(() => Math.random() - 0.5);
       const p2Deck = [...p2DeckResult.cards].sort(() => Math.random() - 0.5);
 
-      if (p1Deck.length < 5 || p2Deck.length < 5) {
+      if (p1Deck.length !== 12 || p2Deck.length !== 12) {
         return interaction.reply({
-          content: "Both players need at least 5 cards in their battle deck.",
+          content: "Both players need exactly **12 cards** in their battle deck.",
           ephemeral: true
         });
       }
@@ -382,8 +501,18 @@ module.exports = {
         },
 
         pendingMoves: {
-          [message.author.id]: null,
-          [target.id]: null
+          [message.author.id]: [],
+          [target.id]: []
+        },
+
+        tempSelections: {
+          [message.author.id]: [],
+          [target.id]: []
+        },
+
+        lockedPlayers: {
+          [message.author.id]: false,
+          [target.id]: false
         },
 
         board: {
@@ -410,7 +539,9 @@ module.exports = {
       return sendNewBoardMessage(
         interaction.client,
         battle,
-        `⚔️ Battle started!\nTurn 1/${battle.maxTurns}: both players click **Open Private Hand** and lock secretly.`
+        `⚔️ Battle started!\n` +
+          `Turn 1/${battle.maxTurns}: both players have **1 Energy**.\n` +
+          `Common/Uncommon/Rare = 1 Energy • Epic = 2 • Legendary = 3`
       );
     });
   },
@@ -444,13 +575,71 @@ module.exports = {
         ephemeral: true
       });
 
-      return finishBattle(interaction.client, battle, winnerId, `because <@${interaction.user.id}> forfeited.`);
+      return finishBattle(
+        interaction.client,
+        battle,
+        winnerId,
+        `because <@${interaction.user.id}> forfeited.`
+      );
+    }
+
+    if (interaction.customId === `battle_clear_${battle.id}`) {
+      if (battle.lockedPlayers[interaction.user.id]) {
+        return interaction.reply({
+          content: "You already locked your turn.",
+          ephemeral: true
+        });
+      }
+
+      battle.tempSelections[interaction.user.id] = [];
+
+      return interaction.update({
+        content:
+          `Turn ${battle.turn}/${battle.maxTurns}\n` +
+          `⚡ Energy: ${getTurnEnergy(battle)}/${getTurnEnergy(battle)} remaining\n\n` +
+          `Selected:\nNo cards selected yet.\n\n` +
+          `Pick a card, choose a location, then press **Lock Turn**.`,
+        files: [],
+        components: createCardButtons(battle, interaction.user.id)
+      });
+    }
+
+    if (interaction.customId === `battle_lock_${battle.id}`) {
+      if (battle.lockedPlayers[interaction.user.id]) {
+        return interaction.reply({
+          content: "You already locked your turn.",
+          ephemeral: true
+        });
+      }
+
+      const selected = battle.tempSelections[interaction.user.id] || [];
+
+      if (!selected.length) {
+        return interaction.reply({
+          content: "Select at least one card before locking.",
+          ephemeral: true
+        });
+      }
+
+      battle.pendingMoves[interaction.user.id] = selected;
+      battle.lockedPlayers[interaction.user.id] = true;
+
+      await interaction.update({
+        content:
+          `✅ Turn locked!\n\n` +
+          `Your plays:\n${formatSelectionText(battle, interaction.user.id)}\n\n` +
+          `Waiting for opponent...`,
+        files: [],
+        components: []
+      });
+
+      return revealIfBothLocked(interaction, battle);
     }
 
     if (interaction.customId.startsWith(`battle_card_${battle.id}_`)) {
-      if (battle.pendingMoves[interaction.user.id]) {
+      if (battle.lockedPlayers[interaction.user.id]) {
         return interaction.reply({
-          content: "You already locked your move this turn.",
+          content: "You already locked your turn.",
           ephemeral: true
         });
       }
@@ -465,17 +654,38 @@ module.exports = {
         });
       }
 
+      const alreadySelected = (battle.tempSelections[interaction.user.id] || [])
+        .some(move => move.cardIndex === index);
+
+      if (alreadySelected) {
+        return interaction.reply({
+          content: "You already selected that card this turn.",
+          ephemeral: true
+        });
+      }
+
+      const cost = getCardCost(hand[index].card);
+
+      if (cost > getRemainingEnergy(battle, interaction.user.id)) {
+        return interaction.reply({
+          content: `Not enough energy. This card costs **${cost} Energy**.`,
+          ephemeral: true
+        });
+      }
+
       return interaction.update({
-        content: `Selected **${hand[index].card.name}**. Choose a location:`,
+        content:
+          `Selected **${hand[index].card.name}** (${cost} Energy).\n` +
+          `Choose a location:`,
         files: [],
         components: createLocationButtons(battle, index)
       });
     }
 
     if (interaction.customId.startsWith(`battle_loc_${battle.id}_`)) {
-      if (battle.pendingMoves[interaction.user.id]) {
+      if (battle.lockedPlayers[interaction.user.id]) {
         return interaction.reply({
-          content: "You already locked your move this turn.",
+          content: "You already locked your turn.",
           ephemeral: true
         });
       }
@@ -500,18 +710,42 @@ module.exports = {
         });
       }
 
-      battle.pendingMoves[interaction.user.id] = {
+      const alreadySelected = (battle.tempSelections[interaction.user.id] || [])
+        .some(move => move.cardIndex === cardIndex);
+
+      if (alreadySelected) {
+        return interaction.reply({
+          content: "You already selected that card this turn.",
+          ephemeral: true
+        });
+      }
+
+      const cost = getCardCost(hand[cardIndex].card);
+
+      if (cost > getRemainingEnergy(battle, interaction.user.id)) {
+        return interaction.reply({
+          content: `Not enough energy. This card costs **${cost} Energy**.`,
+          ephemeral: true
+        });
+      }
+
+      battle.tempSelections[interaction.user.id].push({
         cardIndex,
         side
-      };
-
-      await interaction.update({
-        content: `✅ Move locked: **${hand[cardIndex].card.name}** to **${side}**.\nWaiting for opponent...`,
-        files: [],
-        components: []
       });
 
-      return revealIfBothLocked(interaction, battle);
+      const energy = getTurnEnergy(battle);
+      const remaining = getRemainingEnergy(battle, interaction.user.id);
+
+      return interaction.update({
+        content:
+          `✅ Added **${hand[cardIndex].card.name}** to **${side}**.\n\n` +
+          `⚡ Energy: ${remaining}/${energy} remaining\n\n` +
+          `Selected:\n${formatSelectionText(battle, interaction.user.id)}\n\n` +
+          `Pick another card or press **Lock Turn**.`,
+        files: [],
+        components: createCardButtons(battle, interaction.user.id)
+      });
     }
   }
 };

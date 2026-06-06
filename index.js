@@ -289,6 +289,8 @@ client.on("interactionCreate", async interaction => {
       interaction.customId.startsWith("battle_open_") ||
       interaction.customId.startsWith("battle_card_") ||
       interaction.customId.startsWith("battle_loc_") ||
+      interaction.customId.startsWith("battle_lock_") ||
+      interaction.customId.startsWith("battle_clear_")
       interaction.customId.startsWith("battle_forfeit_");
 
     if (
