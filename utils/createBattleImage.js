@@ -111,59 +111,41 @@ async function drawCard(ctx, item, x, y, w, h) {
   } catch {}
 }
 
-async function drawCardRow(ctx, cards, centerX, y) {
+async function drawSnapStack(ctx, cards, centerX, baseY, isTop = true) {
   const shown = cards.slice(0, 4);
+  if (!shown.length) return;
 
-  const cardW = 82;
-  const cardH = 118;
-  const gap = 10;
+  const cardW = 86;
+  const cardH = 122;
 
-  if (shown.length <= 2) {
-    const totalW =
-      shown.length * cardW +
-      Math.max(0, shown.length - 1) * gap;
+  const positionsTop = [
+    { x: -45, y: 0 },
+    { x: 35, y: 0 },
+    { x: -45, y: 92 },
+    { x: 35, y: 92 }
+  ];
 
-    const startX = centerX - totalW / 2;
+  const positionsBottom = [
+    { x: -45, y: 92 },
+    { x: 35, y: 92 },
+    { x: -45, y: 0 },
+    { x: 35, y: 0 }
+  ];
 
-    for (let i = 0; i < shown.length; i++) {
-      await drawCard(
-        ctx,
-        shown[i],
-        startX + i * (cardW + gap),
-        y,
-        cardW,
-        cardH
-      );
-    }
+  const positions = isTop ? positionsTop : positionsBottom;
 
-    return;
+  for (let i = 0; i < shown.length; i++) {
+    const pos = positions[i];
+
+    await drawCard(
+      ctx,
+      shown[i],
+      centerX + pos.x - cardW / 2,
+      baseY + pos.y,
+      cardW,
+      cardH
+    );
   }
-
-  const split = Math.ceil(shown.length / 2);
-  const backCards = shown.slice(0, split);
-  const frontCards = shown.slice(split);
-
-  const drawSmallRow = async (rowCards, rowY) => {
-    const totalW =
-      rowCards.length * cardW +
-      Math.max(0, rowCards.length - 1) * gap;
-
-    const startX = centerX - totalW / 2;
-
-    for (let i = 0; i < rowCards.length; i++) {
-      await drawCard(
-        ctx,
-        rowCards[i],
-        startX + i * (cardW + gap),
-        rowY,
-        cardW,
-        cardH
-      );
-    }
-  };
-
-  await drawSmallRow(backCards, y);
-  await drawSmallRow(frontCards, y + 28);
 }
 
 async function createBattleImage(battle) {
@@ -210,7 +192,7 @@ async function createBattleImage(battle) {
     const p1Cards = getLocationCards(battle, side, battle.player1Id);
     const p2Cards = getLocationCards(battle, side, battle.player2Id);
 
-    await drawCardRow(ctx, p1Cards, centerX, 105);
+    await drawSnapStack(ctx, p1Cards, centerX, 105, true);
 
     await drawLocation(ctx, location, x, locY, locW, locH);
 
@@ -251,7 +233,7 @@ async function createBattleImage(battle) {
     ctx.font = font(26, true);
     ctx.fillText(String(p2Power), centerX, locY + locH + 14);
 
-    await drawCardRow(ctx, p2Cards, centerX, 455);
+    await drawSnapStack(ctx, p2Cards, centerX, 445, false);
   }
 
   return canvas.toBuffer("image/png");
