@@ -108,36 +108,62 @@ async function drawCard(ctx, item, x, y, w, h) {
   try {
     const img = await loadImage(imagePath);
     ctx.drawImage(img, x, y, w, h);
-
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(x, y, w, h);
   } catch {}
 }
 
 async function drawCardRow(ctx, cards, centerX, y) {
   const shown = cards.slice(0, 4);
 
-  const cardW = 62;
-  const cardH = 88;
-  const gap = 6;
+  const cardW = 82;
+  const cardH = 118;
+  const gap = 10;
 
-  const totalW =
-    shown.length * cardW +
-    Math.max(0, shown.length - 1) * gap;
+  if (shown.length <= 2) {
+    const totalW =
+      shown.length * cardW +
+      Math.max(0, shown.length - 1) * gap;
 
-  const startX = centerX - totalW / 2;
+    const startX = centerX - totalW / 2;
 
-  for (let i = 0; i < shown.length; i++) {
-    await drawCard(
-      ctx,
-      shown[i],
-      startX + i * (cardW + gap),
-      y,
-      cardW,
-      cardH
-    );
+    for (let i = 0; i < shown.length; i++) {
+      await drawCard(
+        ctx,
+        shown[i],
+        startX + i * (cardW + gap),
+        y,
+        cardW,
+        cardH
+      );
+    }
+
+    return;
   }
+
+  const split = Math.ceil(shown.length / 2);
+  const backCards = shown.slice(0, split);
+  const frontCards = shown.slice(split);
+
+  const drawSmallRow = async (rowCards, rowY) => {
+    const totalW =
+      rowCards.length * cardW +
+      Math.max(0, rowCards.length - 1) * gap;
+
+    const startX = centerX - totalW / 2;
+
+    for (let i = 0; i < rowCards.length; i++) {
+      await drawCard(
+        ctx,
+        rowCards[i],
+        startX + i * (cardW + gap),
+        rowY,
+        cardW,
+        cardH
+      );
+    }
+  };
+
+  await drawSmallRow(backCards, y);
+  await drawSmallRow(frontCards, y + 28);
 }
 
 async function createBattleImage(battle) {
@@ -184,7 +210,7 @@ async function createBattleImage(battle) {
     const p1Cards = getLocationCards(battle, side, battle.player1Id);
     const p2Cards = getLocationCards(battle, side, battle.player2Id);
 
-    await drawCardRow(ctx, p1Cards, centerX, 135);
+    await drawCardRow(ctx, p1Cards, centerX, 105);
 
     await drawLocation(ctx, location, x, locY, locW, locH);
 
@@ -225,7 +251,7 @@ async function createBattleImage(battle) {
     ctx.font = font(26, true);
     ctx.fillText(String(p2Power), centerX, locY + locH + 14);
 
-    await drawCardRow(ctx, p2Cards, centerX, 470);
+    await drawCardRow(ctx, p2Cards, centerX, 455);
   }
 
   return canvas.toBuffer("image/png");
