@@ -26,7 +26,7 @@ function getRandomTier() {
   if (chance < 60) return "common";
   if (chance < 87.5) return "uncommon";
   if (chance < 97.5) return "rare";
-  if (chance < 99.5) return "epic";
+  if (chance < 99.7) return "epic";
 
   return "legendary";
 }

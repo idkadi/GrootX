@@ -101,110 +101,150 @@ async function startReminderChecker(client) {
   const cooldownsCol = db.collection("cooldowns");
 
   setInterval(async () => {
-    const now = Date.now();
+    try {
+      const now = Date.now();
 
-    const reminders = await remindersCol.find({
-      enabled: true
-    }).toArray();
+      const reminders = await remindersCol.find({
+        enabled: true
+      }).toArray();
 
-    for (const reminder of reminders) {
-      let cooldownDoc = null;
-      let cooldownTime = 0;
+      for (const reminder of reminders) {
+        let cooldownDoc = null;
+        let cooldownTime = 0;
 
-      if (reminder.type === "drop") {
-        cooldownDoc = await cooldownsCol.findOne({
-          userId: reminder.userId,
-          type: "drop"
-        });
+        if (reminder.type === "drop") {
+          cooldownDoc = await cooldownsCol.findOne({
+            userId: reminder.userId,
+            type: "drop"
+          });
 
-        cooldownTime = 8 * 60 * 1000;
-      }
-
-      else if (reminder.type === "pickup") {
-        cooldownDoc = await cooldownsCol.findOne({
-          userId: reminder.userId,
-          type: "pickup"
-        });
-
-        cooldownTime = 5 * 60 * 1000;
-      }
-
-      else if (reminder.type === "vote") {
-        cooldownDoc = await cooldownsCol.findOne({
-          userId: reminder.userId,
-          type: "vote"
-        });
-
-        cooldownTime = 12 * 60 * 60 * 1000;
-      }
-
-      else if (reminder.type === "daily") {
-        cooldownDoc = await db.collection("daily").findOne({
-          userId: reminder.userId
-        });
-
-        cooldownTime = 24 * 60 * 60 * 1000;
-      }
-
-      else if (reminder.type === "weekly") {
-        cooldownDoc = await db.collection("weekly").findOne({
-          userId: reminder.userId
-        });
-
-        cooldownTime = 7 * 24 * 60 * 60 * 1000;
-      }
-
-      if (!cooldownDoc?.timestamp) continue;
-      if (cooldownDoc.notified === true) continue;
-
-      const ready =
-        now - cooldownDoc.timestamp >= cooldownTime;
-
-      if (!ready) continue;
-
-      try {
-        const user =
-          await client.users.fetch(reminder.userId);
-
-        await user.send(
-          `🔔 Your **${reminder.type}** cooldown is over!`
-        );
-
-        if (
-          reminder.type === "daily" ||
-          reminder.type === "weekly"
-        ) {
-          await db.collection(reminder.type).updateOne(
-            {
-              userId: reminder.userId
-            },
-            {
-              $set: {
-                notified: true
-              }
-            }
-          );
-        } else {
-          await cooldownsCol.updateOne(
-            {
-              userId: reminder.userId,
-              type: reminder.type
-            },
-            {
-              $set: {
-                notified: true
-              }
-            }
-          );
+          cooldownTime = 8 * 60 * 1000;
         }
 
-      } catch (err) {
-        console.log(
-          `Could not DM ${reminder.userId}: ${err.message}`
-        );
+        else if (reminder.type === "pickup") {
+          cooldownDoc = await cooldownsCol.findOne({
+            userId: reminder.userId,
+            type: "pickup"
+          });
+
+          cooldownTime = 5 * 60 * 1000;
+        }
+
+        else if (reminder.type === "vote") {
+          cooldownDoc = await cooldownsCol.findOne({
+            userId: reminder.userId,
+            type: "vote"
+          });
+
+          cooldownTime = 12 * 60 * 60 * 1000;
+        }
+
+        else if (reminder.type === "daily") {
+          cooldownDoc = await db.collection("daily").findOne({
+            userId: reminder.userId
+          });
+
+          cooldownTime = 24 * 60 * 60 * 1000;
+        }
+
+        else if (reminder.type === "weekly") {
+          cooldownDoc = await db.collection("weekly").findOne({
+            userId: reminder.userId
+          });
+
+          cooldownTime = 7 * 24 * 60 * 60 * 1000;
+        }
+
+        if (!cooldownDoc?.timestamp) continue;
+        if (cooldownDoc.notified === true) continue;
+
+        const ready =
+          now - cooldownDoc.timestamp >= cooldownTime;
+
+        if (!ready) continue;
+
+        try {
+          const user =
+            await client.users.fetch(reminder.userId);
+
+          await user.send(
+            `🔔 Your **${reminder.type}** cooldown is over!`
+          );
+
+          if (
+            reminder.type === "daily" ||
+            reminder.type === "weekly"
+          ) {
+            await db.collection(reminder.type).updateOne(
+              {
+                userId: reminder.userId
+              },
+              {
+                $set: {
+                  notified: true
+                }
+              }
+            );
+          } else {
+            await cooldownsCol.updateOne(
+              {
+                userId: reminder.userId,
+                type: reminder.type
+              },
+              {
+                $set: {
+                  notified: true
+                }
+              }
+            );
+          }
+
+        } catch (err) {
+          console.log(
+            `Could not DM ${reminder.userId}: ${err.message}`
+          );
+        }
       }
+    } catch (err) {
+      console.error("❌ Reminder checker error:", err);
     }
   }, 60 * 1000);
+}
+
+async function safeSendError(message) {
+  try {
+    if (!message.guild) {
+      await message.reply(
+        "❌ An error occurred while executing this command."
+      ).catch(() => {});
+      return;
+    }
+
+    const me = message.guild.members.me;
+
+    const perms = message.channel.permissionsFor(me);
+
+    if (
+      !perms ||
+      !perms.has([
+        "ViewChannel",
+        "SendMessages"
+      ])
+    ) {
+      return;
+    }
+
+    await message.reply(
+      "❌ An error occurred while executing this command."
+    ).catch(async () => {
+      await message.channel.send(
+        "❌ An error occurred while executing this command."
+      ).catch(() => {});
+    });
+
+  } catch (err) {
+    console.error("❌ Could not send error message:", err);
+  }
 }
 
 client.once("clientReady", async () => {
@@ -233,52 +273,55 @@ client.on("guildDelete", () => {
 });
 
 client.on("messageCreate", async message => {
-  if (message.author.bot) return;
-
-  const db = await connectDB();
-
-  const prefixesCol = db.collection("prefixes");
-
-  const guildPrefix = await prefixesCol.findOne({
-    guildId: message.guild?.id
-  });
-
-  const PREFIX = guildPrefix?.prefix || "!";
-
-  if (!message.content.startsWith(PREFIX)) return;
-
-  const args = message.content
-    .slice(PREFIX.length)
-    .trim()
-    .split(/ +/);
-
-  const commandName = args.shift().toLowerCase();
-
-  const command =
-    client.commands.get(commandName) ||
-    client.commands.find(cmd =>
-      cmd.aliases &&
-      cmd.aliases.includes(commandName)
-    );
-
-  if (!command) return;
-
   try {
-    await command.execute(
-      message,
-      args,
-      client
-    );
-  }
+    if (message.author.bot) return;
 
-  catch (error) {
-    console.error(error);
+    const db = await connectDB();
 
-    message.reply(
-      "❌ An error occurred while executing this command."
-    );
+    const prefixesCol = db.collection("prefixes");
+
+    const guildPrefix = await prefixesCol.findOne({
+      guildId: message.guild?.id
+    });
+
+    const PREFIX = guildPrefix?.prefix || "!";
+
+    if (!message.content.startsWith(PREFIX)) return;
+
+    const args = message.content
+      .slice(PREFIX.length)
+      .trim()
+      .split(/ +/);
+
+    const commandName = args.shift().toLowerCase();
+
+    const command =
+      client.commands.get(commandName) ||
+      client.commands.find(cmd =>
+        cmd.aliases &&
+        cmd.aliases.includes(commandName)
+      );
+
+    if (!command) return;
+
+    try {
+      await command.execute(
+        message,
+        args,
+        client
+      );
+    }
+
+    catch (error) {
+      console.error(error);
+      await safeSendError(message);
+    }
+
+  } catch (error) {
+    console.error("❌ messageCreate error:", error);
   }
 });
+
 client.on("interactionCreate", async interaction => {
   try {
     if (!interaction.isButton()) return;
@@ -290,7 +333,7 @@ client.on("interactionCreate", async interaction => {
       interaction.customId.startsWith("battle_card_") ||
       interaction.customId.startsWith("battle_loc_") ||
       interaction.customId.startsWith("battle_lock_") ||
-      interaction.customId.startsWith("battle_clear_")
+      interaction.customId.startsWith("battle_clear_") ||
       interaction.customId.startsWith("battle_forfeit_");
 
     if (
@@ -309,12 +352,24 @@ client.on("interactionCreate", async interaction => {
       ephemeral: true
     };
 
-    if (interaction.deferred || interaction.replied) {
-      await interaction.followUp(payload).catch(() => {});
-    } else {
-      await interaction.reply(payload).catch(() => {});
+    try {
+      if (interaction.deferred || interaction.replied) {
+        await interaction.followUp(payload).catch(() => {});
+      } else {
+        await interaction.reply(payload).catch(() => {});
+      }
+    } catch (err) {
+      console.error("❌ Could not send interaction error:", err);
     }
   }
+});
+
+process.on("unhandledRejection", err => {
+  console.error("UNHANDLED REJECTION:", err);
+});
+
+process.on("uncaughtException", err => {
+  console.error("UNCAUGHT EXCEPTION:", err);
 });
 
 client.login(process.env.TOKEN);
