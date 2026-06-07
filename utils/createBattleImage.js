@@ -112,10 +112,10 @@ async function drawCardGrid(ctx, cards, centerX, y) {
   const shown = cards.slice(0, 4);
   if (!shown.length) return;
 
-  const cardW = 78;
-  const cardH = 110;
-  const gapX = 8;
-  const gapY = 8;
+  const cardW = 105;
+  const cardH = 150;
+  const gapX = 10;
+  const gapY = 10;
 
   const positions = [
     { col: 0, row: 0 },
@@ -185,7 +185,7 @@ async function createBattleImage(battle) {
     const p1Cards = getLocationCards(battle, side, battle.player1Id);
     const p2Cards = getLocationCards(battle, side, battle.player2Id);
 
-    await drawCardGrid(ctx, p1Cards, centerX, 70);
+    await drawCardGrid(ctx, p1Cards, centerX, 35);
 
     await drawLocation(ctx, location, x, locY, locW, locH);
 
@@ -226,7 +226,7 @@ async function createBattleImage(battle) {
     ctx.font = font(26, true);
     ctx.fillText(String(p2Power), centerX, locY + locH + 14);
 
-    await drawCardGrid(ctx, p2Cards, centerX, 570);
+    await drawCardGrid(ctx, p2Cards, centerX, 535);
   }
 
   return canvas.toBuffer("image/png");

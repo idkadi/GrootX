@@ -17,6 +17,7 @@ const createHandImage = require("../utils/createHandImage");
 const { calculateBattlePower } = require("../utils/battlePower");
 
 const SIDES = ["left", "middle", "right"];
+const MAX_CARDS_PER_LOCATION = 4;
 
 function pickRandom(arr, count) {
   return [...arr].sort(() => Math.random() - 0.5).slice(0, count);
@@ -62,6 +63,25 @@ function getUsedEnergy(battle, userId) {
 
 function getRemainingEnergy(battle, userId) {
   return getTurnEnergy(battle) - getUsedEnergy(battle, userId);
+}
+
+function getBoardCountAtLocation(battle, userId, side) {
+  return (battle.board?.[side] || []).filter(
+    item => item.ownerId === userId
+  ).length;
+}
+
+function getTempCountAtLocation(battle, userId, side) {
+  return (battle.tempSelections?.[userId] || []).filter(
+    move => move.side === side
+  ).length;
+}
+
+function isLocationFullForPlayer(battle, userId, side) {
+  const cardsAlreadyThere = getBoardCountAtLocation(battle, userId, side);
+  const cardsSelectedThere = getTempCountAtLocation(battle, userId, side);
+
+  return cardsAlreadyThere + cardsSelectedThere >= MAX_CARDS_PER_LOCATION;
 }
 
 function formatSelectionText(battle, userId) {
@@ -162,17 +182,19 @@ function createCardButtons(battle, userId) {
   return rows;
 }
 
-function createLocationButtons(battle, cardIndex) {
+function createLocationButtons(battle, userId, cardIndex) {
   const row = new ActionRowBuilder();
 
   SIDES.forEach((side, i) => {
     const loc = battle.locations[i];
+    const full = isLocationFullForPlayer(battle, userId, side);
 
     row.addComponents(
       new ButtonBuilder()
         .setCustomId(`battle_loc_${battle.id}_${cardIndex}_${side}`)
-        .setLabel(loc.name || side)
-        .setStyle(ButtonStyle.Success)
+        .setLabel(full ? `${loc.name || side} FULL` : loc.name || side)
+        .setStyle(full ? ButtonStyle.Secondary : ButtonStyle.Success)
+        .setDisabled(full)
     );
   });
 
@@ -327,6 +349,19 @@ async function revealIfBothLocked(interaction, battle) {
 
     for (const move of sortedMoves) {
       if (!hand || !hand[move.cardIndex]) continue;
+
+      const currentCount = getBoardCountAtLocation(
+        battle,
+        userId,
+        move.side
+      );
+
+      if (currentCount >= MAX_CARDS_PER_LOCATION) {
+        revealed.push(
+          `<@${userId}> could not play a card to **${move.side}** because it is full.`
+        );
+        continue;
+      }
 
       const played = hand.splice(move.cardIndex, 1)[0];
 
@@ -541,7 +576,8 @@ module.exports = {
         battle,
         `⚔️ Battle started!\n` +
           `Turn 1/${battle.maxTurns}: both players have **1 Energy**.\n` +
-          `Common/Uncommon/Rare = 1 Energy • Epic = 2 • Legendary = 3`
+          `Common/Uncommon/Rare = 1 Energy • Epic = 2 • Legendary = 3\n` +
+          `Max ${MAX_CARDS_PER_LOCATION} cards per location.`
       );
     });
   },
@@ -678,7 +714,7 @@ module.exports = {
           `Selected **${hand[index].card.name}** (${cost} Energy).\n` +
           `Choose a location:`,
         files: [],
-        components: createLocationButtons(battle, index)
+        components: createLocationButtons(battle, interaction.user.id, index)
       });
     }
 
@@ -697,6 +733,13 @@ module.exports = {
       if (!SIDES.includes(side)) {
         return interaction.reply({
           content: "Invalid location.",
+          ephemeral: true
+        });
+      }
+
+      if (isLocationFullForPlayer(battle, interaction.user.id, side)) {
+        return interaction.reply({
+          content: `❌ This location is full. Max **${MAX_CARDS_PER_LOCATION} cards** per location.`,
           ephemeral: true
         });
       }
