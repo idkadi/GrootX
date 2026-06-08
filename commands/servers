@@ -1,25 +1,28 @@
 if (message.content === "!servers") {
-    const OWNER_ID = "859803575995727872";
+    const OWNER_ID = "859803575995727872"; // Replace with your Discord ID
 
-    if (message.author.id !== OWNER_ID) return;
+    if (message.author.id !== OWNER_ID) {
+        return message.reply("❌ Owner only command.");
+    }
 
-    const guilds = client.guilds.cache
-        .map(g => ({
-            name: g.name,
-            members: g.memberCount || 0
-        }))
-        .sort((a, b) => b.members - a.members);
+    const guilds = [...client.guilds.cache.values()]
+        .sort((a, b) => b.memberCount - a.memberCount);
 
-    const totalMembers = guilds.reduce((sum, g) => sum + g.members, 0);
-
-    const list = guilds
-        .map((g, i) => `${i + 1}. ${g.name} (${g.members} members)`)
+    let serverList = guilds
+        .map((g, i) => `${i + 1}. ${g.name} — ${g.memberCount} members`)
         .join("\n");
 
+    const totalMembers = guilds.reduce((sum, g) => sum + g.memberCount, 0);
+
+    // Discord message limit
+    if (serverList.length > 1800) {
+        serverList = serverList.slice(0, 1800) + "\n...";
+    }
+
     message.channel.send(
-        `🤖 **GrootX Stats**\n\n` +
-        `📡 Servers: **${guilds.length}**\n` +
-        `👥 Total Members: **${totalMembers}**\n\n` +
-        `${list.substring(0, 1800)}`
+        `📡 **GrootX Server Stats**\n\n` +
+        `🏠 Servers: **${guilds.length}**\n` +
+        `👥 Total Members: **${totalMembers.toLocaleString()}**\n\n` +
+        `${serverList}`
     );
 }
