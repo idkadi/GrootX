@@ -1,5 +1,5 @@
 if (message.content === "!servers") {
-    const OWNER_ID = "YOUR_DISCORD_ID";
+    const OWNER_ID = "859803575995727872";
 
     if (message.author.id !== OWNER_ID) return;
 
