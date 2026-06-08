@@ -1,0 +1,25 @@
+if (message.content === "!servers") {
+    const OWNER_ID = "YOUR_DISCORD_ID";
+
+    if (message.author.id !== OWNER_ID) return;
+
+    const guilds = client.guilds.cache
+        .map(g => ({
+            name: g.name,
+            members: g.memberCount || 0
+        }))
+        .sort((a, b) => b.members - a.members);
+
+    const totalMembers = guilds.reduce((sum, g) => sum + g.members, 0);
+
+    const list = guilds
+        .map((g, i) => `${i + 1}. ${g.name} (${g.members} members)`)
+        .join("\n");
+
+    message.channel.send(
+        `🤖 **GrootX Stats**\n\n` +
+        `📡 Servers: **${guilds.length}**\n` +
+        `👥 Total Members: **${totalMembers}**\n\n` +
+        `${list.substring(0, 1800)}`
+    );
+}
