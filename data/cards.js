@@ -4665,6 +4665,112 @@ module.exports = [
     image: "rare/scarletsv.jpeg"
   },
 
+   {
+    id: 518,
+    name: "Gary",
+    aka: [],
+    appearance: "Thunderbolts*",
+    tier: "common",
+    image: "common/garytb.jpeg"
+  },
+
+    {
+    id: 519,
+    name: "Holt",
+    aka: [],
+    appearance: "Thunderbolts*",
+    tier: "common",
+    image: "common/holttb.jpeg"
+  },
+
+  {
+    id: 520,
+    name: "Olivia Walker",
+    aka: [],
+    appearance: "Thunderbolts*",
+    tier: "common",
+    image: "common/oliviatb.jpeg"
+  },
+
+  {
+    id: 521,
+    name: "U.S. Agent",
+    aka: ["John Walker"],
+    appearance: "Thunderbolts*",
+    tier: "rare",
+    image: "rare/ustb.jpeg"
+  },
+
+   {
+    id: 522,
+    name: "Valentina",
+    aka: [],
+    appearance: "Thunderbolts*",
+    tier: "rare",
+    image: "rare/valentinatb.jpeg"
+  },
+
+    {
+    id: 523,
+    name: "Red Guardian",
+    aka: ["Alexei Shostakov"],
+    appearance: "Thunderbolts*",
+    tier: "epic",
+    image: "epic/redtb.jpeg"
+  },
+
+     {
+    id: 524,
+    name: "Ghost",
+    aka: ["Ava Starr"],
+    appearance: "Thunderbolts*",
+    tier: "epic",
+    image: "epic/ghosttb.jpeg"
+  },
+
+  
+     {
+    id: 525,
+    name: "Taskmaster",
+    aka: ["Antonia Dreykov"],
+    appearance: "Thunderbolts*",
+    tier: "epic",
+    image: "epic/taskmastertb.jpeg"
+  },
+
+    {
+    id: 526,
+    name: "Bucky Barnes",
+    aka: ["Winter Soldier"],
+    appearance: "Thunderbolts*",
+    tier: "epic",
+    image: "epic/buckytb.jpeg"
+  },
+
+   {
+    id: 527,
+    name: "Yelena Belova",
+    aka: [],
+    appearance: "Thunderbolts*",
+    tier: "legendary",
+    image: "legendary/yelenatb.jpeg"
+  },
+
+     {
+    id: 528,
+    name: "Sentry",
+    aka: [],
+    appearance: "Thunderbolts*",
+    tier: "legendary",
+    image: "legendary/sentrytb.jpeg"
+  },
+
+  
+
+  
+
+
+
 
 
 
