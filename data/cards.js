@@ -4602,6 +4602,71 @@ module.exports = [
     image: "legendary/blackwidowbw.jpeg"
   },
 
+   {
+    id: 511,
+    name: "Max Borne",
+    aka: [],
+    appearance: "Spider-man : Across the Spider-verse",
+    tier: "common",
+    image: "common/maxsv.jpeg"
+  },
+
+   {
+    id: 512,
+    name: "Spider-Cat",
+    aka: [],
+    appearance: "Spider-man : Across the Spider-verse",
+    tier: "common",
+    image: "common/catsv.jpeg"
+  },
+
+  {
+    id: 513,
+    name: "Spider-rex",
+    aka: ["Pter Ptarker"],
+    appearance: "Spider-man : Across the Spider-verse",
+    tier: "common",
+    image: "common/rexsv.jpeg"
+  },
+
+   {
+    id: 514,
+    name: "Dennis Carradine",
+    aka: [],
+    appearance: "Spider-man (2002)",
+    tier: "common",
+    image: "common/dennissp.jpeg"
+  },
+
+   {
+    id: 515,
+    name: "Vulture",
+    aka: [],
+    appearance: "Spider-man : Across the Spider-verse",
+    tier: "common",
+    image: "common/vulturesv.jpeg"
+  },
+
+    {
+    id: 516,
+    name: "The Cavillrine",
+    aka: [],
+    appearance: "Deadpool & Wolverine",
+    tier: "rare",
+    image: "rare/cavillrine.jpeg"
+  },
+
+    {
+    id: 517,
+    name: "Scarlet Spider",
+    aka: ["Ben Reilly"],
+    appearance: "Spider-man : Across the Spider-verse",
+    tier: "rare",
+    image: "rare/scarletsv.jpeg"
+  },
+
+
+
 
 
 
