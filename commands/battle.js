@@ -46,8 +46,9 @@ function getCardCost(card) {
 }
 
 function getTurnEnergy(battle) {
-  return Math.min(battle.turn, 6);
+  return Math.min(battle.turn + 1, 7);
 }
+
 
 function getUsedEnergy(battle, userId) {
   const selected = battle.tempSelections[userId] || [];
