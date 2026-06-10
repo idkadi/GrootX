@@ -4651,7 +4651,7 @@ module.exports = [
     id: 516,
     name: "The Cavillrine",
     aka: [],
-    appearance: "Deadpool & Wolverine",
+    appearance: "Deadpool & Wolverine ",
     tier: "rare",
     image: "rare/cavillrine.jpeg"
   },
@@ -4759,11 +4759,366 @@ module.exports = [
      {
     id: 528,
     name: "Sentry",
-    aka: [],
+    aka: ["The void"],
     appearance: "Thunderbolts*",
     tier: "legendary",
     image: "legendary/sentrytb.jpeg"
   },
+
+     {
+    id: 529,
+    name: "The Broker",
+    aka: [],
+    appearance: "Guardians of the galaxy volume 1",
+    tier: "common",
+    image: "common/brokergotg.jpeg"
+  },
+
+     {
+    id: 530,
+    name: "Bereet",
+    aka: [],
+    appearance: "Guardians of the galaxy volume 1",
+    tier: "common",
+    image: "common/bereetgotg.jpeg"
+  },
+
+    {
+    id: 531,
+    name: "Carina",
+    aka: [],
+    appearance: "Guardians of the galaxy volume 1",
+    tier: "common",
+    image: "common/carinagotg.jpeg"
+  },
+
+   {
+    id: 532,
+    name: "Corpsman Dey",
+    aka: [],
+    appearance: "Guardians of the galaxy volume 1",
+    tier: "common",
+    image: "common/deygotg.jpeg"
+  },
+
+   {
+    id: 533,
+    name: "Korath",
+    aka: [],
+    appearance: "Guardians of the galaxy volume 1",
+    tier: "uncommon",
+    image: "uncommon/korathgotg.jpeg"
+  },
+
+   {
+    id: 534,
+    name: "Nova Prime",
+    aka: [],
+    appearance: "Guardians of the galaxy volume 1",
+    tier: "uncommon",
+    image: "uncommon/novagotg.jpeg"
+  },
+
+   {
+    id: 535,
+    name: "Collector",
+    aka: [],
+    appearance: "Guardians of the galaxy volume 1",
+    tier: "uncommon",
+    image: "uncommon/collectorgotg.jpeg"
+  },
+
+     {
+    id: 536,
+    name: "Yondu",
+    aka: [],
+    appearance: "Guardians of the galaxy volume 1",
+    tier: "rare",
+    image: "rare/yondugotg.jpeg"
+  },
+
+     {
+    id: 537,
+    name: "Drax",
+    aka: [],
+    appearance: "Guardians of the galaxy volume 1",
+    tier: "rare",
+    image: "rare/draxgotg.jpeg"
+  },
+
+   {
+    id: 538,
+    name: "Nebula",
+    aka: [],
+    appearance: "Guardians of the galaxy volume 1",
+    tier: "rare",
+    image: "rare/nebulagotg.jpeg"
+  },
+
+    {
+    id: 539,
+    name: "Groot",
+    aka: [],
+    appearance: "Guardians of the galaxy volume 1",
+    tier: "epic",
+    image: "epic/grootgotg.jpeg"
+  },
+
+   {
+    id: 540,
+    name: "Gamora",
+    aka: [],
+    appearance: "Guardians of the galaxy volume 1",
+    tier: "epic",
+    image: "epic/gamoragotg.jpeg"
+  },
+
+    {
+    id: 541,
+    name: "Rocket Raccoon",
+    aka: [],
+    appearance: "Guardians of the galaxy volume 1",
+    tier: "epic",
+    image: "epic/rocketgotg.jpeg"
+  },
+
+    {
+    id: 542,
+    name: "Ronan the accuser",
+    aka: [],
+    appearance: "Guardians of the galaxy volume 1",
+    tier: "epic",
+    image: "epic/ronangotg.jpeg"
+  },
+
+   {
+    id: 543,
+    name: "Star-Lord",
+    aka: ["Peter Quill"],
+    appearance: "Guardians of the galaxy volume 1",
+    tier: "legendary",
+    image: "legendary/starlordgotg.jpeg"
+  },
+
+  
+   {
+    id: 544,
+    name: "Marry Jane",
+    aka: [],
+    appearance: "Ultimate Spider-man",
+    tier: "common",
+    image: "common/maryjaneult.jpeg"
+  },
+
+   {
+    id: 545,
+    name: "Harry Osborn",
+    aka: [],
+    appearance: "Ultimate Spider-man",
+    tier: "common",
+    image: "common/harryult.jpeg"
+  },
+
+     {
+    id: 546,
+    name: "Flash Thompson",
+    aka: [],
+    appearance: "Ultimate Spider-man",
+    tier: "common",
+    image: "common/flashult.jpeg"
+  },
+
+   {
+    id: 547,
+    name: "Phil Coulson",
+    aka: [],
+    appearance: "Ultimate Spider-man",
+    tier: "common",
+    image: "common/philult.jpeg"
+  },
+
+  
+   {
+    id: 548,
+    name: "Rhino",
+    aka: [],
+    appearance: "Ultimate Spider-man",
+    tier: "uncommon",
+    image: "uncommon/rhinoult.jpeg"
+  },
+
+     {
+    id: 549,
+    name: "Electro",
+    aka: [],
+    appearance: "Ultimate Spider-man",
+    tier: "uncommon",
+    image: "uncommon/electroult.jpeg"
+  },
+
+    {
+    id: 550,
+    name: "Lizard",
+    aka: ["Curt Connors"],
+    appearance: "Ultimate Spider-man",
+    tier: "uncommon",
+    image: "uncommon/lizardult.jpeg"
+  },
+
+    {
+    id: 551,
+    name: "Carnage",
+    aka: [],
+    appearance: "Ultimate Spider-man",
+    tier: "uncommon",
+    image: "uncommon/carnageult.jpeg"
+  },
+  
+   {
+    id: 552,
+    name: "Nick Fury",
+    aka: [],
+    appearance: "Ultimate Spider-man",
+    tier: "uncommon",
+    image: "uncommon/nickult.jpeg"
+  },
+
+   {
+    id: 553,
+    name: "Kraven the hunter",
+    aka: [],
+    appearance: "Ultimate Spider-man",
+    tier: "uncommon",
+    image: "uncommon/kravenult.jpeg"
+  },
+
+  {
+    id: 554,
+    name: "Doctor Octopus",
+    aka: [],
+    appearance: "Ultimate Spider-man",
+    tier: "uncommon",
+    image: "uncommon/docult.jpeg"
+  },
+
+   {
+    id: 555,
+    name: "Power Man",
+    aka: ["Luke Cage"],
+    appearance: "Ultimate Spider-man",
+    tier: "rare",
+    image: "rare/powermanult.jpeg"
+  },
+
+   {
+    id: 556,
+    name: "White Tiger",
+    aka: ["Ava Ayala"],
+    appearance: "Ultimate Spider-man",
+    tier: "rare",
+    image: "rare/tigerult.jpeg"
+  },
+
+   {
+    id: 557,
+    name: "Green Goblin",
+    aka: ["Noman Osborn"],
+    appearance: "Ultimate Spider-man",
+    tier: "rare",
+    image: "rare/nomanult.jpeg"
+  },
+
+    {
+    id: 558,
+    name: "Anti Venom",
+    aka: [],
+    appearance: "Ultimate Spider-man",
+    tier: "rare",
+    image: "rare/antiult.jpeg"
+  },
+
+   {
+    id: 559,
+    name: "Venom",
+    aka: [],
+    appearance: "Ultimate Spider-man",
+    tier: "rare",
+    image: "rare/venomult.jpeg"
+  },
+
+   {
+    id: 560,
+    name: "Agent Venom",
+    aka: [],
+    appearance: "Ultimate Spider-man",
+    tier: "epic",
+    image: "epic/agentult.jpeg"
+  },
+
+  {
+    id: 561,
+    name: "Iron Spider",
+    aka: [],
+    appearance: "Ultimate Spider-man",
+    tier: "epic",
+    image: "epic/ironult.jpeg"
+  },
+
+   {
+    id: 562,
+    name: "Ultimate Goblin",
+    aka: [],
+    appearance: "Ultimate Spider-man",
+    tier: "epic",
+    image: "epic/ultult.jpeg"
+  },
+
+  {
+    id: 563,
+    name: "Iron Fist",
+    aka: ["Danny Rand"],
+    appearance: "Ultimate Spider-man",
+    tier: "epic",
+    image: "epic/fistult.jpeg"
+  },
+
+   {
+    id: 564,
+    name: "Nova",
+    aka: ["Sam Alexander"],
+    appearance: "Ultimate Spider-man",
+    tier: "epic",
+    image: "epic/novault.jpeg"
+  },
+
+   {
+    id: 565,
+    name: "Spider-man",
+    aka: ["Peter Parker"],
+    appearance: "Ultimate Spider-man",
+    tier: "epic",
+    image: "epic/spiderult.jpeg"
+  },
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   
 
