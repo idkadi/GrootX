@@ -22,7 +22,7 @@ function safeText(text = "") {
   return String(text).replace(/[^\x20-\x7E]/g, "").trim();
 }
 
-function shortText(text, max = 16) {
+function shortText(text, max = 18) {
   text = safeText(text);
   return text.length > max ? text.slice(0, max - 3) + "..." : text;
 }
@@ -55,7 +55,7 @@ function getLocationPower(battle, side, userId) {
 }
 
 function drawHex(ctx, x, y, w, h) {
-  const cut = 48;
+  const cut = 42;
 
   ctx.beginPath();
   ctx.moveTo(x + cut, y);
@@ -112,8 +112,8 @@ async function drawCardGrid(ctx, cards, centerX, y) {
   const shown = cards.slice(0, 4);
   if (!shown.length) return;
 
-  const cardW = 105;
-  const cardH = 150;
+  const cardW = 88;
+  const cardH = 126;
   const gapX = 10;
   const gapY = 10;
 
@@ -143,7 +143,7 @@ async function drawCardGrid(ctx, cards, centerX, y) {
 
 async function createBattleImage(battle) {
   const width = 1150;
-  const height = 820;
+  const height = 900;
 
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
@@ -158,22 +158,22 @@ async function createBattleImage(battle) {
 
   ctx.textAlign = "center";
   ctx.fillStyle = "#ffffff";
-  ctx.font = font(34, true);
+  ctx.font = font(32, true);
 
   ctx.fillText(
-    `${shortText(battle.player1Name)} VS ${shortText(battle.player2Name)}`,
+    `${shortText(battle.player1Name, 20)} VS ${shortText(battle.player2Name, 20)}`,
     width / 2,
-    50
+    62
   );
 
-  ctx.font = font(30, true);
-  ctx.fillText(`TURN ${battle.turn}/${battle.maxTurns}`, width / 2, 95);
+  ctx.font = font(28, true);
+  ctx.fillText(`TURN ${battle.turn}/${battle.maxTurns}`, width / 2, 105);
 
-  const locW = 300;
-  const locH = 185;
-  const startX = 70;
-  const gap = 55;
-  const locY = 330;
+  const locW = 270;
+  const locH = 165;
+  const startX = 95;
+  const gap = 75;
+  const locY = 385;
 
   for (let i = 0; i < 3; i++) {
     const side = SIDES[i];
@@ -185,7 +185,7 @@ async function createBattleImage(battle) {
     const p1Cards = getLocationCards(battle, side, battle.player1Id);
     const p2Cards = getLocationCards(battle, side, battle.player2Id);
 
-    await drawCardGrid(ctx, p1Cards, centerX, 35);
+    await drawCardGrid(ctx, p1Cards, centerX, 125);
 
     await drawLocation(ctx, location, x, locY, locW, locH);
 
@@ -211,8 +211,8 @@ async function createBattleImage(battle) {
     ctx.fillText(String(p1Power), centerX, locY + 4);
 
     ctx.fillStyle = "#ffffff";
-    ctx.font = font(28, true);
-    ctx.fillText(shortText(location.name, 15), centerX, locY + 105);
+    ctx.font = font(26, true);
+    ctx.fillText(shortText(location.name, 15), centerX, locY + 95);
 
     ctx.fillStyle = "#3b2a30";
     ctx.strokeStyle = "#c49a82";
@@ -226,7 +226,7 @@ async function createBattleImage(battle) {
     ctx.font = font(26, true);
     ctx.fillText(String(p2Power), centerX, locY + locH + 14);
 
-    await drawCardGrid(ctx, p2Cards, centerX, 535);
+    await drawCardGrid(ctx, p2Cards, centerX, 620);
   }
 
   return canvas.toBuffer("image/png");

@@ -46,7 +46,7 @@ function getSynergyBoost(card, cardsAtLocation = []) {
   return boost;
 }
 
-function getLocationBoost(card, location) {
+function getLocationBoost(card, location, serial) {
   const loc = normalize(location?.name || location);
   const name = normalize(card.name);
   const appearance = normalize(card.appearance);
@@ -68,7 +68,9 @@ function getLocationBoost(card, location) {
       name.includes("black panther") ||
       name.includes("shuri") ||
       name.includes("okoye") ||
+      name.includes("namor") ||
       appearance.includes("black panther") ||
+      appearance.includes("wakanda") ||
       aka.includes("black panther")
     ) return 3;
   }
@@ -97,6 +99,10 @@ function getLocationBoost(card, location) {
       name.includes("hawkeye") ||
       name.includes("spider-man") ||
       name.includes("spider man") ||
+      name.includes("wanda") ||
+      name.includes("vision") ||
+      name.includes("ant-man") ||
+      name.includes("wasp") ||
       appearance.includes("avengers")
     ) return 3;
   }
@@ -107,9 +113,69 @@ function getLocationBoost(card, location) {
       name.includes("knull") ||
       name.includes("galactus") ||
       name.includes("silver surfer") ||
+      name.includes("groot") ||
+      name.includes("rocket") ||
+      name.includes("star-lord") ||
+      name.includes("gamora") ||
+      name.includes("drax") ||
+      name.includes("mantis") ||
       appearance.includes("guardians") ||
       appearance.includes("fantastic four")
     ) return 3;
+  }
+
+  if (loc.includes("spider")) {
+    if (
+      name.includes("spider") ||
+      name.includes("venom") ||
+      name.includes("carnage") ||
+      name.includes("miles") ||
+      name.includes("gwen") ||
+      name.includes("2099") ||
+      appearance.includes("spider")
+    ) return 3;
+  }
+
+  if (loc.includes("kamar")) {
+    if (
+      name.includes("doctor strange") ||
+      name.includes("strange") ||
+      name.includes("ancient one") ||
+      name.includes("wong") ||
+      name.includes("mordo") ||
+      name.includes("clea") ||
+      name.includes("agatha") ||
+      name.includes("wanda") ||
+      appearance.includes("doctor strange") ||
+      appearance.includes("multiverse")
+    ) return 3;
+  }
+
+  if (loc.includes("sakaar")) {
+    if (
+      name.includes("hulk") ||
+      name.includes("thor") ||
+      name.includes("valkyrie") ||
+      name.includes("grandmaster") ||
+      name.includes("korg") ||
+      name.includes("miek") ||
+      appearance.includes("ragnarok")
+    ) return 2;
+  }
+
+  if (loc.includes("void")) {
+    if (
+      name.includes("loki") ||
+      name.includes("sylvie") ||
+      name.includes("mobius") ||
+      name.includes("deadpool") ||
+      name.includes("wolverine") ||
+      name.includes("x-23") ||
+      name.includes("laura") ||
+      appearance.includes("loki")     
+    ) return 3;
+
+    if ((Number(serial) || 999999) <= 100) return 3;
   }
 
   return 0;
@@ -119,7 +185,12 @@ function calculateBattlePower(card, options = {}) {
   const basePower = getBasePower(card);
   const serialBoost = getSerialBoost(options.serial);
   const synergyBoost = getSynergyBoost(card, options.cardsAtLocation || []);
-  const locationBoost = getLocationBoost(card, options.location);
+
+  const locationBoost = getLocationBoost(
+    card,
+    options.location,
+    options.serial
+  );
 
   return {
     basePower,
