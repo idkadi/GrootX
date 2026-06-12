@@ -133,6 +133,41 @@ const backgrounds = [
      free: false
   },
 
+   {
+    id: 17,
+    name: "Venom Last Dance",
+    file: "lastdancebg.jpeg",
+    free: false
+  },
+
+   {
+    id: 18,
+    name: "Miguel O'Hara",
+    file: "2099bg.jpeg",
+    free: false
+  },
+
+    {
+    id: 19,
+    name: "Guardians of Galaxy",
+    file: "gotgbg.jpeg",
+    free: false
+  },
+
+   {
+    id: 20,
+    name: "Spider-Verse",
+    file: "spiderversebg.jpeg",
+    free: false
+  },
+
+   {
+    id: 21,
+    name: "Thunderbolts",
+    file: "thunderboltsbg.jpeg",
+    free: false
+  },
+
 
 
 ];

@@ -95,6 +95,37 @@ module.exports = [
     name: "Avengers : Endgame",
     file: "endgamebg.jpeg"
   },
+
+   {
+    id: 17,
+    name: "Venom Last Dance",
+    file: "lastdancebg.jpeg"
+  },
+
+   {
+    id: 18,
+    name: "Miguel O'Hara",
+    file: "2099bg.jpeg"
+  },
+
+    {
+    id: 19,
+    name: "Guardians of Galaxy",
+    file: "gotgbg.jpeg"
+  },
+
+   {
+    id: 20,
+    name: "Spider-Verse",
+    file: "spiderversebg.jpeg"
+  },
+
+   {
+    id: 21,
+    name: "Thunderbolts",
+    file: "thunderboltsbg.jpeg"
+  },
+  
   
   
   

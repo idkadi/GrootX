@@ -124,6 +124,41 @@ const backgrounds = [
     price: 8000,
     file: "endgamebg.jpeg"
   },
+
+   {
+    id: 17,
+    name: "Venom Last Dance",
+     price: 5000,
+    file: "lastdancebg.jpeg"
+  },
+
+   {
+    id: 18,
+    name: "Miguel O'Hara",
+     price: 5000,
+    file: "2099bg.jpeg"
+  },
+
+    {
+    id: 19,
+    name: "Guardians of Galaxy",
+     price: 5000,
+    file: "gotgbg.jpeg"
+  },
+
+   {
+    id: 20,
+    name: "Spider-Verse",
+     price: 5000,
+    file: "spiderversebg.jpeg"
+  },
+
+   {
+    id: 21,
+    name: "Thunderbolts",
+     price: 5000,
+    file: "thunderboltsbg.jpeg"
+  },
   
 
   
