@@ -111,6 +111,70 @@ function pickWithoutRecent(rarity, dropCards, usedShows, recentDrops) {
   return randomCard;
 }
 
+async function assignDropSerials(serialsCol, dropCards) {
+  const serialMap = {};
+
+  for (const card of dropCards) {
+    await serialsCol.updateOne(
+      { cardId: card.id },
+      { $inc: { serial: 1 } },
+      { upsert: true }
+    );
+
+    const serialDoc = await serialsCol.findOne({
+      cardId: card.id
+    });
+
+    serialMap[card.id] = serialDoc.serial;
+  }
+
+  return serialMap;
+}
+
+async function getWishlistData(db, dropCards) {
+  const wishCol = db.collection("wishlists");
+  const droppedIds = dropCards.map(card => Number(card.id));
+
+  const wishUsers = await wishCol
+    .find({
+      cards: { $in: droppedIds }
+    })
+    .toArray();
+
+  const counts = {};
+  const pingUsers = new Set();
+
+  for (const card of dropCards) {
+    counts[card.id] = 0;
+  }
+
+  for (const wish of wishUsers) {
+    const wishedIds = (wish.cards || []).map(id => Number(id));
+
+    let matched = false;
+
+    for (const droppedId of droppedIds) {
+      if (wishedIds.includes(Number(droppedId))) {
+        counts[droppedId] = (counts[droppedId] || 0) + 1;
+        matched = true;
+      }
+    }
+
+    if (matched) {
+      pingUsers.add(wish.userId);
+    }
+  }
+
+  const pingText = pingUsers.size > 0
+    ? `\n\n💫 Wishlist alert: ${Array.from(pingUsers).map(id => `<@${id}>`).join(" ")}`
+    : "";
+
+  return {
+    counts,
+    pingText
+  };
+}
+
 module.exports = {
   name: "drop",
   aliases: ["d"],
@@ -236,6 +300,10 @@ module.exports = {
 
     await saveRecentDrops(recentDropsCol, recentDrops);
 
+    const dropSerials = await assignDropSerials(serialsCol, dropCards);
+
+    const wishlistData = await getWishlistData(db, dropCards);
+
     const dropImage = await createDropImage(dropCards);
 
     const powerActive =
@@ -256,16 +324,20 @@ module.exports = {
       effectText +
       "\n" +
       dropCards.map((card, index) =>
-        `**${index + 1}.** ${getTierEmoji(card.tier)} **${card.name}**`
-      ).join("\n");
+        `**${index + 1}.** ${getTierEmoji(card.tier)} **${card.name}** #${dropSerials[card.id]}`
+      ).join("\n") +
+      wishlistData.pingText;
 
     const row = new ActionRowBuilder();
 
     for (let i = 0; i < cardsToDrop; i++) {
+      const card = dropCards[i];
+      const wishCount = wishlistData.counts[card.id] || 0;
+
       row.addComponents(
         new ButtonBuilder()
           .setCustomId(`claim_${i}`)
-          .setLabel(`${i + 1}`)
+          .setLabel(`💖 ${wishCount}`)
           .setStyle(ButtonStyle.Primary)
       );
     }
@@ -384,26 +456,8 @@ module.exports = {
 
       const claimedCard = dropCards[index];
       const cardId = claimedCard.id;
+      const serial = dropSerials[cardId];
 
-      await serialsCol.updateOne(
-        {
-          cardId
-        },
-        {
-          $inc: {
-            serial: 1
-          }
-        },
-        {
-          upsert: true
-        }
-      );
-
-      const serialDoc = await serialsCol.findOne({
-        cardId
-      });
-
-      const serial = serialDoc.serial;
       const code = await generateUniqueCode(collectionsCol);
 
       await collectionsCol.insertOne({

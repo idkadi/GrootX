@@ -263,17 +263,8 @@ async function generateAlbumPage(
       )
 
       .setDescription(
-
-        `Page: **${pageNumber}/${album.pages.length}**\n` +
-
-        `Layout: **${layoutId}**\n` +
-
-        `Background: **${bgData.name}**\n` +
-
-        `Cards placed: **${placedCards.filter(Boolean).length}/${slotPositions.length}**`
-
-      )
-
+  `📄 Page **${pageNumber}/${album.pages.length}** • ⭐ ${placedCards.filter(Boolean).length}/${slotPositions.length} Cards`
+)
       .setImage(
         `attachment://${fileName}`
       );
