@@ -2,9 +2,12 @@ const {
   EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
-  ButtonStyle
+  ButtonStyle,
+  StringSelectMenuBuilder,
+  AttachmentBuilder
 } = require("discord.js");
 
+const path = require("path");
 const connectDB = require("../database");
 const cardsData = require("../data/cards.js");
 
@@ -12,6 +15,17 @@ function getCardsArray() {
   if (Array.isArray(cardsData)) return cardsData;
   if (Array.isArray(cardsData.cards)) return cardsData.cards;
   return [];
+}
+
+function getTierEmoji(tier = "") {
+  switch (tier.toLowerCase()) {
+    case "common": return "<:common:1504510702956839033>";
+    case "uncommon": return "<:uncommon:1504510929210052698>";
+    case "rare": return "<:rare:1504510606718275764>";
+    case "epic": return "<:epic:1504510771214680175>";
+    case "legendary": return "<:legendary:1504511435974377552>";
+    default: return "❓";
+  }
 }
 
 function getRarity(card) {
@@ -23,7 +37,7 @@ function findCards(query) {
   const q = query.toLowerCase();
 
   return allCards.filter(card =>
-    card.name.toLowerCase().includes(q)
+    card.name?.toLowerCase().includes(q)
   );
 }
 
@@ -37,11 +51,8 @@ module.exports = {
 
     const allCards = getCardsArray();
     const userId = message.author.id;
-
     const sub = args[0]?.toLowerCase();
 
-    // !wishlist
-    // !wishlist @user
     if (!sub || message.mentions.users.size > 0) {
       const targetUser = message.mentions.users.first() || message.author;
       const targetId = targetUser.id;
@@ -56,26 +67,262 @@ module.exports = {
         );
       }
 
-      const wishedCards = data.cards
+      let wishedCards = data.cards
         .map(id => allCards.find(c => Number(c.id) === Number(id)))
         .filter(Boolean);
 
-      const desc = wishedCards
-        .map((card, i) => `**${i + 1}.** ${card.name} • ${getRarity(card)}`)
-        .join("\n");
+      const perPage = 10;
+      let page = 0;
+      let imageIndex = 0;
+      let viewMode = "list";
+      let currentSort = "default";
 
-      const embed = new EmbedBuilder()
-        .setColor(0xffc107)
-        .setTitle(`💫 ${targetUser.username}'s Wishlist`)
-        .setDescription(desc)
-        .setFooter({ text: `${wishedCards.length}/15 cards wished` });
+      function applySort(sortType) {
+        currentSort = sortType;
 
-      return message.reply({ embeds: [embed] });
+        switch (sortType) {
+          case "name":
+            wishedCards.sort((a, b) =>
+              (a.name || "").localeCompare(b.name || "")
+            );
+            break;
+
+          case "tier":
+            wishedCards.sort((a, b) =>
+              getRarity(a).localeCompare(getRarity(b))
+            );
+            break;
+
+          case "appearance":
+            wishedCards.sort((a, b) =>
+              (a.appearance || "").localeCompare(b.appearance || "")
+            );
+            break;
+
+          case "default":
+          default:
+            wishedCards = data.cards
+              .map(id => allCards.find(c => Number(c.id) === Number(id)))
+              .filter(Boolean);
+            break;
+        }
+      }
+
+      function getTotalPages() {
+        return Math.ceil(wishedCards.length / perPage);
+      }
+
+      function generateListEmbed() {
+        const totalPages = getTotalPages();
+        const start = page * perPage;
+        const currentCards = wishedCards.slice(start, start + perPage);
+
+        const description = currentCards.map((card, i) => {
+          return (
+            `🔹 \`${card.id}\` • ` +
+            `${getTierEmoji(getRarity(card))} ` +
+            `**${card.name}** ` +
+            `• ${card.appearance || "Unknown"}`
+          );
+        }).join("\n");
+
+        return new EmbedBuilder()
+          .setColor(0xffc107)
+          .setTitle(`${targetUser.username}'s Wishlist`)
+          .setDescription(description || "No cards found.")
+          .setFooter({
+            text:
+              `List View • Page ${page + 1}/${totalPages} • ` +
+              `Total Wished: ${wishedCards.length}/15 • ` +
+              `Sort: ${currentSort}`
+          })
+          .setTimestamp();
+      }
+
+      function generateImageEmbed() {
+        const card = wishedCards[imageIndex];
+        const imageName = card.image?.split("/").pop();
+
+        return new EmbedBuilder()
+          .setColor(0xffc107)
+          .setTitle(card.name)
+          .setDescription(
+            `${getTierEmoji(getRarity(card))} **${getRarity(card)}**\n\n` +
+            `Series: **${card.appearance || "Unknown"}**\n` +
+            `Card ID: \`${card.id}\`\n` +
+            `Wishlist Card: **${imageIndex + 1}/${wishedCards.length}**`
+          )
+          .setImage(`attachment://${imageName}`)
+          .setFooter({
+            text:
+              `Image View • Total Wished: ${wishedCards.length}/15 • ` +
+              `Sort: ${currentSort}`
+          })
+          .setTimestamp();
+      }
+
+      function getImageFile() {
+        const card = wishedCards[imageIndex];
+        const imageName = card.image.split("/").pop();
+
+        const imagePath = path.join(
+          __dirname,
+          "..",
+          "images",
+          card.image
+        );
+
+        return new AttachmentBuilder(imagePath, {
+          name: imageName
+        });
+      }
+
+      function makeSelectRow() {
+        const selectMenu = new StringSelectMenuBuilder()
+          .setCustomId("wish_sort")
+          .setPlaceholder("Sort Wishlist")
+          .addOptions([
+            {
+              label: "Default",
+              value: "default",
+              description: "Original wishlist order"
+            },
+            {
+              label: "Name",
+              value: "name",
+              description: "Sort alphabetically"
+            },
+            {
+              label: "Tier",
+              value: "tier",
+              description: "Sort by card tier"
+            },
+            {
+              label: "Series",
+              value: "appearance",
+              description: "Sort by appearance / series"
+            }
+          ]);
+
+        return new ActionRowBuilder().addComponents(selectMenu);
+      }
+
+      function makeButtonRow() {
+        const totalPages = getTotalPages();
+
+        return new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId("wish_prev")
+            .setLabel("⬅️")
+            .setStyle(ButtonStyle.Primary)
+            .setDisabled(
+              viewMode === "list"
+                ? totalPages <= 1
+                : wishedCards.length <= 1
+            ),
+
+          new ButtonBuilder()
+            .setCustomId("wish_view")
+            .setLabel(viewMode === "list" ? "Image View" : "List View")
+            .setEmoji("🖼️")
+            .setStyle(ButtonStyle.Secondary),
+
+          new ButtonBuilder()
+            .setCustomId("wish_next")
+            .setLabel("➡️")
+            .setStyle(ButtonStyle.Primary)
+            .setDisabled(
+              viewMode === "list"
+                ? totalPages <= 1
+                : wishedCards.length <= 1
+            )
+        );
+      }
+
+      function getPayload() {
+        if (viewMode === "image") {
+          return {
+            embeds: [generateImageEmbed()],
+            files: [getImageFile()],
+            components: [
+              makeSelectRow(),
+              makeButtonRow()
+            ]
+          };
+        }
+
+        return {
+          embeds: [generateListEmbed()],
+          files: [],
+          components: [
+            makeSelectRow(),
+            makeButtonRow()
+          ]
+        };
+      }
+
+      const msg = await message.reply(getPayload());
+
+      const collector = msg.createMessageComponentCollector({
+        time: 120000
+      });
+
+      collector.on("collect", async interaction => {
+        collector.resetTimer();
+
+        if (interaction.user.id !== message.author.id) {
+          return interaction.reply({
+            content: "❌ This is not your wishlist.",
+            ephemeral: true
+          });
+        }
+
+        if (interaction.customId === "wish_sort") {
+          applySort(interaction.values[0]);
+          page = 0;
+          imageIndex = 0;
+
+          return interaction.update(getPayload());
+        }
+
+        if (interaction.customId === "wish_view") {
+          viewMode = viewMode === "list" ? "image" : "list";
+          return interaction.update(getPayload());
+        }
+
+        if (interaction.customId === "wish_next") {
+          if (viewMode === "list") {
+            page++;
+            if (page >= getTotalPages()) page = 0;
+          } else {
+            imageIndex++;
+            if (imageIndex >= wishedCards.length) imageIndex = 0;
+          }
+
+          return interaction.update(getPayload());
+        }
+
+        if (interaction.customId === "wish_prev") {
+          if (viewMode === "list") {
+            page--;
+            if (page < 0) page = getTotalPages() - 1;
+          } else {
+            imageIndex--;
+            if (imageIndex < 0) imageIndex = wishedCards.length - 1;
+          }
+
+          return interaction.update(getPayload());
+        }
+      });
+
+      collector.on("end", async () => {
+        await msg.edit({ components: [] }).catch(() => {});
+      });
+
+      return;
     }
 
-    // remove first arg: add/remove
     args.shift();
-
     const query = args.join(" ").trim();
 
     if (!["add", "remove"].includes(sub)) {
@@ -101,16 +348,15 @@ module.exports = {
       return message.reply(`❌ No card found matching **${query}**.`);
     }
 
-    // Direct add/remove if only one match
-    if (matches.length === 1) {
-      const card = matches[0];
+    async function addOrRemoveCard(card) {
+      const fresh = await wishCol.findOne({ userId }) || { userId, cards: [] };
 
       if (sub === "add") {
-        if (data.cards.includes(card.id)) {
+        if (fresh.cards.includes(card.id)) {
           return message.reply(`❌ **${card.name}** is already in your wishlist.`);
         }
 
-        if (data.cards.length >= 15) {
+        if (fresh.cards.length >= 15) {
           return message.reply("❌ Your wishlist is full. Max limit is **15 cards**.");
         }
 
@@ -120,11 +366,13 @@ module.exports = {
           { upsert: true }
         );
 
-        return message.reply(`💫 Added **${card.name}** to your wishlist.`);
+        return message.reply(
+          `💫 Added ${getTierEmoji(getRarity(card))} **${card.name}** to your wishlist.`
+        );
       }
 
       if (sub === "remove") {
-        if (!data.cards.includes(card.id)) {
+        if (!fresh.cards.includes(card.id)) {
           return message.reply(`❌ **${card.name}** is not in your wishlist.`);
         }
 
@@ -137,16 +385,19 @@ module.exports = {
       }
     }
 
-    // Multiple results menu
+    if (matches.length === 1) {
+      return addOrRemoveCard(matches[0]);
+    }
+
     const limited = matches.slice(0, 5);
 
     const embed = new EmbedBuilder()
       .setColor(0xffc107)
-      .setTitle("🔎 Multiple cards found")
+      .setTitle("🔎 Multiple Cards Found")
       .setDescription(
-        limited
-          .map((card, i) => `**${i + 1}.** ${card.name} • ${getRarity(card)}`)
-          .join("\n")
+        limited.map((card, i) =>
+          `**${i + 1}.** ${getTierEmoji(getRarity(card))} **${card.name}** • ${card.appearance || "Unknown"}`
+        ).join("\n")
       )
       .setFooter({ text: "Pick the card you want." });
 
@@ -179,7 +430,6 @@ module.exports = {
       }
 
       const [, action, cardId] = interaction.customId.split("_");
-
       const card = allCards.find(c => Number(c.id) === Number(cardId));
 
       if (!card) {
@@ -216,7 +466,7 @@ module.exports = {
         );
 
         return interaction.update({
-          content: `💫 Added **${card.name}** to your wishlist.`,
+          content: `💫 Added ${getTierEmoji(getRarity(card))} **${card.name}** to your wishlist.`,
           embeds: [],
           components: []
         });
