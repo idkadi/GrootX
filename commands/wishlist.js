@@ -11,6 +11,8 @@ const path = require("path");
 const connectDB = require("../database");
 const cardsData = require("../data/cards.js");
 
+const PER_PAGE = 15;
+
 function getCardsArray() {
   if (Array.isArray(cardsData)) return cardsData;
   if (Array.isArray(cardsData.cards)) return cardsData.cards;
@@ -30,6 +32,10 @@ function getTierEmoji(tier = "") {
 
 function getRarity(card) {
   return card.tier || card.rarity || "Unknown";
+}
+
+function normalizeId(id) {
+  return String(id);
 }
 
 function findCards(query) {
@@ -71,7 +77,6 @@ module.exports = {
         .map(id => allCards.find(c => Number(c.id) === Number(id)))
         .filter(Boolean);
 
-      const perPage = 10;
       let page = 0;
       let imageIndex = 0;
       let viewMode = "list";
@@ -80,46 +85,44 @@ module.exports = {
       function applySort(sortType) {
         currentSort = sortType;
 
-        switch (sortType) {
-          case "name":
-            wishedCards.sort((a, b) =>
-              (a.name || "").localeCompare(b.name || "")
-            );
-            break;
+        if (sortType === "default") {
+          wishedCards = data.cards
+            .map(id => allCards.find(c => Number(c.id) === Number(id)))
+            .filter(Boolean);
+        }
 
-          case "tier":
-            wishedCards.sort((a, b) =>
-              getRarity(a).localeCompare(getRarity(b))
-            );
-            break;
+        if (sortType === "name") {
+          wishedCards.sort((a, b) =>
+            (a.name || "").localeCompare(b.name || "")
+          );
+        }
 
-          case "appearance":
-            wishedCards.sort((a, b) =>
-              (a.appearance || "").localeCompare(b.appearance || "")
-            );
-            break;
+        if (sortType === "tier") {
+          wishedCards.sort((a, b) =>
+            getRarity(a).localeCompare(getRarity(b))
+          );
+        }
 
-          case "default":
-          default:
-            wishedCards = data.cards
-              .map(id => allCards.find(c => Number(c.id) === Number(id)))
-              .filter(Boolean);
-            break;
+        if (sortType === "series") {
+          wishedCards.sort((a, b) =>
+            (a.appearance || "").localeCompare(b.appearance || "")
+          );
         }
       }
 
       function getTotalPages() {
-        return Math.ceil(wishedCards.length / perPage);
+        return Math.max(1, Math.ceil(wishedCards.length / PER_PAGE));
       }
 
       function generateListEmbed() {
         const totalPages = getTotalPages();
-        const start = page * perPage;
-        const currentCards = wishedCards.slice(start, start + perPage);
+        const start = page * PER_PAGE;
+        const currentCards = wishedCards.slice(start, start + PER_PAGE);
 
         const description = currentCards.map((card, i) => {
           return (
-            `🔹 \`${card.id}\` • ` +
+            `🔹 **${start + i + 1}.** ` +
+            `\`${card.id}\` • ` +
             `${getTierEmoji(getRarity(card))} ` +
             `**${card.name}** ` +
             `• ${card.appearance || "Unknown"}`
@@ -133,7 +136,7 @@ module.exports = {
           .setFooter({
             text:
               `List View • Page ${page + 1}/${totalPages} • ` +
-              `Total Wished: ${wishedCards.length}/15 • ` +
+              `Total Wished: ${wishedCards.length} • ` +
               `Sort: ${currentSort}`
           })
           .setTimestamp();
@@ -141,6 +144,7 @@ module.exports = {
 
       function generateImageEmbed() {
         const card = wishedCards[imageIndex];
+
         const imageName = card.image?.split("/").pop();
 
         return new EmbedBuilder()
@@ -152,10 +156,10 @@ module.exports = {
             `Card ID: \`${card.id}\`\n` +
             `Wishlist Card: **${imageIndex + 1}/${wishedCards.length}**`
           )
-          .setImage(`attachment://${imageName}`)
+          .setImage(imageName ? `attachment://${imageName}` : null)
           .setFooter({
             text:
-              `Image View • Total Wished: ${wishedCards.length}/15 • ` +
+              `Image View • Total Wished: ${wishedCards.length} • ` +
               `Sort: ${currentSort}`
           })
           .setTimestamp();
@@ -163,6 +167,9 @@ module.exports = {
 
       function getImageFile() {
         const card = wishedCards[imageIndex];
+
+        if (!card?.image) return null;
+
         const imageName = card.image.split("/").pop();
 
         const imagePath = path.join(
@@ -178,33 +185,33 @@ module.exports = {
       }
 
       function makeSelectRow() {
-        const selectMenu = new StringSelectMenuBuilder()
-          .setCustomId("wish_sort")
-          .setPlaceholder("Sort Wishlist")
-          .addOptions([
-            {
-              label: "Default",
-              value: "default",
-              description: "Original wishlist order"
-            },
-            {
-              label: "Name",
-              value: "name",
-              description: "Sort alphabetically"
-            },
-            {
-              label: "Tier",
-              value: "tier",
-              description: "Sort by card tier"
-            },
-            {
-              label: "Series",
-              value: "appearance",
-              description: "Sort by appearance / series"
-            }
-          ]);
-
-        return new ActionRowBuilder().addComponents(selectMenu);
+        return new ActionRowBuilder().addComponents(
+          new StringSelectMenuBuilder()
+            .setCustomId("wish_sort")
+            .setPlaceholder("Sort Wishlist")
+            .addOptions([
+              {
+                label: "Default",
+                value: "default",
+                description: "Original wishlist order"
+              },
+              {
+                label: "Name",
+                value: "name",
+                description: "Sort alphabetically"
+              },
+              {
+                label: "Tier",
+                value: "tier",
+                description: "Sort by card tier"
+              },
+              {
+                label: "Series",
+                value: "series",
+                description: "Sort by appearance / series"
+              }
+            ])
+        );
       }
 
       function makeButtonRow() {
@@ -241,9 +248,11 @@ module.exports = {
 
       function getPayload() {
         if (viewMode === "image") {
+          const file = getImageFile();
+
           return {
             embeds: [generateImageEmbed()],
-            files: [getImageFile()],
+            files: file ? [file] : [],
             components: [
               makeSelectRow(),
               makeButtonRow()
@@ -287,6 +296,7 @@ module.exports = {
 
         if (interaction.customId === "wish_view") {
           viewMode = viewMode === "list" ? "image" : "list";
+
           return interaction.update(getPayload());
         }
 
@@ -323,11 +333,16 @@ module.exports = {
     }
 
     args.shift();
+
     const query = args.join(" ").trim();
 
     if (!["add", "remove"].includes(sub)) {
       return message.reply(
-        "❌ Use:\n`!wishlist`\n`!wishlist @user`\n`!wishlist add <card name>`\n`!wishlist remove <card name>`"
+        "❌ Use:\n" +
+        "`!wishlist`\n" +
+        "`!wishlist @user`\n" +
+        "`!wishlist add <card name>`\n" +
+        "`!wishlist remove <card name>`"
       );
     }
 
@@ -338,9 +353,15 @@ module.exports = {
     let data = await wishCol.findOne({ userId });
 
     if (!data) {
-      data = { userId, cards: [] };
+      data = {
+        userId,
+        cards: []
+      };
+
       await wishCol.insertOne(data);
     }
+
+    data.cards = data.cards || [];
 
     const matches = findCards(query);
 
@@ -349,39 +370,57 @@ module.exports = {
     }
 
     async function addOrRemoveCard(card) {
-      const fresh = await wishCol.findOne({ userId }) || { userId, cards: [] };
+      const fresh = await wishCol.findOne({ userId }) || {
+        userId,
+        cards: []
+      };
+
+      fresh.cards = fresh.cards || [];
+
+      const cardId = normalizeId(card.id);
+      const existingCards = fresh.cards.map(normalizeId);
 
       if (sub === "add") {
-        if (fresh.cards.includes(card.id)) {
-          return message.reply(`❌ **${card.name}** is already in your wishlist.`);
-        }
-
-        if (fresh.cards.length >= 15) {
-          return message.reply("❌ Your wishlist is full. Max limit is **15 cards**.");
+        if (existingCards.includes(cardId)) {
+          return message.channel.send(
+            `❌ **${card.name}** is already in your wishlist.`
+          );
         }
 
         await wishCol.updateOne(
           { userId },
-          { $addToSet: { cards: card.id } },
+          {
+            $addToSet: {
+              cards: card.id
+            }
+          },
           { upsert: true }
         );
 
-        return message.reply(
+        return message.channel.send(
           `💫 Added ${getTierEmoji(getRarity(card))} **${card.name}** to your wishlist.`
         );
       }
 
       if (sub === "remove") {
-        if (!fresh.cards.includes(card.id)) {
-          return message.reply(`❌ **${card.name}** is not in your wishlist.`);
+        if (!existingCards.includes(cardId)) {
+          return message.channel.send(
+            `❌ **${card.name}** is not in your wishlist.`
+          );
         }
 
         await wishCol.updateOne(
           { userId },
-          { $pull: { cards: card.id } }
+          {
+            $pull: {
+              cards: card.id
+            }
+          }
         );
 
-        return message.reply(`🗑️ Removed **${card.name}** from your wishlist.`);
+        return message.channel.send(
+          `🗑️ Removed **${card.name}** from your wishlist.`
+        );
       }
     }
 
@@ -389,113 +428,81 @@ module.exports = {
       return addOrRemoveCard(matches[0]);
     }
 
-    const limited = matches.slice(0, 5);
+    const totalPages = Math.ceil(matches.length / PER_PAGE);
+    let page = 0;
 
-    const embed = new EmbedBuilder()
-      .setColor(0xffc107)
-      .setTitle("🔎 Multiple Cards Found")
-      .setDescription(
-        limited.map((card, i) =>
-          `**${i + 1}.** ${getTierEmoji(getRarity(card))} **${card.name}** • ${card.appearance || "Unknown"}`
-        ).join("\n")
-      )
-      .setFooter({ text: "Pick the card you want." });
+    async function sendSelectionPage() {
+      const start = page * PER_PAGE;
+      const currentMatches = matches.slice(start, start + PER_PAGE);
 
-    const row = new ActionRowBuilder();
-
-    limited.forEach((card, i) => {
-      row.addComponents(
-        new ButtonBuilder()
-          .setCustomId(`wishlist_${sub}_${card.id}`)
-          .setLabel(`${i + 1}`)
-          .setStyle(ButtonStyle.Secondary)
-      );
-    });
-
-    const msg = await message.reply({
-      embeds: [embed],
-      components: [row]
-    });
-
-    const collector = msg.createMessageComponentCollector({
-      time: 60000
-    });
-
-    collector.on("collect", async interaction => {
-      if (interaction.user.id !== userId) {
-        return interaction.reply({
-          content: "❌ This wishlist menu is not for you.",
-          ephemeral: true
+      const embed = new EmbedBuilder()
+        .setColor(0xffc107)
+        .setTitle("🔎 Multiple Cards Found")
+        .setDescription(
+          currentMatches.map((card, i) =>
+            `**${start + i + 1}.** ${getTierEmoji(getRarity(card))} **${card.name}** • ${card.appearance || "Unknown"}`
+          ).join("\n")
+        )
+        .setFooter({
+          text:
+            `Page ${page + 1}/${totalPages} • Reply with a number, "next", "prev", or "cancel".`
         });
+
+      return message.channel.send({ embeds: [embed] });
+    }
+
+    await sendSelectionPage();
+
+    const collector = message.channel.createMessageCollector({
+      filter: m => m.author.id === userId,
+      time: 120000
+    });
+
+    collector.on("collect", async m => {
+      const response = m.content.trim().toLowerCase();
+
+      if (response === "cancel") {
+        collector.stop("cancelled");
+        return message.channel.send("❌ Wishlist selection cancelled.");
       }
 
-      const [, action, cardId] = interaction.customId.split("_");
-      const card = allCards.find(c => Number(c.id) === Number(cardId));
+      if (response === "next") {
+        page++;
+        if (page >= totalPages) page = 0;
 
-      if (!card) {
-        return interaction.update({
-          content: "❌ Card data not found.",
-          embeds: [],
-          components: []
-        });
+        return sendSelectionPage();
       }
 
-      const fresh = await wishCol.findOne({ userId }) || { userId, cards: [] };
+      if (response === "prev" || response === "back") {
+        page--;
+        if (page < 0) page = totalPages - 1;
 
-      if (action === "add") {
-        if (fresh.cards.includes(card.id)) {
-          return interaction.update({
-            content: `❌ **${card.name}** is already in your wishlist.`,
-            embeds: [],
-            components: []
-          });
-        }
+        return sendSelectionPage();
+      }
 
-        if (fresh.cards.length >= 15) {
-          return interaction.update({
-            content: "❌ Your wishlist is full. Max limit is **15 cards**.",
-            embeds: [],
-            components: []
-          });
-        }
+      const selectedNumber = parseInt(response);
 
-        await wishCol.updateOne(
-          { userId },
-          { $addToSet: { cards: card.id } },
-          { upsert: true }
+      if (
+        isNaN(selectedNumber) ||
+        selectedNumber < 1 ||
+        selectedNumber > matches.length
+      ) {
+        return message.channel.send(
+          `❌ Invalid selection. Enter a number from **1-${matches.length}**, or type \`cancel\`.`
         );
-
-        return interaction.update({
-          content: `💫 Added ${getTierEmoji(getRarity(card))} **${card.name}** to your wishlist.`,
-          embeds: [],
-          components: []
-        });
       }
 
-      if (action === "remove") {
-        if (!fresh.cards.includes(card.id)) {
-          return interaction.update({
-            content: `❌ **${card.name}** is not in your wishlist.`,
-            embeds: [],
-            components: []
-          });
-        }
+      const selectedCard = matches[selectedNumber - 1];
 
-        await wishCol.updateOne(
-          { userId },
-          { $pull: { cards: card.id } }
-        );
+      collector.stop("selected");
 
-        return interaction.update({
-          content: `🗑️ Removed **${card.name}** from your wishlist.`,
-          embeds: [],
-          components: []
-        });
-      }
+      return addOrRemoveCard(selectedCard);
     });
 
-    collector.on("end", async () => {
-      await msg.edit({ components: [] }).catch(() => {});
+    collector.on("end", async (_, reason) => {
+      if (reason !== "selected" && reason !== "cancelled") {
+        await message.channel.send("⌛ Wishlist selection timed out.").catch(() => {});
+      }
     });
   }
 };
