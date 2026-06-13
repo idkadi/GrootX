@@ -8,6 +8,8 @@ const {
 const connectDB = require("../database");
 const cards = require("../data/cards");
 
+const COIN_EMOJI = "<:grootcoin:1504742213110861834>"; // replace with your custom coin emoji if you have one
+
 function getTierEmoji(tier = "") {
   switch (tier.toLowerCase()) {
     case "common": return "<:common:1504510702956839033>";
@@ -19,14 +21,15 @@ function getTierEmoji(tier = "") {
   }
 }
 
-function getTierPower(tier = "") {
-  switch (tier.toLowerCase()) {
-    case "common": return 10;
-    case "uncommon": return 18;
-    case "rare": return 28;
-    case "epic": return 42;
-    case "legendary": return 60;
-    default: return 10;
+function getStoneEmoji(stone) {
+  switch (stone) {
+    case "space": return "<:space:1504749742683324506>";
+    case "mind": return "<:mind:1504749347592605716>";
+    case "reality": return "<:reality:1504749391645376542>";
+    case "power": return "<:power:1504749435177930857>";
+    case "time": return "<:time:1504749635829239839>";
+    case "soul": return "<:soul:1504749686911799296>";
+    default: return "💎";
   }
 }
 
@@ -34,21 +37,6 @@ function randomStone() {
   return ["space", "mind", "reality", "power", "time", "soul"][
     Math.floor(Math.random() * 6)
   ];
-}
-
-function pickRandomCards(amount = 12) {
-  const usable = cards.filter(c => c.id && c.name && c.tier);
-  const picked = [];
-
-  while (picked.length < amount && usable.length > 0) {
-    const card = usable[Math.floor(Math.random() * usable.length)];
-
-    if (!picked.some(c => Number(c.id) === Number(card.id))) {
-      picked.push(card);
-    }
-  }
-
-  return picked;
 }
 
 async function generateUniqueCode(collectionsCol) {
@@ -67,7 +55,10 @@ async function generateUniqueCode(collectionsCol) {
 }
 
 function getRandomEpicCards(amount = 3) {
-  const epicCards = cards.filter(c => (c.tier || "").toLowerCase() === "epic");
+  const epicCards = cards.filter(
+    c => (c.tier || "").toLowerCase() === "epic"
+  );
+
   const picked = [];
 
   while (picked.length < amount && epicCards.length > 0) {
@@ -105,52 +96,107 @@ async function giveCardToUser(collectionsCol, serialsCol, userId, card) {
   return { card, serial, code };
 }
 
-function makeLessonEmbed(step, total) {
+function makeEmbed(page, user) {
+  const pages = [
+    {
+      title: "🌱 Welcome to GrootX",
+      desc:
+        "GrootX is a Marvel themed card collection bot.\n\n" +
+        "Collect cards, build your collection, wishlist dream cards, use stones, make albums, trade, and flex rare serials."
+    },
+    {
+      title: "🎴 Collect Cards",
+      desc:
+        "`!drop` — Drop cards\n" +
+        "`!collection` or `!col` — View your cards\n" +
+        "`!collection epic` — Filter by rarity\n" +
+        "`!info <card name>` — View card info\n" +
+        "`!view <code>` — View an owned card\n\n" +
+        "Every claimed card gets a unique code and serial."
+    },
+    {
+      title: "💫 Wishlist",
+      desc:
+        "`!wishlist` — View your wishlist\n" +
+        "`!wishlist @user` — View someone else's wishlist\n" +
+        "`!wishlist add <card name>` — Add a card\n" +
+        "`!wishlist remove <card name>` — Remove a card\n\n" +
+        "Wishlist helps you track cards you want."
+    },
+    {
+      title: "🏷️ Tags & Favorites",
+      desc:
+        "`!tag <code> <emoji>` — Tag a card\n" +
+        "`!tag <emoji>` — Tag your latest card\n" +
+        "`!fav <code>` — Favorite a card\n" +
+        "`!favcards` — View favorite cards\n" +
+        "`!search` — Search cards"
+    },
+    {
+      title: "📖 Albums",
+      desc:
+        "`!setlayout` — Pick album layout\n" +
+        "`!shopbg` — Buy backgrounds\n" +
+        "`!setbg <background>` — Set background\n" +
+        "`!place <slot> <code>` — Place card\n" +
+        "`!displace <slot>` — Remove card\n" +
+        "`!viewalbum` — View album"
+    },
+    {
+      title: `${COIN_EMOJI} Economy`,
+      desc:
+        "`!bal` — Check coins and Ultron Chips\n" +
+        "`!daily` — Daily reward\n" +
+        "`!weekly` — Weekly reward\n" +
+        "`!cooldown` — Check cooldowns\n" +
+        "`!shop` — View shop\n" +
+        "`!buy <item>` — Buy item\n" +
+        "`!inventory` or `!inv` — View items"
+    },
+    {
+      title: "<:guantlet:1504854241360085066> Infinity Stones",
+      desc:
+        "<:power:1504749435177930857> `!stone power` — Drop priority boost\n" +
+        "<:time:1504749635829239839> `!stone time` — Faster cooldowns\n" +
+        "<:mind:1504749347592605716> `!stone mind` — More cards in drops\n" +
+        "<:reality:1504749391645376542> `!stone reality <code>` — Change card to same tier\n\n" +
+        "Stones are stored in your inventory."
+    },
+    {
+      title: "🔗 Referral",
+      desc:
+        "`!refer` — Get your own 6-digit referral code\n\n" +
+        "At the end of debut, you can enter someone else's referral code.\n\n" +
+        "If valid, they receive **3 Epic cards**."
+    }
+  ];
+
   return new EmbedBuilder()
     .setColor(0x00aeff)
-    .setTitle(`🌱 GrootX Debut Training ${step.index + 1}/${total}`)
-    .setDescription(
-      `${step.desc}\n\n` +
-      `Type this command now:\n` +
-      `## ${step.command}`
-    )
-    .setFooter({ text: "Type the command to continue." });
+    .setAuthor({
+      name: `${user.username}'s GrootX Debut`,
+      iconURL: user.displayAvatarURL({ dynamic: true })
+    })
+    .setTitle(pages[page].title)
+    .setDescription(pages[page].desc)
+    .setFooter({
+      text: `Page ${page + 1}/${pages.length}`
+    })
+    .setTimestamp();
 }
 
-function makeBattleEmbed(user, userScore, aiScore, round, userCard, aiCard, log) {
-  return new EmbedBuilder()
-    .setColor(0xffc107)
-    .setTitle("🤖 Final Trial: GrootX AI Battle")
-    .setDescription(
-      `**${user.username}** vs **GrootX AI**\n\n` +
-      `Round: **${round}/3**\n\n` +
-      `Your Score: **${userScore}**\n` +
-      `AI Score: **${aiScore}**\n\n` +
-      `${userCard ? `Your Card: ${getTierEmoji(userCard.tier)} **${userCard.name}**\n` : ""}` +
-      `${aiCard ? `AI Card: ${getTierEmoji(aiCard.tier)} **${aiCard.name}**\n\n` : ""}` +
-      `${log || "Choose your move."}`
-    );
-}
-
-function battleButtons() {
+function makeButtons(page, total) {
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
-      .setCustomId("debut_attack")
-      .setLabel("Attack")
-      .setEmoji("⚔️")
-      .setStyle(ButtonStyle.Danger),
+      .setCustomId("debut_prev")
+      .setLabel("Back")
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(page === 0),
 
     new ButtonBuilder()
-      .setCustomId("debut_defend")
-      .setLabel("Defend")
-      .setEmoji("🛡️")
-      .setStyle(ButtonStyle.Primary),
-
-    new ButtonBuilder()
-      .setCustomId("debut_special")
-      .setLabel("Special")
-      .setEmoji("✨")
-      .setStyle(ButtonStyle.Success)
+      .setCustomId("debut_next")
+      .setLabel(page === total - 1 ? "Enter Referral" : "Next")
+      .setStyle(page === total - 1 ? ButtonStyle.Success : ButtonStyle.Primary)
   );
 }
 
@@ -175,193 +221,141 @@ module.exports = {
       return message.reply("❌ You already completed your debut.");
     }
 
-    const lessons = [
-      {
-        command: "!bal",
-        desc: "💰 **Balance** shows your Coins and Ultron Chips."
-      },
-      {
-        command: "!inventory",
-        desc: "🎒 **Inventory** shows your stones, shards, backgrounds, albums, and items."
-      },
-      {
-        command: "!daily",
-        desc: "🎁 **Daily** gives you free regular rewards."
-      },
-      {
-        command: "!weekly",
-        desc: "📅 **Weekly** gives bigger weekly rewards."
-      },
-      {
-        command: "!cooldown",
-        desc: "⏳ **Cooldown** shows when your rewards/actions reset."
-      },
-      {
-        command: "!drop",
-        desc: "🎴 **Drop** spawns cards in the server."
-      },
-      {
-        command: "!collection",
-        desc: "📚 **Collection** shows your owned cards."
-      },
-      {
-        command: "!info spider-man",
-        desc: "🔎 **Info** shows details about a card."
-      },
-      {
-        command: "!wishlist",
-        desc: "💫 **Wishlist** shows your dream cards."
-      },
-      {
-        command: "!profile",
-        desc: "👤 **Profile** shows your GrootX identity."
-      },
-      {
-        command: "!shop",
-        desc: "🛒 **Shop** shows items you can buy."
-      },
-      {
-        command: "!deck",
-        desc: "🃏 **Deck** shows your battle deck."
-      },
-      {
-        command: "!refer",
-        desc: "🔗 **Refer** gives your 6-digit referral code."
-      }
-    ];
+    let page = 0;
+    const totalPages = 8;
 
-    await message.reply({
-      embeds: [
-        new EmbedBuilder()
-          .setColor(0x00aeff)
-          .setTitle("🌱 Welcome to GrootX Debut")
-          .setDescription(
-            "You will learn the main GrootX commands.\n\n" +
-            "Type each command when asked.\n" +
-            "Then you will get a **temporary demo deck** and fight **GrootX AI**.\n\n" +
-            "Completion rewards:\n" +
-            "💰 **1000 Coins**\n" +
-            "💎 **1 Random Infinity Stone**"
-          )
-      ]
+    const msg = await message.reply({
+      embeds: [makeEmbed(page, message.author)],
+      components: [makeButtons(page, totalPages)]
     });
 
-    for (let i = 0; i < lessons.length; i++) {
-      const step = { ...lessons[i], index: i };
-
-      await message.channel.send({
-        embeds: [makeLessonEmbed(step, lessons.length)]
-      });
-
-      const baseCommand = step.command.split(" ")[0].toLowerCase();
-
-      const collected = await message.channel.awaitMessages({
-        filter: m =>
-          m.author.id === userId &&
-          m.content.toLowerCase().startsWith(baseCommand),
-        max: 1,
-        time: 120000
-      }).catch(() => null);
-
-      if (!collected || collected.size === 0) {
-        return message.channel.send(
-          "❌ Debut cancelled because you did not type the command in time.\nUse `!debut` again."
-        );
-      }
-
-      await message.channel.send("✅ Command learned.");
-    }
-
-    const demoDeck = pickRandomCards(12);
-
-    await message.channel.send({
-      embeds: [
-        new EmbedBuilder()
-          .setColor(0x8b5cf6)
-          .setTitle("🃏 Demo Deck Created")
-          .setDescription(
-            "You received a **temporary demo deck** for this tutorial battle only.\n\n" +
-            demoDeck.map((card, i) =>
-              `**${i + 1}.** ${getTierEmoji(card.tier)} **${card.name}** • ${card.tier}`
-            ).join("\n") +
-            "\n\nThis deck is **not saved**. Build your real deck later with `!deck add <code>`."
-          )
-      ]
-    });
-
-    let round = 1;
-    let userScore = 0;
-    let aiScore = 0;
-    let lastUserCard = null;
-    let lastAiCard = null;
-    let log = "";
-
-    const battleMsg = await message.channel.send({
-      embeds: [
-        makeBattleEmbed(
-          message.author,
-          userScore,
-          aiScore,
-          round,
-          lastUserCard,
-          lastAiCard,
-          log
-        )
-      ],
-      components: [battleButtons()]
-    });
-
-    const battleCollector = battleMsg.createMessageComponentCollector({
+    const collector = msg.createMessageComponentCollector({
       time: 180000
     });
 
-    battleCollector.on("collect", async interaction => {
+    collector.on("collect", async interaction => {
       if (interaction.user.id !== userId) {
         return interaction.reply({
-          content: "❌ This debut battle is not for you.",
+          content: "❌ This debut guide is not for you.",
           ephemeral: true
         });
       }
 
-      const move = interaction.customId.replace("debut_", "");
+      if (interaction.customId === "debut_prev") {
+        page = Math.max(0, page - 1);
 
-      lastUserCard = demoDeck[Math.floor(Math.random() * demoDeck.length)];
-      lastAiCard = cards[Math.floor(Math.random() * cards.length)];
-
-      let userPower = getTierPower(lastUserCard.tier);
-      let aiPower = getTierPower(lastAiCard.tier);
-
-      if (move === "attack") userPower += 10;
-      if (move === "defend") aiPower -= 5;
-      if (move === "special") userPower += Math.floor(Math.random() * 18);
-
-      aiPower += Math.floor(Math.random() * 12);
-
-      if (userPower >= aiPower) {
-        userScore++;
-        log =
-          `✅ You won this round!\n` +
-          `Your Power: **${userPower}**\n` +
-          `AI Power: **${aiPower}**`;
-      } else {
-        aiScore++;
-        log =
-          `❌ AI won this round.\n` +
-          `Your Power: **${userPower}**\n` +
-          `AI Power: **${aiPower}**`;
+        return interaction.update({
+          embeds: [makeEmbed(page, message.author)],
+          components: [makeButtons(page, totalPages)]
+        });
       }
 
-      if (round >= 3) {
-        battleCollector.stop("finished");
+      if (interaction.customId === "debut_next") {
+        if (page < totalPages - 1) {
+          page++;
+
+          return interaction.update({
+            embeds: [makeEmbed(page, message.author)],
+            components: [makeButtons(page, totalPages)]
+          });
+        }
+
+        collector.stop("finished");
+
+        await interaction.update({
+          content:
+            "✅ **Debut guide complete!**\n\n" +
+            "Now enter a **6-digit referral code** if someone invited you.\n\n" +
+            "Type `skip` if you do not have one.\n\n" +
+            "To get your own referral code later, use `!refer`.",
+          embeds: [],
+          components: []
+        });
+
+        const refCollected = await message.channel.awaitMessages({
+          filter: m => m.author.id === userId,
+          max: 1,
+          time: 60000
+        }).catch(() => null);
+
+        const referralInput = refCollected?.first()?.content?.trim();
+
+        let referralUsed = null;
+        let referralText = "";
+
+        if (!referralInput) {
+          referralText = "\n⚠️ No referral entered.";
+        } else if (referralInput.toLowerCase() === "skip") {
+          referralText = "\nReferral skipped.";
+        } else if (!/^\d{6}$/.test(referralInput)) {
+          referralText = "\n⚠️ Invalid referral code format. Referral skipped.";
+        } else {
+          const referral = await referralsCol.findOne({
+            code: referralInput
+          });
+
+          if (!referral) {
+            referralText = "\n⚠️ Referral code not found. Referral skipped.";
+          } else if (referral.userId === userId) {
+            referralText = "\n⚠️ You cannot use your own referral code.";
+          } else {
+            referralUsed = referralInput;
+
+            const epicRewards = getRandomEpicCards(3);
+            const givenCards = [];
+
+            for (const card of epicRewards) {
+              const given = await giveCardToUser(
+                collectionsCol,
+                serialsCol,
+                referral.userId,
+                card
+              );
+
+              givenCards.push(given);
+            }
+
+            await referralsCol.updateOne(
+              { code: referralInput },
+              {
+                $addToSet: {
+                  referredUsers: userId
+                }
+              }
+            );
+
+            const referrerUser = await message.client.users
+              .fetch(referral.userId)
+              .catch(() => null);
+
+            if (referrerUser) {
+              await referrerUser.send(
+                "🎉 Someone used your GrootX referral code!\n\n" +
+                "You received **3 Epic cards**:\n\n" +
+                givenCards.map(g =>
+                  `${getTierEmoji(g.card.tier)} **${g.card.name}** #${g.serial} • \`${g.code}\``
+                ).join("\n")
+              ).catch(() => {});
+            }
+
+            referralText =
+              "\n🔗 Referral accepted! The referrer received **3 Epic cards**.";
+          }
+        }
 
         const stone = randomStone();
-        const stoneName = stone.charAt(0).toUpperCase() + stone.slice(1);
+        const stoneName =
+          stone.charAt(0).toUpperCase() + stone.slice(1);
 
         await balancesCol.updateOne(
           { userId },
           {
-            $inc: { coins: 1000 },
-            $setOnInsert: { userId }
+            $inc: {
+              coins: 1000
+            },
+            $setOnInsert: {
+              userId
+            }
           },
           { upsert: true }
         );
@@ -379,140 +373,41 @@ module.exports = {
           { upsert: true }
         );
 
-        await interaction.update({
-          embeds: [
-            makeBattleEmbed(
-              message.author,
-              userScore,
-              aiScore,
-              round,
-              lastUserCard,
-              lastAiCard,
-              log +
-                "\n\n🏁 **Battle Finished!**\n\n" +
-                `${userScore >= aiScore
-                  ? "🎉 You defeated GrootX AI!"
-                  : "🤖 GrootX AI won, but your training is complete!"}`
-            )
-          ],
-          components: []
-        });
-
-        await message.channel.send(
-          `🎉 ${message.author}, your GrootX debut is complete!\n\n` +
-          "You received:\n" +
-          "💰 **1000 Coins**\n" +
-          `💎 **1 ${stoneName} Stone**\n\n` +
-          "Use `!bal` to check coins.\n" +
-          "Use `!inventory` to check your stone.\n" +
-          "Use `!refer` to get your referral code."
-        );
-
-        await message.channel.send(
-          "Now enter a **6-digit referral code** if someone invited you.\n" +
-          "Type `skip` if you do not have one."
-        );
-
-        const refCollected = await message.channel.awaitMessages({
-          filter: m => m.author.id === userId,
-          max: 1,
-          time: 60000
-        }).catch(() => null);
-
-        const referralInput = refCollected?.first()?.content?.trim();
-        let referralUsed = null;
-
-        if (referralInput && referralInput.toLowerCase() !== "skip") {
-          if (/^\d{6}$/.test(referralInput)) {
-            const referral = await referralsCol.findOne({
-              code: referralInput
-            });
-
-            if (referral && referral.userId !== userId) {
-              referralUsed = referralInput;
-
-              const epicRewards = getRandomEpicCards(3);
-              const givenCards = [];
-
-              for (const card of epicRewards) {
-                const given = await giveCardToUser(
-                  collectionsCol,
-                  serialsCol,
-                  referral.userId,
-                  card
-                );
-
-                givenCards.push(given);
-              }
-
-              await referralsCol.updateOne(
-                { code: referralInput },
-                {
-                  $addToSet: {
-                    referredUsers: userId
-                  }
-                }
-              );
-
-              const referrerUser = await message.client.users
-                .fetch(referral.userId)
-                .catch(() => null);
-
-              if (referrerUser) {
-                await referrerUser.send(
-                  "🎉 Someone used your GrootX referral code!\n\n" +
-                  "You received **3 Epic cards**:\n\n" +
-                  givenCards.map(g =>
-                    `${getTierEmoji(g.card.tier)} **${g.card.name}** #${g.serial} • \`${g.code}\``
-                  ).join("\n")
-                ).catch(() => {});
-              }
-
-              await message.channel.send(
-                "🔗 Referral accepted! The referrer received **3 Epic cards**."
-              );
-            } else {
-              await message.channel.send("⚠️ Invalid referral code. Skipped.");
-            }
-          } else {
-            await message.channel.send("⚠️ Invalid referral format. Skipped.");
-          }
-        }
-
         await debutCol.insertOne({
           userId,
           completedAt: Date.now(),
-          referralUsed,
-          aiBattle: {
-            userScore,
-            aiScore
-          }
+          referralUsed
         });
 
-        return;
-      }
-
-      round++;
-
-      return interaction.update({
-        embeds: [
-          makeBattleEmbed(
-            message.author,
-            userScore,
-            aiScore,
-            round,
-            lastUserCard,
-            lastAiCard,
-            log
+        const rewardEmbed = new EmbedBuilder()
+          .setColor(0x22c55e)
+          .setTitle("🎉 Debut Complete!")
+          .setDescription(
+            `${message.author}, welcome to GrootX.\n\n` +
+            "**Rewards Received**\n\n" +
+            `${COIN_EMOJI} **1000 Coins**\n` +
+            `${getStoneEmoji(stone)} **1 ${stoneName} Stone**\n` +
+            referralText +
+            "\n\n**Next Steps**\n" +
+            "• `!drop` to collect cards\n" +
+            "• `!daily` for free rewards\n" +
+            "• `!wishlist` to track dream cards\n" +
+            "• `!inventory` to check your stone\n" +
+            "• `!refer` to get your referral code"
           )
-        ],
-        components: [battleButtons()]
-      });
+          .setTimestamp();
+
+        return message.channel.send({
+          embeds: [rewardEmbed]
+        });
+      }
     });
 
-    battleCollector.on("end", async (_, reason) => {
+    collector.on("end", async (_, reason) => {
       if (reason !== "finished") {
-        await battleMsg.edit({ components: [] }).catch(() => {});
+        await msg.edit({
+          components: []
+        }).catch(() => {});
       }
     });
   }
