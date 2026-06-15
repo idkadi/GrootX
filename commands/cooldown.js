@@ -1,76 +1,59 @@
-const {
-  EmbedBuilder
-} = require("discord.js");
-
-const connectDB =
-  require("../database");
+const { EmbedBuilder } = require("discord.js");
+const connectDB = require("../database");
 
 module.exports = {
-
   name: "cooldown",
   aliases: ["cd"],
 
   async execute(message) {
+    const db = await connectDB();
+    const cooldownsCol = db.collection("cooldowns");
 
-    const db =
-      await connectDB();
+    const userId = message.author.id;
+    const now = Date.now();
 
-    const cooldownsCol =
-      db.collection("cooldowns");
+    function formatRemaining(ms) {
+      const days = Math.floor(ms / 86400000);
+      const hours = Math.floor((ms % 86400000) / 3600000);
+      const minutes = Math.floor((ms % 3600000) / 60000);
 
-    const userId =
-      message.author.id;
+      if (days > 0) {
+        return `in ${days} day${days > 1 ? "s" : ""}`;
+      }
 
-    const now =
-      Date.now();
+      if (hours > 0) {
+        return `in ${hours} hour${hours > 1 ? "s" : ""}`;
+      }
+
+      if (minutes > 0) {
+        return `in ${minutes} minute${minutes > 1 ? "s" : ""}`;
+      }
+
+      return "Ready";
+    }
 
     async function getCooldownText(type, cooldownTime) {
+      const doc = await cooldownsCol.findOne({
+        type,
+        userId
+      });
 
-      const doc =
-        await cooldownsCol.findOne({
-          type,
-          userId
-        });
-
-      const timestamp =
-        doc?.timestamp;
+      const timestamp = doc?.timestamp;
 
       if (
         timestamp &&
         now - timestamp < cooldownTime
       ) {
-
         const remaining =
           cooldownTime - (now - timestamp);
 
-        const days =
-          Math.floor(remaining / 86400000);
-
-        const hours =
-          Math.floor((remaining % 86400000) / 3600000);
-
-        const minutes =
-          Math.floor((remaining % 3600000) / 60000);
-
-        const seconds =
-          Math.floor((remaining % 60000) / 1000);
-
-        if (days > 0) {
-          return `⏳ ${days}d ${hours}h`;
-        }
-
-        if (hours > 0) {
-          return `⏳ ${hours}h ${minutes}m ${seconds}s`;
-        }
-
-        return `⏳ ${minutes}m ${seconds}s`;
+        return formatRemaining(remaining);
       }
 
-      return "✅ Ready";
+      return "Ready";
     }
 
     async function getDailyCooldownText() {
-
       const dailyDoc =
         await db.collection("daily").findOne({
           userId
@@ -86,23 +69,13 @@ module.exports = {
         timestamp &&
         now - timestamp < cooldownTime
       ) {
-
         const remaining =
           cooldownTime - (now - timestamp);
 
-        const hours =
-          Math.floor(remaining / 3600000);
-
-        const minutes =
-          Math.floor((remaining % 3600000) / 60000);
-
-        const seconds =
-          Math.floor((remaining % 60000) / 1000);
-
-        return `⏳ ${hours}h ${minutes}m ${seconds}s`;
+        return formatRemaining(remaining);
       }
 
-      return "✅ Ready";
+      return "Ready";
     }
 
     const dropText =
@@ -132,57 +105,28 @@ module.exports = {
         12 * 60 * 60 * 1000
       );
 
-    const embed =
-      new EmbedBuilder()
+    const embed = new EmbedBuilder()
+      .setColor("#00D4FF")
+      .setTitle("⌛ COOLDOWNS")
+      .setDescription(
+`🎴 **Drop :** ${dropText}
 
-        .setColor(0x8b5cf6)
+🎁 **Daily :** ${dailyText}
 
-        .setTitle("⏱️ Cooldowns")
+📦 **Weekly :** ${weeklyText}
 
-        .addFields(
+🗳️ **Vote :** ${voteText}
 
-          {
-            name: "🎴 Drop Cooldown",
-            value: dropText,
-            inline: false
-          },
-
-          {
-            name: "🎯 Pickup Cooldown",
-            value: pickupText,
-            inline: false
-          },
-
-          {
-            name: "🎁 Daily Cooldown",
-            value: dailyText,
-            inline: false
-          },
-
-          {
-            name: "📦 Weekly Cooldown",
-            value: weeklyText,
-            inline: false
-          },
-
-          {
-            name: "🗳️ Vote Cooldown",
-            value: voteText,
-            inline: false
-          }
-
-        )
-
-        .setFooter({
-          text: "GrootX Cooldown System"
+🎯 **Pickup :** ${pickupText}`
+      )
+      .setThumbnail(
+        message.author.displayAvatarURL({
+          dynamic: true
         })
-
-        .setTimestamp();
+      );
 
     await message.reply({
       embeds: [embed]
     });
-
   }
-
 };

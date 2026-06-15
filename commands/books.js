@@ -30,24 +30,31 @@ module.exports = {
     const seriesMap = {};
 
     for (const card of cards) {
-      const series = card.appearance || "Unknown";
+      const originalSeries =
+        (card.appearance || "Unknown").trim();
 
-      if (!seriesMap[series]) {
-        seriesMap[series] = {
+      const normalizedSeries =
+        originalSeries.toLowerCase();
+
+      if (!seriesMap[normalizedSeries]) {
+        seriesMap[normalizedSeries] = {
+          name: originalSeries,
           total: 0,
           owned: 0
         };
       }
 
-      seriesMap[series].total++;
+      seriesMap[normalizedSeries].total++;
 
       if (ownedCardIds.has(Number(card.id))) {
-        seriesMap[series].owned++;
+        seriesMap[normalizedSeries].owned++;
       }
     }
 
-    const sortedSeries = Object.entries(seriesMap)
-      .sort((a, b) => a[0].localeCompare(b[0]));
+    const sortedSeries = Object.values(seriesMap)
+      .sort((a, b) =>
+        a.name.localeCompare(b.name)
+      );
 
     const perPage = 12;
     let page = 0;
@@ -65,12 +72,12 @@ module.exports = {
       );
 
       const description = currentSeries
-        .map(([series, data], index) => {
+        .map((data, index) => {
           const complete = data.owned === data.total;
 
           return (
             `${complete ? "✅" : "☐"} ` +
-            `**${start + index + 1}. ${series}** ` +
+            `**${start + index + 1}. ${data.name}** ` +
             `(${data.owned}/${data.total})`
           );
         })

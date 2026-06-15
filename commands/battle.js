@@ -15,6 +15,7 @@ const getBattleDeck = require("../utils/getBattleDeck");
 const createBattleImage = require("../utils/createBattleImage");
 const createHandImage = require("../utils/createHandImage");
 const { calculateBattlePower } = require("../utils/battlePower");
+const updateRanked = require("../utils/updateRanked");
 
 const SIDES = ["left", "middle", "right"];
 const MAX_CARDS_PER_LOCATION = 4;
@@ -48,7 +49,6 @@ function getCardCost(card) {
 function getTurnEnergy(battle) {
   return Math.min(battle.turn + 1, 7);
 }
-
 
 function getUsedEnergy(battle, userId) {
   const selected = battle.tempSelections[userId] || [];
@@ -312,9 +312,40 @@ async function finishBattle(client, battle, winnerId, reason = "") {
 
   const channel = await client.channels.fetch(battle.channelId);
 
-  const text = winnerId
-    ? `🏆 Battle finished! Winner: <@${winnerId}> ${reason}\n+500 Coins\n+5 Ultron Chips`
-    : `🤝 Battle finished! It's a draw! ${reason}`;
+  let text;
+
+  if (winnerId) {
+    const loserId =
+      winnerId === battle.player1Id
+        ? battle.player2Id
+        : battle.player1Id;
+
+    let rankedText = "";
+
+    try {
+      const ranked = await updateRanked(winnerId, loserId);
+
+      rankedText =
+  `\n\n🏅 **Ranked Update**\n` +
+  `<@${winnerId}>: **+${ranked.winGain}** trophies\n` +
+  `<@${loserId}>: **${ranked.lossAmount}** trophies\n\n` +
+  `<@${winnerId}> now has **${ranked.winnerTrophies}** trophies.\n` +
+  `<@${loserId}> now has **${ranked.loserTrophies}** trophies.` +
+  (ranked.rewardsText || "");
+    } catch (err) {
+      console.error("Ranked update failed:", err);
+
+      rankedText =
+        `\n\n⚠️ Ranked trophies could not be updated.`;
+    }
+
+    text =
+      `🏆 Battle finished! Winner: <@${winnerId}> ${reason}` +
+      rankedText;
+  } else {
+    text =
+      `🤝 Battle finished! It's a draw! ${reason}`;
+  }
 
   await sendNewBoardMessage(client, battle, text, true);
 

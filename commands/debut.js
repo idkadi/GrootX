@@ -8,7 +8,7 @@ const {
 const connectDB = require("../database");
 const cards = require("../data/cards");
 
-const COIN_EMOJI = "<:grootcoin:1504742213110861834>"; // replace with your custom coin emoji if you have one
+const COIN_EMOJI = "<:grootcoin:1504742213110861834>";
 
 function getTierEmoji(tier = "") {
   switch (tier.toLowerCase()) {
@@ -54,22 +54,14 @@ async function generateUniqueCode(collectionsCol) {
   }
 }
 
-function getRandomEpicCards(amount = 3) {
-  const epicCards = cards.filter(
-    c => (c.tier || "").toLowerCase() === "epic"
+function getRandomCardByTier(tier) {
+  const pool = cards.filter(
+    c => (c.tier || "").toLowerCase() === tier.toLowerCase()
   );
 
-  const picked = [];
+  if (!pool.length) return null;
 
-  while (picked.length < amount && epicCards.length > 0) {
-    const card = epicCards[Math.floor(Math.random() * epicCards.length)];
-
-    if (!picked.some(c => Number(c.id) === Number(card.id))) {
-      picked.push(card);
-    }
-  }
-
-  return picked;
+  return pool[Math.floor(Math.random() * pool.length)];
 }
 
 async function giveCardToUser(collectionsCol, serialsCol, userId, card) {
@@ -167,7 +159,10 @@ function makeEmbed(page, user) {
       desc:
         "`!refer` — Get your own 6-digit referral code\n\n" +
         "At the end of debut, you can enter someone else's referral code.\n\n" +
-        "If valid, they receive **3 Epic cards**."
+        "**Referral Rewards**\n" +
+        "• 1 Referral → 1 Rare Card\n" +
+        "• 5 Referrals → 1 Epic Card\n" +
+        "• 10 Referrals → 1 Legendary Card"
     }
   ];
 
@@ -219,6 +214,14 @@ module.exports = {
 
     if (alreadyDone) {
       return message.reply("❌ You already completed your debut.");
+    }
+
+    const existingCards = await collectionsCol.countDocuments({ userId });
+
+    if (existingCards > 0) {
+      return message.reply(
+        "❌ Debut is only available for brand new players."
+      );
     }
 
     let page = 0;
@@ -298,22 +301,10 @@ module.exports = {
             referralText = "\n⚠️ Referral code not found. Referral skipped.";
           } else if (referral.userId === userId) {
             referralText = "\n⚠️ You cannot use your own referral code.";
+          } else if ((referral.referredUsers || []).includes(userId)) {
+            referralText = "\n⚠️ You already used this referral code.";
           } else {
             referralUsed = referralInput;
-
-            const epicRewards = getRandomEpicCards(3);
-            const givenCards = [];
-
-            for (const card of epicRewards) {
-              const given = await giveCardToUser(
-                collectionsCol,
-                serialsCol,
-                referral.userId,
-                card
-              );
-
-              givenCards.push(given);
-            }
 
             await referralsCol.updateOne(
               { code: referralInput },
@@ -324,22 +315,61 @@ module.exports = {
               }
             );
 
+            const updatedReferral = await referralsCol.findOne({
+              code: referralInput
+            });
+
+            const totalReferrals =
+              updatedReferral?.referredUsers?.length || 0;
+
+            let rewardTier = null;
+
+            if (totalReferrals === 1) rewardTier = "rare";
+            if (totalReferrals === 5) rewardTier = "epic";
+            if (totalReferrals === 10) rewardTier = "legendary";
+
+            let rewardedCard = null;
+            let rewardedData = null;
+
+            if (rewardTier) {
+              rewardedCard = getRandomCardByTier(rewardTier);
+
+              if (rewardedCard) {
+                rewardedData = await giveCardToUser(
+                  collectionsCol,
+                  serialsCol,
+                  referral.userId,
+                  rewardedCard
+                );
+              }
+            }
+
             const referrerUser = await message.client.users
               .fetch(referral.userId)
               .catch(() => null);
 
             if (referrerUser) {
-              await referrerUser.send(
-                "🎉 Someone used your GrootX referral code!\n\n" +
-                "You received **3 Epic cards**:\n\n" +
-                givenCards.map(g =>
-                  `${getTierEmoji(g.card.tier)} **${g.card.name}** #${g.serial} • \`${g.code}\``
-                ).join("\n")
-              ).catch(() => {});
+              if (rewardedData) {
+                await referrerUser.send(
+                  "🎉 Someone used your GrootX referral code!\n\n" +
+                  `You reached **${totalReferrals} referral${totalReferrals === 1 ? "" : "s"}** and received:\n\n` +
+                  `${getTierEmoji(rewardedData.card.tier)} **${rewardedData.card.name}** ` +
+                  `#${rewardedData.serial} • \`${rewardedData.code}\``
+                ).catch(() => {});
+              } else {
+                await referrerUser.send(
+                  "🎉 Someone used your GrootX referral code!\n\n" +
+                  `You now have **${totalReferrals} referral${totalReferrals === 1 ? "" : "s"}**.\n\n` +
+                  "Next rewards:\n" +
+                  "• 1 Referral → Rare Card\n" +
+                  "• 5 Referrals → Epic Card\n" +
+                  "• 10 Referrals → Legendary Card"
+                ).catch(() => {});
+              }
             }
 
             referralText =
-              "\n🔗 Referral accepted! The referrer received **3 Epic cards**.";
+              "\n🔗 Referral accepted successfully.";
           }
         }
 

@@ -5100,6 +5100,146 @@ module.exports = [
     image: "epic/spiderult.jpeg"
   },
 
+   {
+    id: 566,
+    name: "W'Kabi",
+    aka: [],
+    appearance: "Black Panther",
+    tier: "common",
+    image: "common/kabibp.jpeg"
+  },
+
+   {
+    id: 567,
+    name: "Ayo",
+    aka: [],
+    appearance: "Black Panther",
+    tier: "common",
+    image: "common/ayobp.jpeg"
+  },
+
+     {
+    id: 568,
+    name: "N'Jobu",
+    aka: [],
+    appearance: "Black Panther",
+    tier: "common",
+    image: "common/jobubp.jpeg"
+  },
+
+      {
+    id: 569,
+    name: "Queen Ramonda",
+    aka: [],
+    appearance: "Black Panther",
+    tier: "uncommon",
+    image: "uncommon/ramondabp.jpeg"
+  },
+
+        {
+    id: 570,
+    name: "Everett Ross",
+    aka: [],
+    appearance: "Black Panther",
+    tier: "uncommon",
+    image: "uncommon/everettbp.jpeg"
+  },
+
+      {
+    id: 571,
+    name: "Ulysses Klaue",
+    aka: [],
+    appearance: "Black Panther",
+    tier: "uncommon",
+    image: "uncommon/klauebp.jpeg"
+  },
+
+       {
+    id: 572,
+    name: "Zuri",
+    aka: [],
+    appearance: "Black Panther",
+    tier: "uncommon",
+    image: "uncommon/zuribp.jpeg"
+  },
+
+     {
+    id: 573,
+    name: "T'Chaka",
+    aka: [],
+    appearance: "Black Panther",
+    tier: "rare",
+    image: "rare/tchakabp.jpeg"
+  },
+
+   {
+    id: 574,
+    name: "Nakia",
+    aka: [],
+    appearance: "Black Panther",
+    tier: "rare",
+    image: "rare/nakiabp.jpeg"
+  },
+
+   {
+    id: 575,
+    name: "M'Baku",
+    aka: [],
+    appearance: "Black Panther",
+    tier: "rare",
+    image: "rare/bakubp.jpeg"
+  },
+
+   {
+    id: 576,
+    name: "Shuri",
+    aka: [],
+    appearance: "Black Panther",
+    tier: "epic",
+    image: "epic/shuribp.jpeg"
+  },
+
+    {
+    id: 577,
+    name: "Okoye",
+    aka: [],
+    appearance: "Black Panther",
+    tier: "epic",
+    image: "epic/okoyebp.jpeg"
+  },
+
+    {
+    id: 578,
+    name: "Black Panther",
+    aka: [],
+    appearance: "Black Panther",
+    tier: "legendary",
+    image: "legendary/blackpantherbp.jpeg"
+  },
+
+     {
+    id: 579,
+    name: "Erik Killmonger",
+    aka: [],
+    appearance: "Black Panther",
+    tier: "legendary",
+    image: "legendary/killmongerbp.jpeg"
+  },
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
