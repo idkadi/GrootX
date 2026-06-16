@@ -5226,6 +5226,252 @@ module.exports = [
     image: "legendary/killmongerbp.jpeg"
   },
 
+    {
+    id: 580,
+    name: "Spider-man",
+    aka: ["Andrew Garfield"],
+    appearance: "Spider-man : No way Home",
+    tier: "epic",
+    image: "epic/andrewnwh.jpeg"
+  },
+
+  {
+    id: 581,
+    name: "Spider-man",
+    aka: ["Tobey Maguire"],
+    appearance: "Spider-man : No way Home",
+    tier: "epic",
+    image: "epic/tobeynwh.jpeg"
+  },
+
+    {
+    id: 582,
+    name: "Spider-man",
+    aka: ["Tobey Maguire"],
+    appearance: "Spider-man : No way Home",
+    tier: "epic",
+    image: "epic/tobeynwh.jpeg"
+  },
+
+   {
+    id: 583,
+    name: "Doctor Strange",
+    aka: ["Stephen Strange"],
+    appearance: "Spider-man : No way Home",
+    tier: "epic",
+    image: "epic/strangenwh.jpeg"
+  },
+
+   {
+    id: 584,
+    name: "Spider-man",
+    aka: ["Peter Parker"],
+    appearance: "Spider-man : Far From Home",
+    tier: "epic",
+    image: "epic/spidermanffh.jpeg"
+  },
+
+   {
+    id: 585,
+    name: "Thor",
+    aka: [],
+    appearance: "The Avengers",
+    tier: "epic",
+    image: "epic/thorta.jpeg"
+  },
+
+    {
+    id: 586,
+    name: "Captain America",
+    aka: ["Steve Rogers"],
+    appearance: "The Avengers",
+    tier: "epic",
+    image: "epic/capta.jpeg"
+  },
+
+   {
+    id: 587,
+    name: "Iron Man",
+    aka: ["Tony Stark"],
+    appearance: "The Avengers",
+    tier: "epic",
+    image: "epic/ironmanta.jpeg"
+  },
+
+   {
+    id: 588,
+    name: "Michelle Jones Watson",
+    aka: ["MJ"],
+    appearance: "Spider-man : No way Home",
+    tier: "uncommon",
+    image: "uncommon/mjnwh.jpeg"
+  },
+
+  {
+    id: 589,
+    name: "Gwen Stacy",
+    aka: [],
+    appearance: "The Amazing Spider-man 2",
+    tier: "rare",
+    image: "rare/gwentasm2.jpeg"
+  },
+
+    {
+    id: 590,
+    name: "Spider-man",
+    aka: ["Peter Parker"],
+    appearance: "The Amazing Spider-man 2",
+    tier: "legendary",
+    image: "legendary/spidermantasm2.jpeg"
+  },
+
+   {
+    id: 591,
+    name: "Shang-Chi",
+    aka: [],
+    appearance: "Shang-chi and the legend of ten rings",
+    tier: "legendary",
+    image: "legendary/shangchi.jpeg"
+  },
+
+   {
+    id: 592,
+    name: "Xu Wenwu",
+    aka: [],
+    appearance: "Shang-chi and the legend of ten rings",
+    tier: "legendary",
+    image: "legendary/xuwenwu.jpeg"
+  },
+
+  {
+    id: 593,
+    name: "Abomination",
+    aka: [],
+    appearance: "Shang-chi and the legend of ten rings",
+    tier: "uncommon",
+    image: "uncommon/abominationsi.jpeg"
+  },
+
+    {
+    id: 594,
+    name: "Guang bo",
+    aka: [],
+    appearance: "Shang-chi and the legend of ten rings",
+    tier: "uncommon",
+    image: "uncommon/guangsi.jpeg"
+  },
+
+     {
+    id: 595,
+    name: "The Great Protector",
+    aka: [],
+    appearance: "Shang-chi and the legend of ten rings",
+    tier: "epic",
+    image: "epic/protectorsi.jpeg"
+  },
+
+      {
+    id: 596,
+    name: "Dweller-in-Darkness",
+    aka: [],
+    appearance: "Shang-chi and the legend of ten rings",
+    tier: "epic",
+    image: "epic/dwellersi.jpeg"
+  },
+
+    {
+    id: 597,
+    name: "Ying-li",
+    aka: [],
+    appearance: "Shang-chi and the legend of ten rings",
+    tier: "epic",
+    image: "epic/yingli.jpeg"
+  },
+
+   {
+    id: 598,
+    name: "Xu Xialing",
+    aka: [],
+    appearance: "Shang-chi and the legend of ten rings",
+    tier: "epic",
+    image: "epic/xialing.jpeg"
+  },
+
+    {
+    id: 599,
+    name: "Katy Chen",
+    aka: [],
+    appearance: "Shang-chi and the legend of ten rings",
+    tier: "epic",
+    image: "epic/katysi.jpeg"
+  },
+
+     {
+    id: 600,
+    name: "Death Dealer",
+    aka: [],
+    appearance: "Shang-chi and the legend of ten rings",
+    tier: "epic",
+    image: "epic/deathsi.jpeg"
+  },
+
+   {
+    id: 601,
+    name: "Trevor Slaterry",
+    aka: [],
+    appearance: "Shang-chi and the legend of ten rings",
+    tier: "rare",
+    image: "rare/trevorsi.jpeg"
+  },
+
+   {
+    id: 602,
+    name: "Ying Nan",
+    aka: [],
+    appearance: "Shang-chi and the legend of ten rings",
+    tier: "rare",
+    image: "rare/yingnan.jpeg"
+  },
+
+     {
+    id: 603,
+    name: "Razor Fist",
+    aka: [],
+    appearance: "Shang-chi and the legend of ten rings",
+    tier: "rare",
+    image: "rare/razorfist.jpeg"
+  },
+
+    {
+    id: 604,
+    name: "Ruihua chen",
+    aka: [],
+    appearance: "Shang-chi and the legend of ten rings",
+    tier: "common",
+    image: "common/ruihua.jpeg"
+  },
+
+   {
+    id: 605,
+    name: "Jiu Wei Hu",
+    aka: [],
+    appearance: "Shang-chi and the legend of ten rings",
+    tier: "common",
+    image: "common/jiusi.jpeg"
+  },
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
