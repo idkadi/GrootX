@@ -448,6 +448,8 @@ module.exports = {
   name: "battle",
   aliases: ["fight"],
 
+  finishBattle,
+
   async execute(message, args) {
     const target = message.mentions.users.first();
 
