@@ -142,7 +142,7 @@ function createCardButtons(battle, userId) {
   const rows = [];
   let row = new ActionRowBuilder();
 
-  hand.slice(0, 5).forEach((item, index) => {
+  hand.slice(0, 12).forEach((item, index) => {
     const cost = getCardCost(item.card);
     const disabled =
       selectedIndexes.includes(index) ||
@@ -427,20 +427,38 @@ async function revealIfBothLocked(interaction, battle) {
   drawCard(battle, battle.player1Id);
   drawCard(battle, battle.player2Id);
 
-  const wasFinalTurn = battle.turn >= battle.maxTurns;
+ const wasFinalTurn = battle.turn >= battle.maxTurns;
 
-  if (wasFinalTurn) {
-    battle.winner = getWinner(battle);
-    return finishBattle(interaction.client, battle, battle.winner, "");
+if (wasFinalTurn) {
+  battle.winner = getWinner(battle);
+  return finishBattle(interaction.client, battle, battle.winner, "");
+}
+
+battle.turn++;
+
+// Draw all remaining cards when Final Turn starts
+if (battle.turn === battle.maxTurns) {
+  while (battle.decks[battle.player1Id]?.length) {
+    battle.hands[battle.player1Id].push(
+      battle.decks[battle.player1Id].shift()
+    );
   }
 
-  battle.turn++;
+  while (battle.decks[battle.player2Id]?.length) {
+    battle.hands[battle.player2Id].push(
+      battle.decks[battle.player2Id].shift()
+    );
+  }
+}
 
   return sendNewBoardMessage(
     interaction.client,
     battle,
     `🔁 Reveal complete!\n${revealed.join("\n") || "No cards were played."}\n\n` +
-      `Turn ${battle.turn}/${battle.maxTurns}: both players have **${getTurnEnergy(battle)} Energy**.`
+    `Turn ${battle.turn}/${battle.maxTurns}: both players have **${getTurnEnergy(battle)} Energy**.` +
+(battle.turn === battle.maxTurns
+  ? `\n🔥 Final Turn! All remaining cards have been drawn.`
+  : "")
   );
 }
 
