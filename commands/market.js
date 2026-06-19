@@ -23,7 +23,10 @@ const PRICES = {
 const TIERS = ["common", "uncommon", "rare", "epic", "legendary"];
 
 function pickRandomCard(tier) {
-  const pool = cards.filter(c => c.tier?.toLowerCase() === tier);
+  const pool = cards.filter(
+    c => c.tier?.toLowerCase() === tier
+  );
+
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
@@ -57,7 +60,9 @@ async function getMarket(db) {
   const marketCol = db.collection("market");
   const now = Date.now();
 
-  let market = await marketCol.findOne({ _id: "daily_market" });
+  let market = await marketCol.findOne({
+    _id: "daily_market"
+  });
 
   if (!market || now - market.updatedAt >= MARKET_REFRESH) {
     const marketCards = TIERS.map(tier => {
@@ -99,26 +104,25 @@ module.exports = {
 
     const market = await getMarket(db);
 
-    const marketCards = market.cards.map(item => {
-      const card = cards.find(c => String(c.id) === String(item.cardId));
+    const marketCards = market.cards
+      .map(item => {
+        const card = cards.find(
+          c => String(c.id) === String(item.cardId)
+        );
 
-      return {
-        ...card,
-        tier: item.tier,
-        price: item.price
-      };
-    });
+        if (!card) return null;
 
-    console.log(
-      "Market cards:",
-      marketCards.map(c => ({
-        name: c.name,
-        image: c.image,
-        tier: c.tier
-      }))
+        return {
+          ...card,
+          tier: item.tier,
+          price: item.price
+        };
+      })
+      .filter(Boolean);
+
+    const nextUpdate = Math.floor(
+      (market.updatedAt + MARKET_REFRESH) / 1000
     );
-
-    const nextUpdate = Math.floor((market.updatedAt + MARKET_REFRESH) / 1000);
 
     const image = await createMarketImage(marketCards);
 
@@ -153,115 +157,151 @@ module.exports = {
     });
 
     collector.on("collect", async interaction => {
-      const userId = interaction.user.id;
+      if (!interaction.customId.startsWith("market_buy_")) return;
 
-      if (interaction.customId.startsWith("market_buy_")) {
-        const index = Number(interaction.customId.replace("market_buy_", ""));
-        const selected = marketCards[index];
+      const index = Number(
+        interaction.customId.replace("market_buy_", "")
+      );
 
-        const confirmRow = new ActionRowBuilder().addComponents(
-          new ButtonBuilder()
-            .setCustomId(`market_confirm_${index}_${userId}`)
-            .setLabel("Confirm")
-            .setStyle(ButtonStyle.Success),
+      const selected = marketCards[index];
 
-          new ButtonBuilder()
-            .setCustomId(`market_cancel_${index}_${userId}`)
-            .setLabel("Cancel")
-            .setStyle(ButtonStyle.Danger)
+      if (!selected) {
+        return interaction.reply({
+          content: "❌ This market item was not found.",
+          ephemeral: true
+        });
+      }
+
+      const confirmRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId("market_confirm")
+          .setLabel("Confirm")
+          .setStyle(ButtonStyle.Success),
+
+        new ButtonBuilder()
+          .setCustomId("market_cancel")
+          .setLabel("Cancel")
+          .setStyle(ButtonStyle.Danger)
+      );
+
+      const confirmMsg = await interaction.reply({
+        content:
+          `🛒 **Confirm Purchase**\n\n` +
+          `${getTierEmoji(selected.tier)} **${selected.name}**\n` +
+          `Price: ${COIN} **${selected.price.toLocaleString()}**`,
+        components: [confirmRow],
+        ephemeral: true,
+        fetchReply: true
+      });
+
+      try {
+        const confirmInteraction =
+          await confirmMsg.awaitMessageComponent({
+            time: 30000,
+            filter: i => i.user.id === interaction.user.id
+          });
+
+        if (confirmInteraction.customId === "market_cancel") {
+          return confirmInteraction.update({
+            content: "❌ Purchase cancelled.",
+            components: []
+          });
+        }
+
+        await confirmInteraction.deferUpdate();
+
+        const freshMarket = await getMarket(db);
+        const freshItem = freshMarket.cards[index];
+
+        if (!freshItem) {
+          return interaction.editReply({
+            content: "❌ This market item no longer exists.",
+            components: []
+          });
+        }
+
+        const cardToBuy = cards.find(
+          c => String(c.id) === String(freshItem.cardId)
         );
 
-        return interaction.reply({
+        if (!cardToBuy) {
+          return interaction.editReply({
+            content: "❌ Card data not found.",
+            components: []
+          });
+        }
+
+        const price = freshItem.price;
+        const userId = interaction.user.id;
+
+        const balanceDoc = await balancesCol.findOne({
+          userId
+        });
+
+        const coins = balanceDoc?.coins || 0;
+
+        if (coins < price) {
+          return interaction.editReply({
+            content:
+              `❌ Not enough coins.\n\n` +
+              `Needed: ${COIN} **${price.toLocaleString()}**\n` +
+              `You have: ${COIN} **${coins.toLocaleString()}**`,
+            components: []
+          });
+        }
+
+        await balancesCol.updateOne(
+          { userId },
+          {
+            $inc: {
+              coins: -price
+            }
+          },
+          { upsert: true }
+        );
+
+        await serialsCol.updateOne(
+          {
+            cardId: cardToBuy.id
+          },
+          {
+            $inc: {
+              serial: 1
+            }
+          },
+          { upsert: true }
+        );
+
+        const serialDoc = await serialsCol.findOne({
+          cardId: cardToBuy.id
+        });
+
+        const code = await generateUniqueCode(collectionsCol);
+
+        await collectionsCol.insertOne({
+          userId,
+          cardId: cardToBuy.id,
+          serial: serialDoc.serial,
+          code,
+          tag: null,
+          favorite: false
+        });
+
+        return interaction.editReply({
           content:
-            `🛒 **Confirm Purchase**\n\n` +
-            `${getTierEmoji(selected.tier)} **${selected.name}**\n` +
-            `Price: ${COIN} **${selected.price.toLocaleString()}**`,
-          components: [confirmRow],
-          ephemeral: true
+            `✅ **Purchase Successful!**\n\n` +
+            `${getTierEmoji(cardToBuy.tier)} **${cardToBuy.name}** #${serialDoc.serial}\n` +
+            `Code: \`${code}\`\n` +
+            `Paid: ${COIN} **${price.toLocaleString()}**`,
+          components: []
         });
-      }
 
-      if (
-        !interaction.customId.startsWith("market_confirm_") &&
-        !interaction.customId.startsWith("market_cancel_")
-      ) return;
-
-      const parts = interaction.customId.split("_");
-      const action = parts[1];
-      const index = Number(parts[2]);
-      const ownerId = parts[3];
-
-      if (interaction.user.id !== ownerId) {
-        return interaction.reply({
-          content: "❌ This confirmation is not for you.",
-          ephemeral: true
-        });
-      }
-
-      if (action === "cancel") {
-        return interaction.update({
-          content: "❌ Purchase cancelled.",
+      } catch {
+        return interaction.editReply({
+          content: "⌛ Purchase timed out.",
           components: []
         });
       }
-
-      const freshMarket = await getMarket(db);
-      const freshItem = freshMarket.cards[index];
-
-      const selected = cards.find(
-        c => String(c.id) === String(freshItem.cardId)
-      );
-
-      const price = freshItem.price;
-
-      const balanceDoc = await balancesCol.findOne({ userId });
-      const coins = balanceDoc?.coins || 0;
-
-      if (coins < price) {
-        return interaction.update({
-          content:
-            `❌ Not enough coins.\n\n` +
-            `Needed: ${COIN} **${price.toLocaleString()}**\n` +
-            `You have: ${COIN} **${coins.toLocaleString()}**`,
-          components: []
-        });
-      }
-
-      await balancesCol.updateOne(
-        { userId },
-        { $inc: { coins: -price } },
-        { upsert: true }
-      );
-
-      await serialsCol.updateOne(
-        { cardId: selected.id },
-        { $inc: { serial: 1 } },
-        { upsert: true }
-      );
-
-      const serialDoc = await serialsCol.findOne({
-        cardId: selected.id
-      });
-
-      const code = await generateUniqueCode(collectionsCol);
-
-      await collectionsCol.insertOne({
-        userId,
-        cardId: selected.id,
-        serial: serialDoc.serial,
-        code,
-        tag: null,
-        favorite: false
-      });
-
-      return interaction.update({
-        content:
-          `✅ **Purchase Successful!**\n\n` +
-          `${getTierEmoji(selected.tier)} **${selected.name}** #${serialDoc.serial}\n` +
-          `Code: \`${code}\`\n` +
-          `Paid: ${COIN} **${price.toLocaleString()}**`,
-        components: []
-      });
     });
 
     collector.on("end", async () => {
