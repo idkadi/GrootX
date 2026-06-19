@@ -12,24 +12,12 @@ module.exports = {
     const userId = message.author.id;
     const now = Date.now();
 
-    function formatRemaining(ms) {
-      const days = Math.floor(ms / 86400000);
-      const hours = Math.floor((ms % 86400000) / 3600000);
-      const minutes = Math.floor((ms % 3600000) / 60000);
+    function getDiscordTimestamp(timestamp, cooldownTime) {
+      const endTime = Math.floor(
+        (timestamp + cooldownTime) / 1000
+      );
 
-      if (days > 0) {
-        return `in ${days} day${days > 1 ? "s" : ""}`;
-      }
-
-      if (hours > 0) {
-        return `in ${hours} hour${hours > 1 ? "s" : ""}`;
-      }
-
-      if (minutes > 0) {
-        return `in ${minutes} minute${minutes > 1 ? "s" : ""}`;
-      }
-
-      return "Ready";
+      return `<t:${endTime}:R>`;
     }
 
     async function getCooldownText(type, cooldownTime) {
@@ -44,13 +32,13 @@ module.exports = {
         timestamp &&
         now - timestamp < cooldownTime
       ) {
-        const remaining =
-          cooldownTime - (now - timestamp);
-
-        return formatRemaining(remaining);
+        return getDiscordTimestamp(
+          timestamp,
+          cooldownTime
+        );
       }
 
-      return "Ready";
+      return "✅ Ready";
     }
 
     async function getDailyCooldownText() {
@@ -69,13 +57,13 @@ module.exports = {
         timestamp &&
         now - timestamp < cooldownTime
       ) {
-        const remaining =
-          cooldownTime - (now - timestamp);
-
-        return formatRemaining(remaining);
+        return getDiscordTimestamp(
+          timestamp,
+          cooldownTime
+        );
       }
 
-      return "Ready";
+      return "✅ Ready";
     }
 
     const dropText =
@@ -87,7 +75,7 @@ module.exports = {
     const pickupText =
       await getCooldownText(
         "pickup",
-        5 * 60 * 1000
+        4 * 60 * 1000
       );
 
     const dailyText =
@@ -109,15 +97,15 @@ module.exports = {
       .setColor("#00D4FF")
       .setTitle("⌛ COOLDOWNS")
       .setDescription(
-`🎴 **Drop :** ${dropText}
+`🎴 **Drop:** ${dropText}
 
-🎁 **Daily :** ${dailyText}
+🎯 **Claim:** ${pickupText}
 
-📦 **Weekly :** ${weeklyText}
+🎁 **Daily:** ${dailyText}
 
-🗳️ **Vote :** ${voteText}
+📦 **Weekly:** ${weeklyText}
 
-🎯 **Pickup :** ${pickupText}`
+🗳️ **Vote:** ${voteText}`
       )
       .setThumbnail(
         message.author.displayAvatarURL({

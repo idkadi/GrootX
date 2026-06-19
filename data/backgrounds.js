@@ -125,6 +125,12 @@ module.exports = [
     name: "Thunderbolts",
     file: "thunderboltsbg.jpeg"
   },
+
+   {
+    id: 22,
+    name: "Marvel Pets",
+    file: "petsbg.jpeg"
+  },
   
   
   

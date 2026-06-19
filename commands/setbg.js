@@ -168,6 +168,13 @@ const backgrounds = [
     free: false
   },
 
+   {
+    id: 22,
+    name: "Marvel Pets",
+    file: "petsbg.jpeg",
+     free: false
+  },
+
 
 
 ];
