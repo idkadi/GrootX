@@ -11,7 +11,7 @@ module.exports = async function createMarketImage(cards) {
   ctx.fillStyle = "#ffffff";
   ctx.font = "bold 42px Arial";
   ctx.textAlign = "center";
-  ctx.fillText("🛒 GrootX Daily Market", 600, 55);
+  ctx.fillText("GrootX Daily Market", 600, 55);
 
   const cardW = 190;
   const cardH = 285;
@@ -28,12 +28,14 @@ module.exports = async function createMarketImage(cards) {
     ctx.fill();
 
     try {
-      const imgPath = path.join(
+      const imgPath = path.resolve(
         __dirname,
         "..",
         "images",
         card.image
       );
+
+      console.log("Market loading:", card.name, imgPath);
 
       const img = await loadImage(imgPath);
       ctx.drawImage(img, x, y, cardW, cardH);
@@ -42,6 +44,11 @@ module.exports = async function createMarketImage(cards) {
 
       ctx.fillStyle = "#333333";
       ctx.fillRect(x, y, cardW, cardH);
+
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 18px Arial";
+      ctx.fillText("IMAGE", x + cardW / 2, y + cardH / 2 - 10);
+      ctx.fillText("MISSING", x + cardW / 2, y + cardH / 2 + 20);
     }
 
     ctx.fillStyle = "#ffffff";
