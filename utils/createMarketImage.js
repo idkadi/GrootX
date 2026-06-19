@@ -2,19 +2,16 @@ const { createCanvas, loadImage } = require("canvas");
 const path = require("path");
 
 module.exports = async function createMarketImage(cards) {
-  const width = 1200;
-  const height = 520;
-
-  const canvas = createCanvas(width, height);
+  const canvas = createCanvas(1200, 560);
   const ctx = canvas.getContext("2d");
 
-  ctx.fillStyle = "#080808";
-  ctx.fillRect(0, 0, width, height);
+  ctx.fillStyle = "#050505";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   ctx.fillStyle = "#ffffff";
   ctx.font = "bold 42px Arial";
   ctx.textAlign = "center";
-  ctx.fillText("🛒 GrootX Daily Market", width / 2, 55);
+  ctx.fillText("🛒 GrootX Daily Market", 600, 55);
 
   const cardW = 190;
   const cardH = 285;
@@ -24,19 +21,26 @@ module.exports = async function createMarketImage(cards) {
 
   for (let i = 0; i < cards.length; i++) {
     const card = cards[i];
-
     const x = startX + i * (cardW + gap);
 
     ctx.fillStyle = "#151515";
-    ctx.roundRect(x - 10, y - 10, cardW + 20, cardH + 95, 18);
+    ctx.roundRect(x - 10, y - 10, cardW + 20, cardH + 120, 18);
     ctx.fill();
 
     try {
-      const imgPath = path.join(__dirname, "..", card.image);
+      const imgPath = path.join(
+        __dirname,
+        "..",
+        "images",
+        card.image
+      );
+
       const img = await loadImage(imgPath);
       ctx.drawImage(img, x, y, cardW, cardH);
-    } catch {
-      ctx.fillStyle = "#333";
+    } catch (err) {
+      console.log("Market image failed:", card.name, card.image, err.message);
+
+      ctx.fillStyle = "#333333";
       ctx.fillRect(x, y, cardW, cardH);
     }
 
@@ -45,7 +49,10 @@ module.exports = async function createMarketImage(cards) {
     ctx.fillText(card.name, x + cardW / 2, y + cardH + 32);
 
     ctx.font = "18px Arial";
-    ctx.fillText(`${card.price.toLocaleString()} coins`, x + cardW / 2, y + cardH + 62);
+    ctx.fillText(card.tier.toUpperCase(), x + cardW / 2, y + cardH + 62);
+
+    ctx.font = "18px Arial";
+    ctx.fillText(`${card.price.toLocaleString()} coins`, x + cardW / 2, y + cardH + 92);
   }
 
   return canvas.toBuffer("image/png");
