@@ -5244,10 +5244,19 @@ module.exports = [
     image: "epic/tobeynwh.jpeg"
   },
 
+  {
+    id: 582,
+    name: "Black Widow",
+    aka: ["Natasha Romanoff"],
+    appearance: "Captain America : The Winter Soldier",
+    tier: "rare",
+    image: "rare/blackwidowws.jpeg"
+  },
+
   
 
    {
-    id: 582,
+    id: 583,
     name: "Doctor Strange",
     aka: ["Stephen Strange"],
     appearance: "Spider-man : No way Home",
@@ -5256,7 +5265,7 @@ module.exports = [
   },
 
    {
-    id: 583,
+    id: 584,
     name: "Spider-man",
     aka: ["Peter Parker"],
     appearance: "Spider-man : Far From Home",
@@ -5265,7 +5274,7 @@ module.exports = [
   },
 
    {
-    id: 584,
+    id: 585,
     name: "Thor",
     aka: [],
     appearance: "The Avengers",
@@ -5274,7 +5283,7 @@ module.exports = [
   },
 
     {
-    id: 585,
+    id: 586,
     name: "Captain America",
     aka: ["Steve Rogers"],
     appearance: "The Avengers",
@@ -5283,7 +5292,7 @@ module.exports = [
   },
 
    {
-    id: 586,
+    id: 587,
     name: "Iron Man",
     aka: ["Tony Stark"],
     appearance: "The Avengers",
@@ -5292,7 +5301,7 @@ module.exports = [
   },
 
    {
-    id: 587,
+    id: 588,
     name: "Michelle Jones Watson",
     aka: ["MJ"],
     appearance: "Spider-man : No way Home",
@@ -5301,7 +5310,7 @@ module.exports = [
   },
 
   {
-    id: 588,
+    id: 589,
     name: "Gwen Stacy",
     aka: [],
     appearance: "The Amazing Spider-man 2",
@@ -5310,7 +5319,7 @@ module.exports = [
   },
 
     {
-    id: 589,
+    id: 590,
     name: "Spider-man",
     aka: ["Peter Parker"],
     appearance: "The Amazing Spider-man 2",
@@ -5319,7 +5328,7 @@ module.exports = [
   },
 
    {
-    id: 590,
+    id: 591,
     name: "Shang-Chi",
     aka: [],
     appearance: "Shang-chi and the legend of ten rings",
@@ -5328,7 +5337,7 @@ module.exports = [
   },
 
    {
-    id: 591,
+    id: 592,
     name: "Xu Wenwu",
     aka: [],
     appearance: "Shang-chi and the legend of ten rings",
@@ -5337,7 +5346,7 @@ module.exports = [
   },
 
   {
-    id: 592,
+    id: 593,
     name: "Abomination",
     aka: [],
     appearance: "Shang-chi and the legend of ten rings",
@@ -5346,7 +5355,7 @@ module.exports = [
   },
 
     {
-    id: 593,
+    id: 594,
     name: "Guang bo",
     aka: [],
     appearance: "Shang-chi and the legend of ten rings",
@@ -5355,7 +5364,7 @@ module.exports = [
   },
 
      {
-    id: 594,
+    id: 595,
     name: "The Great Protector",
     aka: [],
     appearance: "Shang-chi and the legend of ten rings",
@@ -5364,7 +5373,7 @@ module.exports = [
   },
 
       {
-    id: 595,
+    id: 596,
     name: "Dweller-in-Darkness",
     aka: [],
     appearance: "Shang-chi and the legend of ten rings",
@@ -5373,7 +5382,7 @@ module.exports = [
   },
 
     {
-    id: 596,
+    id: 597,
     name: "Ying-li",
     aka: [],
     appearance: "Shang-chi and the legend of ten rings",
@@ -5382,7 +5391,7 @@ module.exports = [
   },
 
    {
-    id: 597,
+    id: 598,
     name: "Xu Xialing",
     aka: [],
     appearance: "Shang-chi and the legend of ten rings",
@@ -5391,7 +5400,7 @@ module.exports = [
   },
 
     {
-    id: 598,
+    id: 599,
     name: "Katy Chen",
     aka: [],
     appearance: "Shang-chi and the legend of ten rings",
@@ -5400,7 +5409,7 @@ module.exports = [
   },
 
      {
-    id: 599,
+    id: 600,
     name: "Death Dealer",
     aka: [],
     appearance: "Shang-chi and the legend of ten rings",
@@ -5409,7 +5418,7 @@ module.exports = [
   },
 
    {
-    id: 600,
+    id: 601,
     name: "Trevor Slaterry",
     aka: [],
     appearance: "Shang-chi and the legend of ten rings",
@@ -5418,7 +5427,7 @@ module.exports = [
   },
 
    {
-    id: 601,
+    id: 602,
     name: "Ying Nan",
     aka: [],
     appearance: "Shang-chi and the legend of ten rings",
@@ -5427,7 +5436,7 @@ module.exports = [
   },
 
      {
-    id: 602,
+    id: 603,
     name: "Razor Fist",
     aka: [],
     appearance: "Shang-chi and the legend of ten rings",
@@ -5436,7 +5445,7 @@ module.exports = [
   },
 
     {
-    id: 603,
+    id: 604,
     name: "Ruihua chen",
     aka: [],
     appearance: "Shang-chi and the legend of ten rings",
@@ -5445,7 +5454,7 @@ module.exports = [
   },
 
    {
-    id: 604,
+    id: 605,
     name: "Jiu Wei Hu",
     aka: [],
     appearance: "Shang-chi and the legend of ten rings",
@@ -5453,14 +5462,7 @@ module.exports = [
     image: "common/jiusi.jpeg"
   },
 
-  {
-    id: 605,
-    name: "Black Widow",
-    aka: ["Natasha Romanoff"],
-    appearance: "Captain America : The Winter Soldier",
-    tier: "rare",
-    image: "rare/blackwidowws.jpeg"
-  },
+  
 
 
 
