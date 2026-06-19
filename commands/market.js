@@ -11,7 +11,7 @@ const {
 
 const MARKET_REFRESH = 20 * 60 * 60 * 1000;
 
-const COIN = "<:coin:YOUR_COIN_EMOJI_ID>";
+const COIN = "<:grootcoin:1504742213110861834> ";
 
 const PRICES = {
   common: 1000,
