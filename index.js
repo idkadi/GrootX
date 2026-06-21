@@ -328,16 +328,8 @@ client.on("interactionCreate", async interaction => {
 
     const battleCommand = client.commands.get("battle");
 
-    const isBattleGameplayButton =
-      interaction.customId.startsWith("battle_open_") ||
-      interaction.customId.startsWith("battle_card_") ||
-      interaction.customId.startsWith("battle_loc_") ||
-      interaction.customId.startsWith("battle_lock_") ||
-      interaction.customId.startsWith("battle_clear_") ||
-      interaction.customId.startsWith("battle_forfeit_");
-
     if (
-      isBattleGameplayButton &&
+      interaction.customId.startsWith("battle_") &&
       battleCommand &&
       typeof battleCommand.handleButton === "function"
     ) {
