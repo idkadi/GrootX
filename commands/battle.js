@@ -48,10 +48,8 @@ function getCardData(cardId) {
 
 function getCardCost(card) {
   const tier = (card?.tier || "").toLowerCase();
-
   if (tier === "legendary") return 3;
   if (tier === "epic") return 2;
-
   return 1;
 }
 
@@ -66,7 +64,6 @@ function getUsedEnergy(battle, userId) {
   return selected.reduce((total, move) => {
     const item = hand[move.cardIndex];
     if (!item) return total;
-
     return total + getCardCost(item.card);
   }, 0);
 }
@@ -88,10 +85,10 @@ function getTempCountAtLocation(battle, userId, side) {
 }
 
 function isLocationFullForPlayer(battle, userId, side) {
-  const cardsAlreadyThere = getBoardCountAtLocation(battle, userId, side);
-  const cardsSelectedThere = getTempCountAtLocation(battle, userId, side);
-
-  return cardsAlreadyThere + cardsSelectedThere >= MAX_CARDS_PER_LOCATION;
+  return (
+    getBoardCountAtLocation(battle, userId, side) +
+    getTempCountAtLocation(battle, userId, side)
+  ) >= MAX_CARDS_PER_LOCATION;
 }
 
 function createDefaultDecks(oldCards = []) {
@@ -224,7 +221,7 @@ async function getBattleDeckFromSlot(userId, deckNo) {
   if (battleCards.length !== 12) {
     return {
       ok: false,
-      reason: `Deck ${deckNo} has missing or invalid cards. Please fix it with \`!deck view ${deckNo}\`.`
+      reason: `Deck ${deckNo} has missing or invalid cards. Use \`!deck view ${deckNo}\`.`
     };
   }
 
@@ -253,7 +250,7 @@ function formatSelectionText(battle, userId) {
 }
 
 function createBattleButtons(battle, finished = false) {
-  if (finished) return [];
+  if (finished || battle.phase !== "playing") return [];
 
   return [
     new ActionRowBuilder().addComponents(
@@ -291,13 +288,21 @@ function createDeckPickButtons(battle) {
   ];
 }
 
-function formatLocations(battle) {
-  return battle.locations
-    .map((loc, i) => {
-      const side = SIDES[i];
-      return `**${side.toUpperCase()}** — ${loc.name}`;
-    })
-    .join("\n");
+async function makeDeckSelectPayload(battle) {
+  const buffer = await createBattleImage(battle);
+
+  return {
+    content:
+      `🌍 **Locations Revealed**\n\n` +
+      `<@${battle.player1Id}> and <@${battle.player2Id}>, choose your deck.\n` +
+      `Battle starts after both players choose.`,
+    files: [
+      new AttachmentBuilder(buffer, {
+        name: "battle_locations.png"
+      })
+    ],
+    components: createDeckPickButtons(battle)
+  };
 }
 
 async function makeBoardPayload(battle, content, finished = false) {
@@ -324,6 +329,7 @@ function createCardButtons(battle, userId) {
 
   hand.slice(0, 12).forEach((item, index) => {
     const cost = getCardCost(item.card);
+
     const disabled =
       selectedIndexes.includes(index) ||
       cost > getRemainingEnergy(battle, userId);
@@ -522,17 +528,14 @@ async function finishBattle(client, battle, winnerId, reason = "") {
         (ranked.rewardsText || "");
     } catch (err) {
       console.error("Ranked update failed:", err);
-
-      rankedText =
-        `\n\n⚠️ Ranked trophies could not be updated.`;
+      rankedText = `\n\n⚠️ Ranked trophies could not be updated.`;
     }
 
     text =
       `🏆 Battle finished! Winner: <@${winnerId}> ${reason}` +
       rankedText;
   } else {
-    text =
-      `🤝 Battle finished! It's a draw! ${reason}`;
+    text = `🤝 Battle finished! It's a draw! ${reason}`;
   }
 
   await sendNewBoardMessage(client, battle, text, true);
@@ -612,12 +615,6 @@ async function startBattleAfterDeckSelection(interaction, battle) {
     [battle.player2Id]: false
   };
 
-  battle.board = {
-    left: [],
-    middle: [],
-    right: []
-  };
-
   battle.finished = false;
   battle.winner = null;
 
@@ -627,9 +624,7 @@ async function startBattleAfterDeckSelection(interaction, battle) {
     `⚔️ Battle started!\n\n` +
     `<@${battle.player1Id}> chose **${p1DeckResult.deckName}**.\n` +
     `<@${battle.player2Id}> chose **${p2DeckResult.deckName}**.\n\n` +
-    `Turn 1/${battle.maxTurns}: both players have **1 Energy**.\n` +
-    `Common/Uncommon/Rare = 1 Energy • Epic = 2 • Legendary = 3\n` +
-    `Max ${MAX_CARDS_PER_LOCATION} cards per location.`
+    `Turn 1/${battle.maxTurns}: both players have **1 Energy**.`
   );
 }
 
@@ -797,6 +792,8 @@ module.exports = {
         });
       }
 
+      await interaction.deferUpdate();
+
       const chosenLocations = pickRandom(locations, 3).map((loc, index) => ({
         ...loc,
         revealTurn: index + 1
@@ -804,7 +801,6 @@ module.exports = {
 
       const battle = {
         id: makeBattleId(),
-
         phase: "deck_select",
 
         player1Id: message.author.id,
@@ -816,7 +812,35 @@ module.exports = {
         channelId: message.channel.id,
         messageId: msg.id,
 
+        turn: 1,
+        maxTurns: 6,
+
         locations: chosenLocations,
+
+        hands: {
+          [message.author.id]: [],
+          [target.id]: []
+        },
+
+        decks: {
+          [message.author.id]: [],
+          [target.id]: []
+        },
+
+        pendingMoves: {
+          [message.author.id]: [],
+          [target.id]: []
+        },
+
+        tempSelections: {
+          [message.author.id]: [],
+          [target.id]: []
+        },
+
+        lockedPlayers: {
+          [message.author.id]: false,
+          [target.id]: false
+        },
 
         selectedDecks: {
           [message.author.id]: null,
@@ -824,6 +848,12 @@ module.exports = {
         },
 
         selectedDeckNames: {},
+
+        board: {
+          left: [],
+          middle: [],
+          right: []
+        },
 
         finished: false,
         winner: null
@@ -834,21 +864,9 @@ module.exports = {
 
       collector.stop();
 
-      await interaction.update({
-        content: "✅ Battle accepted! Locations revealed. Choose your deck.",
-        files: [],
-        components: []
-      });
+      const payload = await makeDeckSelectPayload(battle);
 
-      return message.channel.send({
-        content:
-          `🌍 **Locations Revealed**\n\n` +
-          `${formatLocations(battle)}\n\n` +
-          `<@${message.author.id}> and <@${target.id}>, choose your deck.\n` +
-          `Deck 1 is free. Deck 2 and Deck 3 must be unlocked first.\n\n` +
-          `Battle starts after both players choose.`,
-        components: createDeckPickButtons(battle)
-      });
+      return msg.edit(payload);
     });
   },
 
@@ -877,31 +895,24 @@ module.exports = {
         });
       }
 
+      await interaction.deferReply({ ephemeral: true });
+
       const deckNo = Number(interaction.customId.split("_").pop());
 
       if (![1, 2, 3].includes(deckNo)) {
-        return interaction.reply({
-          content: "Invalid deck.",
-          ephemeral: true
-        });
+        return interaction.editReply("Invalid deck.");
       }
 
       const deckResult = await getBattleDeckFromSlot(interaction.user.id, deckNo);
 
       if (!deckResult.ok) {
-        return interaction.reply({
-          content: `❌ ${deckResult.reason}`,
-          ephemeral: true
-        });
+        return interaction.editReply(`❌ ${deckResult.reason}`);
       }
 
       battle.selectedDecks[interaction.user.id] = deckNo;
       battle.selectedDeckNames[interaction.user.id] = deckResult.deckName;
 
-      await interaction.reply({
-        content: `✅ You selected **${deckResult.deckName}**.`,
-        ephemeral: true
-      });
+      await interaction.editReply(`✅ You selected **${deckResult.deckName}**.`);
 
       const p1Picked = battle.selectedDecks[battle.player1Id];
       const p2Picked = battle.selectedDecks[battle.player2Id];
