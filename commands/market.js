@@ -10,6 +10,8 @@ const {
 } = require("discord.js");
 
 const MARKET_REFRESH = 20 * 60 * 60 * 1000;
+const LEGENDARY_REFRESH = 7 * 24 * 60 * 60 * 1000;
+
 const COIN = "<:grootcoin:1504742213110861834>";
 
 const PRICES = {
@@ -20,7 +22,13 @@ const PRICES = {
   legendary: 20000
 };
 
-const TIERS = ["common", "uncommon", "rare", "epic", "legendary"];
+const TIERS = [
+  "common",
+  "uncommon",
+  "rare",
+  "epic",
+  "epic"
+];
 
 function pickRandomCard(tier) {
   const pool = cards.filter(
@@ -56,6 +64,33 @@ async function generateUniqueCode(collectionsCol) {
   }
 }
 
+async function getWeeklyLegendary(marketCol, now) {
+  let weeklyLegendary = await marketCol.findOne({
+    _id: "weekly_legendary"
+  });
+
+  if (
+    !weeklyLegendary ||
+    now - weeklyLegendary.updatedAt >= LEGENDARY_REFRESH
+  ) {
+    const legendaryCard = pickRandomCard("legendary");
+
+    weeklyLegendary = {
+      _id: "weekly_legendary",
+      updatedAt: now,
+      cardId: legendaryCard.id
+    };
+
+    await marketCol.updateOne(
+      { _id: "weekly_legendary" },
+      { $set: weeklyLegendary },
+      { upsert: true }
+    );
+  }
+
+  return weeklyLegendary;
+}
+
 async function getMarket(db) {
   const marketCol = db.collection("market");
   const now = Date.now();
@@ -64,6 +99,8 @@ async function getMarket(db) {
     _id: "daily_market"
   });
 
+  const weeklyLegendary = await getWeeklyLegendary(marketCol, now);
+
   if (!market || now - market.updatedAt >= MARKET_REFRESH) {
     const marketCards = TIERS.map(tier => {
       const card = pickRandomCard(tier);
@@ -71,8 +108,16 @@ async function getMarket(db) {
       return {
         tier,
         cardId: card.id,
-        price: PRICES[tier]
+        price: PRICES[tier],
+        type: "daily"
       };
+    });
+
+    marketCards.push({
+      tier: "legendary",
+      cardId: weeklyLegendary.cardId,
+      price: PRICES.legendary,
+      type: "weekly"
     });
 
     market = {
@@ -86,6 +131,24 @@ async function getMarket(db) {
       { $set: market },
       { upsert: true }
     );
+  } else {
+    const hasWeeklyLegendary = market.cards.some(
+      item => item.type === "weekly"
+    );
+
+    if (!hasWeeklyLegendary) {
+      market.cards.push({
+        tier: "legendary",
+        cardId: weeklyLegendary.cardId,
+        price: PRICES.legendary,
+        type: "weekly"
+      });
+
+      await marketCol.updateOne(
+        { _id: "daily_market" },
+        { $set: { cards: market.cards } }
+      );
+    }
   }
 
   return market;
@@ -115,7 +178,8 @@ module.exports = {
         return {
           ...card,
           tier: item.tier,
-          price: item.price
+          price: item.price,
+          type: item.type || "daily"
         };
       })
       .filter(Boolean);
@@ -124,32 +188,77 @@ module.exports = {
       (market.updatedAt + MARKET_REFRESH) / 1000
     );
 
+    const weeklyLegendary = market.cards.find(
+      item => item.type === "weekly"
+    );
+
+    let weeklyUpdateText = "";
+
+    if (weeklyLegendary) {
+      const marketCol = db.collection("market");
+
+      const weeklyDoc = await marketCol.findOne({
+        _id: "weekly_legendary"
+      });
+
+      if (weeklyDoc?.updatedAt) {
+        const weeklyNextUpdate = Math.floor(
+          (weeklyDoc.updatedAt + LEGENDARY_REFRESH) / 1000
+        );
+
+        weeklyUpdateText =
+          `👑 Weekly Legendary refreshes <t:${weeklyNextUpdate}:R>\n`;
+      }
+    }
+
     const image = await createMarketImage(marketCards);
 
     const attachment = new AttachmentBuilder(image, {
       name: "market.png"
     });
 
-    const row = new ActionRowBuilder();
+    const rows = [];
+    let row = new ActionRowBuilder();
 
     for (let i = 0; i < marketCards.length; i++) {
+      if (row.components.length === 5) {
+        rows.push(row);
+        row = new ActionRowBuilder();
+      }
+
       row.addComponents(
         new ButtonBuilder()
           .setCustomId(`market_buy_${i}`)
           .setLabel(marketCards[i].name.slice(0, 30))
-          .setStyle(ButtonStyle.Primary)
+          .setStyle(
+            marketCards[i].type === "weekly"
+              ? ButtonStyle.Success
+              : ButtonStyle.Primary
+          )
       );
     }
+
+    if (row.components.length) rows.push(row);
 
     const marketMsg = await message.reply({
       content:
         `🛒 **Daily Market**\n` +
-        `⏳ Refreshes <t:${nextUpdate}:R>\n\n` +
-        marketCards.map(card =>
-          `${getTierEmoji(card.tier)} **${card.name}** — ${COIN} ${card.price.toLocaleString()}`
-        ).join("\n"),
+        `⏳ Daily cards refresh <t:${nextUpdate}:R>\n` +
+        weeklyUpdateText +
+        `\n` +
+        marketCards.map(card => {
+          const weeklyText =
+            card.type === "weekly"
+              ? " 👑 Weekly"
+              : "";
+
+          return (
+            `${getTierEmoji(card.tier)} **${card.name}**${weeklyText} — ` +
+            `${COIN} ${card.price.toLocaleString()}`
+          );
+        }).join("\n"),
       files: [attachment],
-      components: [row]
+      components: rows
     });
 
     const collector = marketMsg.createMessageComponentCollector({

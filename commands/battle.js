@@ -8,10 +8,11 @@ const {
 const fs = require("fs");
 const path = require("path");
 
+const cards = require("../data/cards");
 const locations = require("../data/locations");
 const activeBattles = require("../data/activeBattles");
 
-const getBattleDeck = require("../utils/getBattleDeck");
+const connectDB = require("../database");
 const createBattleImage = require("../utils/createBattleImage");
 const createHandImage = require("../utils/createHandImage");
 const { calculateBattlePower } = require("../utils/battlePower");
@@ -35,6 +36,14 @@ function getGif(name) {
 
 function getOpponentId(battle, userId) {
   return userId === battle.player1Id ? battle.player2Id : battle.player1Id;
+}
+
+function normalizeCode(code) {
+  return String(code || "").trim().toLowerCase();
+}
+
+function getCardData(cardId) {
+  return cards.find(c => Number(c.id) === Number(cardId));
 }
 
 function getCardCost(card) {
@@ -85,6 +94,147 @@ function isLocationFullForPlayer(battle, userId, side) {
   return cardsAlreadyThere + cardsSelectedThere >= MAX_CARDS_PER_LOCATION;
 }
 
+function createDefaultDecks(oldCards = []) {
+  return {
+    "1": {
+      unlocked: true,
+      name: "Deck 1",
+      cards: (oldCards || []).map(normalizeCode)
+    },
+    "2": {
+      unlocked: false,
+      name: "Deck 2",
+      cards: []
+    },
+    "3": {
+      unlocked: false,
+      name: "Deck 3",
+      cards: []
+    }
+  };
+}
+
+async function ensureDeckDoc(decksCol, userId) {
+  let deckDoc = await decksCol.findOne({ userId });
+
+  if (!deckDoc) {
+    deckDoc = {
+      userId,
+      activeDeck: 1,
+      decks: createDefaultDecks()
+    };
+
+    await decksCol.insertOne(deckDoc);
+    return deckDoc;
+  }
+
+  if (!deckDoc.decks) {
+    deckDoc.decks = createDefaultDecks(deckDoc.cards || []);
+    deckDoc.activeDeck = deckDoc.activeDeck || 1;
+
+    await decksCol.updateOne(
+      { userId },
+      {
+        $set: {
+          decks: deckDoc.decks,
+          activeDeck: deckDoc.activeDeck
+        },
+        $unset: {
+          cards: ""
+        }
+      }
+    );
+  }
+
+  for (const deckNo of ["1", "2", "3"]) {
+    if (!deckDoc.decks[deckNo]) {
+      deckDoc.decks[deckNo] = {
+        unlocked: deckNo === "1",
+        name: `Deck ${deckNo}`,
+        cards: []
+      };
+    }
+
+    deckDoc.decks[deckNo].cards =
+      (deckDoc.decks[deckNo].cards || []).map(normalizeCode);
+  }
+
+  if (!deckDoc.activeDeck) deckDoc.activeDeck = 1;
+
+  await decksCol.updateOne(
+    { userId },
+    {
+      $set: {
+        decks: deckDoc.decks,
+        activeDeck: deckDoc.activeDeck
+      }
+    }
+  );
+
+  return deckDoc;
+}
+
+async function getBattleDeckFromSlot(userId, deckNo) {
+  const db = await connectDB();
+
+  const decksCol = db.collection("decks");
+  const collectionsCol = db.collection("collections");
+
+  const deckDoc = await ensureDeckDoc(decksCol, userId);
+  const deck = deckDoc.decks[String(deckNo)];
+
+  if (!deck || !deck.unlocked) {
+    return {
+      ok: false,
+      reason: `Deck ${deckNo} is locked.`
+    };
+  }
+
+  const deckCodes = (deck.cards || []).map(normalizeCode);
+
+  if (deckCodes.length !== 12) {
+    return {
+      ok: false,
+      reason: `Deck ${deckNo} must have exactly 12 cards. Current: ${deckCodes.length}/12.`
+    };
+  }
+
+  const entries = await collectionsCol.find({ userId }).toArray();
+
+  const battleCards = deckCodes
+    .map(code => {
+      const entry = entries.find(e =>
+        normalizeCode(e.code) === normalizeCode(code)
+      );
+
+      if (!entry) return null;
+
+      const card = getCardData(entry.cardId);
+      if (!card) return null;
+
+      return {
+        entry,
+        card,
+        code: entry.code,
+        serial: entry.serial
+      };
+    })
+    .filter(Boolean);
+
+  if (battleCards.length !== 12) {
+    return {
+      ok: false,
+      reason: `Deck ${deckNo} has missing or invalid cards. Please fix it with \`!deck view ${deckNo}\`.`
+    };
+  }
+
+  return {
+    ok: true,
+    deckName: deck.name || `Deck ${deckNo}`,
+    cards: battleCards
+  };
+}
+
 function formatSelectionText(battle, userId) {
   const selected = battle.tempSelections[userId] || [];
   const hand = battle.hands[userId] || [];
@@ -118,6 +268,36 @@ function createBattleButtons(battle, finished = false) {
         .setStyle(ButtonStyle.Danger)
     )
   ];
+}
+
+function createDeckPickButtons(battle) {
+  return [
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`battle_pickdeck_${battle.id}_1`)
+        .setLabel("Deck 1")
+        .setStyle(ButtonStyle.Primary),
+
+      new ButtonBuilder()
+        .setCustomId(`battle_pickdeck_${battle.id}_2`)
+        .setLabel("Deck 2")
+        .setStyle(ButtonStyle.Secondary),
+
+      new ButtonBuilder()
+        .setCustomId(`battle_pickdeck_${battle.id}_3`)
+        .setLabel("Deck 3")
+        .setStyle(ButtonStyle.Secondary)
+    )
+  ];
+}
+
+function formatLocations(battle) {
+  return battle.locations
+    .map((loc, i) => {
+      const side = SIDES[i];
+      return `**${side.toUpperCase()}** — ${loc.name}`;
+    })
+    .join("\n");
 }
 
 async function makeBoardPayload(battle, content, finished = false) {
@@ -204,6 +384,14 @@ function createLocationButtons(battle, userId, cardIndex) {
 
 async function sendPrivateHand(interaction, battle) {
   const userId = interaction.user.id;
+
+  if (battle.phase !== "playing") {
+    return interaction.reply({
+      content: "Deck selection is still going on.",
+      ephemeral: true
+    });
+  }
+
   const hand = battle.hands[userId] || [];
 
   if (battle.lockedPlayers[userId]) {
@@ -326,12 +514,12 @@ async function finishBattle(client, battle, winnerId, reason = "") {
       const ranked = await updateRanked(winnerId, loserId);
 
       rankedText =
-  `\n\n🏅 **Ranked Update**\n` +
-  `<@${winnerId}>: **+${ranked.winGain}** trophies\n` +
-  `<@${loserId}>: **${ranked.lossAmount}** trophies\n\n` +
-  `<@${winnerId}> now has **${ranked.winnerTrophies}** trophies.\n` +
-  `<@${loserId}> now has **${ranked.loserTrophies}** trophies.` +
-  (ranked.rewardsText || "");
+        `\n\n🏅 **Ranked Update**\n` +
+        `<@${winnerId}>: **+${ranked.winGain}** trophies\n` +
+        `<@${loserId}>: **${ranked.lossAmount}** trophies\n\n` +
+        `<@${winnerId}> now has **${ranked.winnerTrophies}** trophies.\n` +
+        `<@${loserId}> now has **${ranked.loserTrophies}** trophies.` +
+        (ranked.rewardsText || "");
     } catch (err) {
       console.error("Ranked update failed:", err);
 
@@ -357,6 +545,92 @@ async function finishBattle(client, battle, winnerId, reason = "") {
       files: [new AttachmentBuilder(winGif)]
     });
   }
+}
+
+async function startBattleAfterDeckSelection(interaction, battle) {
+  const p1DeckNo = battle.selectedDecks[battle.player1Id];
+  const p2DeckNo = battle.selectedDecks[battle.player2Id];
+
+  if (!p1DeckNo || !p2DeckNo) return;
+
+  const p1DeckResult = await getBattleDeckFromSlot(battle.player1Id, p1DeckNo);
+  const p2DeckResult = await getBattleDeckFromSlot(battle.player2Id, p2DeckNo);
+
+  if (!p1DeckResult.ok) {
+    activeBattles.delete(battle.player1Id);
+    activeBattles.delete(battle.player2Id);
+
+    return interaction.channel.send(
+      `❌ Battle cancelled.\n<@${battle.player1Id}>: ${p1DeckResult.reason}`
+    );
+  }
+
+  if (!p2DeckResult.ok) {
+    activeBattles.delete(battle.player1Id);
+    activeBattles.delete(battle.player2Id);
+
+    return interaction.channel.send(
+      `❌ Battle cancelled.\n<@${battle.player2Id}>: ${p2DeckResult.reason}`
+    );
+  }
+
+  const p1Deck = [...p1DeckResult.cards].sort(() => Math.random() - 0.5);
+  const p2Deck = [...p2DeckResult.cards].sort(() => Math.random() - 0.5);
+
+  battle.phase = "playing";
+
+  battle.turn = 1;
+  battle.maxTurns = 6;
+
+  battle.hands = {
+    [battle.player1Id]: p1Deck.splice(0, 5),
+    [battle.player2Id]: p2Deck.splice(0, 5)
+  };
+
+  battle.decks = {
+    [battle.player1Id]: p1Deck,
+    [battle.player2Id]: p2Deck
+  };
+
+  battle.selectedDeckNames = {
+    [battle.player1Id]: p1DeckResult.deckName,
+    [battle.player2Id]: p2DeckResult.deckName
+  };
+
+  battle.pendingMoves = {
+    [battle.player1Id]: [],
+    [battle.player2Id]: []
+  };
+
+  battle.tempSelections = {
+    [battle.player1Id]: [],
+    [battle.player2Id]: []
+  };
+
+  battle.lockedPlayers = {
+    [battle.player1Id]: false,
+    [battle.player2Id]: false
+  };
+
+  battle.board = {
+    left: [],
+    middle: [],
+    right: []
+  };
+
+  battle.finished = false;
+  battle.winner = null;
+
+  return sendNewBoardMessage(
+    interaction.client,
+    battle,
+    `⚔️ Battle started!\n\n` +
+    `<@${battle.player1Id}> chose **${p1DeckResult.deckName}**.\n` +
+    `<@${battle.player2Id}> chose **${p2DeckResult.deckName}**.\n\n` +
+    `Turn 1/${battle.maxTurns}: both players have **1 Energy**.\n` +
+    `Common/Uncommon/Rare = 1 Energy • Epic = 2 • Legendary = 3\n` +
+    `Max ${MAX_CARDS_PER_LOCATION} cards per location.`
+  );
 }
 
 async function revealIfBothLocked(interaction, battle) {
@@ -427,38 +701,37 @@ async function revealIfBothLocked(interaction, battle) {
   drawCard(battle, battle.player1Id);
   drawCard(battle, battle.player2Id);
 
- const wasFinalTurn = battle.turn >= battle.maxTurns;
+  const wasFinalTurn = battle.turn >= battle.maxTurns;
 
-if (wasFinalTurn) {
-  battle.winner = getWinner(battle);
-  return finishBattle(interaction.client, battle, battle.winner, "");
-}
-
-battle.turn++;
-
-// Draw all remaining cards when Final Turn starts
-if (battle.turn === battle.maxTurns) {
-  while (battle.decks[battle.player1Id]?.length) {
-    battle.hands[battle.player1Id].push(
-      battle.decks[battle.player1Id].shift()
-    );
+  if (wasFinalTurn) {
+    battle.winner = getWinner(battle);
+    return finishBattle(interaction.client, battle, battle.winner, "");
   }
 
-  while (battle.decks[battle.player2Id]?.length) {
-    battle.hands[battle.player2Id].push(
-      battle.decks[battle.player2Id].shift()
-    );
+  battle.turn++;
+
+  if (battle.turn === battle.maxTurns) {
+    while (battle.decks[battle.player1Id]?.length) {
+      battle.hands[battle.player1Id].push(
+        battle.decks[battle.player1Id].shift()
+      );
+    }
+
+    while (battle.decks[battle.player2Id]?.length) {
+      battle.hands[battle.player2Id].push(
+        battle.decks[battle.player2Id].shift()
+      );
+    }
   }
-}
 
   return sendNewBoardMessage(
     interaction.client,
     battle,
     `🔁 Reveal complete!\n${revealed.join("\n") || "No cards were played."}\n\n` +
     `Turn ${battle.turn}/${battle.maxTurns}: both players have **${getTurnEnergy(battle)} Energy**.` +
-(battle.turn === battle.maxTurns
-  ? `\n🔥 Final Turn! All remaining cards have been drawn.`
-  : "")
+    (battle.turn === battle.maxTurns
+      ? `\n🔥 Final Turn! All remaining cards have been drawn.`
+      : "")
   );
 }
 
@@ -524,37 +797,6 @@ module.exports = {
         });
       }
 
-      const p1DeckResult = await getBattleDeck(message.author.id);
-      const p2DeckResult = await getBattleDeck(target.id);
-
-      if (!p1DeckResult.ok) {
-        return interaction.reply({
-          content:
-            `<@${message.author.id}> has no valid battle deck.\n` +
-            `They need exactly **12 valid cards**.`,
-          ephemeral: true
-        });
-      }
-
-      if (!p2DeckResult.ok) {
-        return interaction.reply({
-          content:
-            `<@${target.id}> has no valid battle deck.\n` +
-            `They need exactly **12 valid cards**.`,
-          ephemeral: true
-        });
-      }
-
-      const p1Deck = [...p1DeckResult.cards].sort(() => Math.random() - 0.5);
-      const p2Deck = [...p2DeckResult.cards].sort(() => Math.random() - 0.5);
-
-      if (p1Deck.length !== 12 || p2Deck.length !== 12) {
-        return interaction.reply({
-          content: "Both players need exactly **12 cards** in their battle deck.",
-          ephemeral: true
-        });
-      }
-
       const chosenLocations = pickRandom(locations, 3).map((loc, index) => ({
         ...loc,
         revealTurn: index + 1
@@ -562,6 +804,8 @@ module.exports = {
 
       const battle = {
         id: makeBattleId(),
+
+        phase: "deck_select",
 
         player1Id: message.author.id,
         player2Id: target.id,
@@ -572,41 +816,14 @@ module.exports = {
         channelId: message.channel.id,
         messageId: msg.id,
 
-        turn: 1,
-        maxTurns: 6,
-
         locations: chosenLocations,
 
-        hands: {
-          [message.author.id]: p1Deck.splice(0, 5),
-          [target.id]: p2Deck.splice(0, 5)
+        selectedDecks: {
+          [message.author.id]: null,
+          [target.id]: null
         },
 
-        decks: {
-          [message.author.id]: p1Deck,
-          [target.id]: p2Deck
-        },
-
-        pendingMoves: {
-          [message.author.id]: [],
-          [target.id]: []
-        },
-
-        tempSelections: {
-          [message.author.id]: [],
-          [target.id]: []
-        },
-
-        lockedPlayers: {
-          [message.author.id]: false,
-          [target.id]: false
-        },
-
-        board: {
-          left: [],
-          middle: [],
-          right: []
-        },
+        selectedDeckNames: {},
 
         finished: false,
         winner: null
@@ -618,19 +835,20 @@ module.exports = {
       collector.stop();
 
       await interaction.update({
-        content: "✅ Battle accepted! Starting match...",
+        content: "✅ Battle accepted! Locations revealed. Choose your deck.",
         files: [],
         components: []
       });
 
-      return sendNewBoardMessage(
-        interaction.client,
-        battle,
-        `⚔️ Battle started!\n` +
-          `Turn 1/${battle.maxTurns}: both players have **1 Energy**.\n` +
-          `Common/Uncommon/Rare = 1 Energy • Epic = 2 • Legendary = 3\n` +
-          `Max ${MAX_CARDS_PER_LOCATION} cards per location.`
-      );
+      return message.channel.send({
+        content:
+          `🌍 **Locations Revealed**\n\n` +
+          `${formatLocations(battle)}\n\n` +
+          `<@${message.author.id}> and <@${target.id}>, choose your deck.\n` +
+          `Deck 1 is free. Deck 2 and Deck 3 must be unlocked first.\n\n` +
+          `Battle starts after both players choose.`,
+        components: createDeckPickButtons(battle)
+      });
     });
   },
 
@@ -647,6 +865,59 @@ module.exports = {
     if (battle.finished) {
       return interaction.reply({
         content: "This battle is already finished.",
+        ephemeral: true
+      });
+    }
+
+    if (interaction.customId.startsWith(`battle_pickdeck_${battle.id}_`)) {
+      if (battle.phase !== "deck_select") {
+        return interaction.reply({
+          content: "Deck selection is already over.",
+          ephemeral: true
+        });
+      }
+
+      const deckNo = Number(interaction.customId.split("_").pop());
+
+      if (![1, 2, 3].includes(deckNo)) {
+        return interaction.reply({
+          content: "Invalid deck.",
+          ephemeral: true
+        });
+      }
+
+      const deckResult = await getBattleDeckFromSlot(interaction.user.id, deckNo);
+
+      if (!deckResult.ok) {
+        return interaction.reply({
+          content: `❌ ${deckResult.reason}`,
+          ephemeral: true
+        });
+      }
+
+      battle.selectedDecks[interaction.user.id] = deckNo;
+      battle.selectedDeckNames[interaction.user.id] = deckResult.deckName;
+
+      await interaction.reply({
+        content: `✅ You selected **${deckResult.deckName}**.`,
+        ephemeral: true
+      });
+
+      const p1Picked = battle.selectedDecks[battle.player1Id];
+      const p2Picked = battle.selectedDecks[battle.player2Id];
+
+      if (!p1Picked || !p2Picked) {
+        return interaction.channel.send(
+          `✅ <@${interaction.user.id}> locked a deck.\nWaiting for the other player...`
+        );
+      }
+
+      return startBattleAfterDeckSelection(interaction, battle);
+    }
+
+    if (battle.phase !== "playing") {
+      return interaction.reply({
+        content: "Battle has not started yet. Choose decks first.",
         ephemeral: true
       });
     }

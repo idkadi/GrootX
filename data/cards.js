@@ -5462,6 +5462,83 @@ module.exports = [
     image: "common/jiusi.jpeg"
   },
 
+    {
+    id: 606,
+    name: "Mr. Kenny",
+    aka: [],
+    appearance: "Fantastic Four (2015)",
+    tier: "common",
+    image: "common/kennyf4.jpeg"
+  },
+
+  {
+    id: 607,
+    name: "Harvey Allen",
+    aka: [],
+    appearance: "Fantastic Four (2015)",
+    tier: "common",
+    image: "common/harveyf4.jpeg"
+  },
+
+    {
+    id: 608,
+    name: "Franklin Storm",
+    aka: [],
+    appearance: "Fantastic Four (2015)",
+    tier: "common",
+    image: "common/stormf4.jpeg"
+  },
+
+    {
+    id: 609,
+    name: "Human Torch",
+    aka: ["Johnny Storm"],
+    appearance: "Fantastic Four (2015)",
+    tier: "epic",
+    image: "epic/torchf4.jpeg"
+  },
+
+   {
+    id: 610,
+    name: "Sue Storm",
+    aka: ["Invisible Woman"],
+    appearance: "Fantastic Four (2015)",
+    tier: "epic",
+    image: "epic/suef4.jpeg"
+  },
+
+  {
+    id: 611,
+    name: "The Thing",
+    aka: ["Ben Grimm"],
+    appearance: "Fantastic Four (2015)",
+    tier: "epic",
+    image: "epic/benf4.jpeg"
+  },
+
+   {
+    id: 612,
+    name: "Reed Richards",
+    aka: ["Mister Fantastic"],
+    appearance: "Fantastic Four (2015)",
+    tier: "epic",
+    image: "epic/reedf4.jpeg"
+  },
+
+   {
+    id: 613,
+    name: "Doctor Doom",
+    aka: ["Victor Van Doom"],
+    appearance: "Fantastic Four (2015)",
+    tier: "epic",
+    image: "epic/doomf4.jpeg"
+  },
+
+
+
+
+
+
   
 
 

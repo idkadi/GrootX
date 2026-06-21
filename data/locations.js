@@ -78,5 +78,61 @@ module.exports = [
     bonusTag: "Serial",
     bonusPower: 3,
     
-  }
+  },
+
+   {
+    name: "Hells Kitchen",
+    image: "hellskitchen.png",
+    description: "Defenders Get +3 Power",
+    bonusTag: "Defenders",
+    bonusPower: 3,
+    
+  },
+
+     {
+    name: "Quantum Realm",
+    image: "quantumrealm.png",
+    description: "Antman Get +3 Power",
+    bonusTag: "Realms",
+    bonusPower: 3,
+    
+  },
+
+    {
+    name: "Red Room",
+    image: "redroom.png",
+    description: "Black Widow Get +3 Power",
+    bonusTag: "Widows",
+    bonusPower: 3,
+    
+  },
+
+   {
+    name: "Ta Lo",
+    image: "talo.png",
+    description: "Shang Chi Get +3 Power",
+    bonusTag: "Mythical",
+    bonusPower: 3,
+    
+  }, 
+
+   {
+    name: "New Avenger Tower",
+    image: "newavengertower.png",
+    description: "Thunderbolts Get +3 Power",
+    bonusTag: "thunderbolts",
+    bonusPower: 3,
+    
+  }, 
+
+     {
+    name: "Baxter Tower",
+    image: "baxtertower.png",
+    description: "Fantastic Four Get +3 Power",
+    bonusTag: "Fantastic Four",
+    bonusPower: 3,
+    
+  }, 
+
+
 ];
