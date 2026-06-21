@@ -48,8 +48,10 @@ function getCardData(cardId) {
 
 function getCardCost(card) {
   const tier = (card?.tier || "").toLowerCase();
+
   if (tier === "legendary") return 3;
   if (tier === "epic") return 2;
+
   return 1;
 }
 
@@ -64,6 +66,7 @@ function getUsedEnergy(battle, userId) {
   return selected.reduce((total, move) => {
     const item = hand[move.cardIndex];
     if (!item) return total;
+
     return total + getCardCost(item.card);
   }, 0);
 }
@@ -85,10 +88,10 @@ function getTempCountAtLocation(battle, userId, side) {
 }
 
 function isLocationFullForPlayer(battle, userId, side) {
-  return (
-    getBoardCountAtLocation(battle, userId, side) +
-    getTempCountAtLocation(battle, userId, side)
-  ) >= MAX_CARDS_PER_LOCATION;
+  const cardsAlreadyThere = getBoardCountAtLocation(battle, userId, side);
+  const cardsSelectedThere = getTempCountAtLocation(battle, userId, side);
+
+  return cardsAlreadyThere + cardsSelectedThere >= MAX_CARDS_PER_LOCATION;
 }
 
 function createDefaultDecks(oldCards = []) {
@@ -888,14 +891,15 @@ module.exports = {
     }
 
     if (interaction.customId.startsWith(`battle_pickdeck_${battle.id}_`)) {
-      if (battle.phase !== "deck_select") {
-        return interaction.reply({
-          content: "Deck selection is already over.",
-          ephemeral: true
-        });
+      await interaction.deferReply({ ephemeral: true });
+
+      if (![battle.player1Id, battle.player2Id].includes(interaction.user.id)) {
+        return interaction.editReply("❌ You are not part of this battle.");
       }
 
-      await interaction.deferReply({ ephemeral: true });
+      if (battle.phase !== "deck_select") {
+        return interaction.editReply("Deck selection is already over.");
+      }
 
       const deckNo = Number(interaction.customId.split("_").pop());
 
