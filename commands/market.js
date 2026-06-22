@@ -22,19 +22,11 @@ const PRICES = {
   legendary: 20000
 };
 
-const TIERS = [
-  "common",
-  "uncommon",
-  "rare",
-  "epic",
-  "epic"
-];
+const NORMAL_TIERS = ["common", "uncommon", "rare", "epic", "epic"];
+const LEGENDARY_TIERS = ["common", "uncommon", "rare", "epic", "legendary"];
 
 function pickRandomCard(tier) {
-  const pool = cards.filter(
-    c => c.tier?.toLowerCase() === tier
-  );
-
+  const pool = cards.filter(c => c.tier?.toLowerCase() === tier);
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
@@ -54,7 +46,6 @@ async function generateUniqueCode(collectionsCol) {
 
   while (true) {
     let code = "";
-
     for (let i = 0; i < 6; i++) {
       code += chars[Math.floor(Math.random() * chars.length)];
     }
@@ -64,60 +55,62 @@ async function generateUniqueCode(collectionsCol) {
   }
 }
 
-async function getWeeklyLegendary(marketCol, now) {
-  let weeklyLegendary = await marketCol.findOne({
-    _id: "weekly_legendary"
-  });
+async function shouldShowWeeklyLegendary(marketCol, now) {
+  let weeklyDoc = await marketCol.findOne({ _id: "weekly_legendary" });
 
-  if (
-    !weeklyLegendary ||
-    now - weeklyLegendary.updatedAt >= LEGENDARY_REFRESH
-  ) {
-    const legendaryCard = pickRandomCard("legendary");
-
-    weeklyLegendary = {
+  if (!weeklyDoc) {
+    weeklyDoc = {
       _id: "weekly_legendary",
       updatedAt: now,
-      cardId: legendaryCard.id
+      nextAt: now + LEGENDARY_REFRESH
     };
 
     await marketCol.updateOne(
       { _id: "weekly_legendary" },
-      { $set: weeklyLegendary },
+      { $set: weeklyDoc },
       { upsert: true }
     );
+
+    return false;
   }
 
-  return weeklyLegendary;
+  if (now >= weeklyDoc.nextAt) {
+    await marketCol.updateOne(
+      { _id: "weekly_legendary" },
+      {
+        $set: {
+          updatedAt: now,
+          nextAt: now + LEGENDARY_REFRESH
+        }
+      },
+      { upsert: true }
+    );
+
+    return true;
+  }
+
+  return false;
 }
 
 async function getMarket(db) {
   const marketCol = db.collection("market");
   const now = Date.now();
 
-  let market = await marketCol.findOne({
-    _id: "daily_market"
-  });
-
-  const weeklyLegendary = await getWeeklyLegendary(marketCol, now);
+  let market = await marketCol.findOne({ _id: "daily_market" });
 
   if (!market || now - market.updatedAt >= MARKET_REFRESH) {
-    const marketCards = TIERS.map(tier => {
+    const showLegendary = await shouldShowWeeklyLegendary(marketCol, now);
+    const tiers = showLegendary ? LEGENDARY_TIERS : NORMAL_TIERS;
+
+    const marketCards = tiers.map(tier => {
       const card = pickRandomCard(tier);
 
       return {
         tier,
         cardId: card.id,
         price: PRICES[tier],
-        type: "daily"
+        type: tier === "legendary" ? "weekly" : "daily"
       };
-    });
-
-    marketCards.push({
-      tier: "legendary",
-      cardId: weeklyLegendary.cardId,
-      price: PRICES.legendary,
-      type: "weekly"
     });
 
     market = {
@@ -131,24 +124,6 @@ async function getMarket(db) {
       { $set: market },
       { upsert: true }
     );
-  } else {
-    const hasWeeklyLegendary = market.cards.some(
-      item => item.type === "weekly"
-    );
-
-    if (!hasWeeklyLegendary) {
-      market.cards.push({
-        tier: "legendary",
-        cardId: weeklyLegendary.cardId,
-        price: PRICES.legendary,
-        type: "weekly"
-      });
-
-      await marketCol.updateOne(
-        { _id: "daily_market" },
-        { $set: { cards: market.cards } }
-      );
-    }
   }
 
   return market;
@@ -164,15 +139,13 @@ module.exports = {
     const balancesCol = db.collection("balances");
     const collectionsCol = db.collection("collections");
     const serialsCol = db.collection("serials");
+    const marketCol = db.collection("market");
 
     const market = await getMarket(db);
 
     const marketCards = market.cards
       .map(item => {
-        const card = cards.find(
-          c => String(c.id) === String(item.cardId)
-        );
-
+        const card = cards.find(c => String(c.id) === String(item.cardId));
         if (!card) return null;
 
         return {
@@ -184,31 +157,13 @@ module.exports = {
       })
       .filter(Boolean);
 
-    const nextUpdate = Math.floor(
-      (market.updatedAt + MARKET_REFRESH) / 1000
-    );
+    const nextUpdate = Math.floor((market.updatedAt + MARKET_REFRESH) / 1000);
 
-    const weeklyLegendary = market.cards.find(
-      item => item.type === "weekly"
-    );
+    const weeklyDoc = await marketCol.findOne({ _id: "weekly_legendary" });
 
     let weeklyUpdateText = "";
-
-    if (weeklyLegendary) {
-      const marketCol = db.collection("market");
-
-      const weeklyDoc = await marketCol.findOne({
-        _id: "weekly_legendary"
-      });
-
-      if (weeklyDoc?.updatedAt) {
-        const weeklyNextUpdate = Math.floor(
-          (weeklyDoc.updatedAt + LEGENDARY_REFRESH) / 1000
-        );
-
-        weeklyUpdateText =
-          `👑 Weekly Legendary refreshes <t:${weeklyNextUpdate}:R>\n`;
-      }
+    if (weeklyDoc?.nextAt) {
+      weeklyUpdateText = `👑 Legendary appears <t:${Math.floor(weeklyDoc.nextAt / 1000)}:R>\n`;
     }
 
     const image = await createMarketImage(marketCards);
@@ -243,14 +198,11 @@ module.exports = {
     const marketMsg = await message.reply({
       content:
         `🛒 **Daily Market**\n` +
-        `⏳ Daily cards refresh <t:${nextUpdate}:R>\n` +
+        `⏳ Market refreshes <t:${nextUpdate}:R>\n` +
         weeklyUpdateText +
         `\n` +
         marketCards.map(card => {
-          const weeklyText =
-            card.type === "weekly"
-              ? " 👑 Weekly"
-              : "";
+          const weeklyText = card.type === "weekly" ? " 👑 Weekly" : "";
 
           return (
             `${getTierEmoji(card.tier)} **${card.name}**${weeklyText} — ` +
@@ -268,10 +220,7 @@ module.exports = {
     collector.on("collect", async interaction => {
       if (!interaction.customId.startsWith("market_buy_")) return;
 
-      const index = Number(
-        interaction.customId.replace("market_buy_", "")
-      );
-
+      const index = Number(interaction.customId.replace("market_buy_", ""));
       const selected = marketCards[index];
 
       if (!selected) {
@@ -304,11 +253,10 @@ module.exports = {
       });
 
       try {
-        const confirmInteraction =
-          await confirmMsg.awaitMessageComponent({
-            time: 30000,
-            filter: i => i.user.id === interaction.user.id
-          });
+        const confirmInteraction = await confirmMsg.awaitMessageComponent({
+          time: 30000,
+          filter: i => i.user.id === interaction.user.id
+        });
 
         if (confirmInteraction.customId === "market_cancel") {
           return confirmInteraction.update({
@@ -343,10 +291,7 @@ module.exports = {
         const price = freshItem.price;
         const userId = interaction.user.id;
 
-        const balanceDoc = await balancesCol.findOne({
-          userId
-        });
-
+        const balanceDoc = await balancesCol.findOne({ userId });
         const coins = balanceDoc?.coins || 0;
 
         if (coins < price) {
@@ -361,23 +306,13 @@ module.exports = {
 
         await balancesCol.updateOne(
           { userId },
-          {
-            $inc: {
-              coins: -price
-            }
-          },
+          { $inc: { coins: -price } },
           { upsert: true }
         );
 
         await serialsCol.updateOne(
-          {
-            cardId: cardToBuy.id
-          },
-          {
-            $inc: {
-              serial: 1
-            }
-          },
+          { cardId: cardToBuy.id },
+          { $inc: { serial: 1 } },
           { upsert: true }
         );
 

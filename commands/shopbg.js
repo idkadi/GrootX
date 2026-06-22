@@ -166,6 +166,22 @@ const backgrounds = [
      price: 2500,
     file: "petsbg.jpeg"
   },
+
+   {
+    id: 23,
+    name: "Captain America",
+     price: 5000,
+    file: "captainamericabg.jpeg",
+     
+  },
+
+    {
+    id: 24,
+    name: "Homecoming",
+     price: 5000,
+    file: "homecomingbg.jpeg",
+    
+  },
   
 
   

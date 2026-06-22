@@ -175,6 +175,20 @@ const backgrounds = [
      free: false
   },
 
+   {
+    id: 23,
+    name: "Captain America",
+    file: "captainamericabg.jpeg",
+     free: false
+  },
+
+    {
+    id: 24,
+    name: "Homecoming",
+    file: "homecomingbg.jpeg",
+     free: false
+  },
+
 
 
 ];

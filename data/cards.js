@@ -5534,6 +5534,482 @@ module.exports = [
     image: "epic/doomf4.jpeg"
   },
 
+  {
+    id: 615,
+    name: "Mordo",
+    aka: [],
+    appearance: "Doctor Strange",
+    tier: "epic",
+    image: "epic/mordods.jpeg"
+  },
+
+   {
+    id: 616,
+    name: "Kaecilius",
+    aka: [],
+    appearance: "Doctor Strange",
+    tier: "epic",
+    image: "epic/kaeciliusds.jpeg"
+  },
+
+   {
+    id: 617,
+    name: "Ancient One",
+    aka: [],
+    appearance: "Doctor Strange",
+    tier: "epic",
+    image: "epic/ancientds.jpeg"
+  },
+
+   {
+    id: 618,
+    name: "Christine",
+    aka: [],
+    appearance: "Doctor Strange",
+    tier: "rare",
+    image: "rare/christineds.jpeg"
+  },
+
+    {
+    id: 618,
+    name: "Jonathan Pangborn",
+    aka: [],
+    appearance: "Doctor Strange",
+    tier: "rare",
+    image: "rare/pangbornds.jpeg"
+  },
+
+    {
+    id: 619,
+    name: "Wong",
+    aka: [],
+    appearance: "Doctor Strange",
+    tier: "rare",
+    image: "rare/wongds.jpeg"
+  },
+
+   {
+    id: 620,
+    name: "Nicodemus West",
+    aka: [],
+    appearance: "Doctor Strange",
+    tier: "common",
+    image: "common/nicodemusds.jpeg"
+  },
+
+  {
+    id: 621,
+    name: "Brunette Zealot",
+    aka: [],
+    appearance: "Doctor Strange",
+    tier: "common",
+    image: "common/brunetteds.jpeg"
+  },
+
+   {
+    id: 622,
+    name: "Blonde Zealot",
+    aka: [],
+    appearance: "Doctor Strange",
+    tier: "common",
+    image: "common/blondeds.jpeg"
+  },
+
+  {
+    id: 623,
+    name: "Hamir",
+    aka: [],
+    appearance: "Doctor Strange",
+    tier: "common",
+    image: "common/hamirds.jpeg"
+  },
+  
+   {
+    id: 624,
+    name: "Lucian Aster",
+    aka: [],
+    appearance: "Doctor Strange",
+    tier: "uncommon",
+    image: "uncommon/luciands.jpeg"
+  },
+
+   {
+    id: 625,
+    name: "Sol Rama",
+    aka: [],
+    appearance: "Doctor Strange",
+    tier: "uncommon",
+    image: "uncommon/solds.jpeg"
+  },
+
+   {
+    id: 626,
+    name: "Daniel Drumm",
+    aka: [],
+    appearance: "Doctor Strange",
+    tier: "uncommon",
+    image: "uncommon/danields.jpeg"
+  },
+
+   {
+    id: 627,
+    name: "Dormammu",
+    aka: [],
+    appearance: "Doctor Strange",
+    tier: "legendary",
+    image: "legendary/dormammu.jpeg"
+  },
+
+   {
+    id: 628,
+    name: "Doctor Strange",
+    aka: [],
+    appearance: "Doctor Strange",
+    tier: "legendary",
+    image: "legendary/doctorstrangeds.jpeg"
+  },
+
+  {
+    id: 629,
+    name: "Supreme Strange",
+    aka: [],
+    appearance: "What If...?",
+    tier: "legendary",
+    image: "legendary/supremewi.jpeg"
+  },
+
+   {
+    id: 630,
+    name: "Infinity Ultron",
+    aka: [],
+    appearance: "What If...?",
+    tier: "legendary",
+    image: "legendary/ultronwi.jpeg"
+  },
+
+    {
+    id: 631,
+    name: "Captain Carter",
+    aka: ["Peggy Carter"],
+    appearance: "What If...?",
+    tier: "legendary",
+    image: "legendary/carterwi.jpeg"
+  },
+
+  {
+    id: 632,
+    name: "Storm",
+    aka: [],
+    appearance: "What If...?",
+    tier: "epic",
+    image: "epic/stormwi.jpeg"
+  },
+
+  {
+    id: 633,
+    name: "Agatha Harkness",
+    aka: [],
+    appearance: "What If...?",
+    tier: "epic",
+    image: "epic/agathawi.jpeg"
+  },
+
+    {
+    id: 634,
+    name: "Hela",
+    aka: [],
+    appearance: "What If...?",
+    tier: "epic",
+    image: "epic/helawi.jpeg"
+  },
+
+    {
+    id: 635,
+    name: "Kahhori",
+    aka: [],
+    appearance: "What If...?",
+    tier: "epic",
+    image: "epic/kahhoriwi.jpeg"
+  },
+
+   {
+    id: 636,
+    name: "T'Challa Star-lord",
+    aka: [],
+    appearance: "What If...?",
+    tier: "epic",
+    image: "epic/starlordwi.jpeg"
+  },
+
+     {
+    id: 637,
+    name: "The Watcher",
+    aka: [],
+    appearance: "What If...?",
+    tier: "epic",
+    image: "epic/watcherwi.jpeg"
+  },
+
+   {
+    id: 638,
+    name: "Nebula Nova Corps",
+    aka: [],
+    appearance: "What If...?",
+    tier: "rare",
+    image: "rare/nebulawi.jpeg"
+  },
+
+    {
+    id: 639,
+    name: "Party Thor",
+    aka: [],
+    appearance: "What If...?",
+    tier: "rare",
+    image: "rare/partythorwi.jpeg"
+  },
+
+   {
+    id: 640,
+    name: "Sakaar Iron Man",
+    aka: [],
+    appearance: "What If...?",
+    tier: "rare",
+    image: "rare/ironmanwi.jpeg"
+  },
+
+  {
+    id: 641,
+    name: "Zombie Scarlet Witch",
+    aka: [],
+    appearance: "What If...?",
+    tier: "rare",
+    image: "rare/zombieswwi.jpeg"
+  },
+
+   {
+    id: 642,
+    name: "Byrdie",
+    aka: [],
+    appearance: "What If...?",
+    tier: "rare",
+    image: "rare/byrdiewi.jpeg"
+  },
+
+   {
+    id: 643,
+    name: "Captain America Mech",
+    aka: [],
+    appearance: "What If...?",
+    tier: "rare",
+    image: "rare/capmechwi.jpeg"
+  },
+
+   {
+    id: 644,
+    name: "Hydra Stomper",
+    aka: [],
+    appearance: "What If...?",
+    tier: "rare",
+    image: "rare/hydrawi.jpeg"
+  },
+
+   {
+    id: 645,
+    name: "Killmonger Black Panther",
+    aka: [],
+    appearance: "What If...?",
+    tier: "rare",
+    image: "rare/killmongerwi.jpeg"
+  },
+
+    {
+    id: 646,
+    name: "Black Widow",
+    aka: [],
+    appearance: "What If...?",
+    tier: "rare",
+    image: "rare/blackwidowwi.jpeg"
+  },
+
+   {
+    id: 647,
+    name: "Kingo",
+    aka: [],
+    appearance: "What If...?",
+    tier: "uncommon",
+    image: "uncommon/kingowi.jpeg"
+  },
+
+  {
+    id: 648,
+    name: "Red Guardian",
+    aka: [],
+    appearance: "What If...?",
+    tier: "uncommon",
+    image: "uncommon/redwi.jpeg"
+  },
+
+   {
+    id: 649,
+    name: "Shang Chi",
+    aka: [],
+    appearance: "What If...?",
+    tier: "uncommon",
+    image: "uncommon/shangchiwi.jpeg"
+  },
+
+   {
+    id: 650,
+    name: "The Freak",
+    aka: [],
+    appearance: "What If...?",
+    tier: "uncommon",
+    image: "uncommon/freakwi.jpeg"
+  },
+
+     {
+    id: 651,
+    name: "Winter Soldier",
+    aka: [],
+    appearance: "What If...?",
+    tier: "uncommon",
+    image: "uncommon/winterwi.jpeg"
+  },
+
+    {
+    id: 652,
+    name: "Xu Wenwu",
+    aka: [],
+    appearance: "What If...?",
+    tier: "uncommon",
+    image: "uncommon/xuwi.jpeg"
+  },
+
+     {
+    id: 653,
+    name: "Young Peter Quill",
+    aka: [],
+    appearance: "What If...?",
+    tier: "uncommon",
+    image: "uncommon/peterwi.jpeg"
+  },
+
+   {
+    id: 654,
+    name: "Zombie Captain America",
+    aka: [],
+    appearance: "What If...?",
+    tier: "uncommon",
+    image: "uncommon/zombiecapwi.jpeg"
+  },
+
+  {
+    id: 655,
+    name: "Gamora",
+    aka: [],
+    appearance: "What If...?",
+    tier: "uncommon",
+    image: "uncommon/gamorawi.jpeg"
+  },
+
+   {
+    id: 656,
+    name: "Moon knight Mech",
+    aka: [],
+    appearance: "What If...?",
+    tier: "common",
+    image: "common/mkwi.jpeg"
+  },
+
+    {
+    id: 657,
+    name: "Nick Fury",
+    aka: [],
+    appearance: "What If...?",
+    tier: "common",
+    image: "common/nickwi.jpeg"
+  },
+
+   {
+    id: 658,
+    name: "Monica Rambeau",
+    aka: [],
+    appearance: "What If...?",
+    tier: "common",
+    image: "common/monicawi.jpeg"
+  },
+
+   {
+    id: 659,
+    name: "Yellowjacket",
+    aka: [],
+    appearance: "What If...?",
+    tier: "common",
+    image: "common/yellowjacketwi.jpeg"
+  },
+
+  {
+    id: 660,
+    name: "Darcy Lewis",
+    aka: [],
+    appearance: "What If...?",
+    tier: "common",
+    image: "common/darcywi.jpeg"
+  },
+
+    {
+    id: 661,
+    name: "Howard The Duck",
+    aka: [],
+    appearance: "What If...?",
+    tier: "common",
+    image: "common/howardwi.jpeg"
+  },
+
+     {
+    id: 662,
+    name: "Iron Heart",
+    aka: [],
+    appearance: "What If...?",
+    tier: "common",
+    image: "common/ironheartwi.jpeg"
+  },
+
+     {
+    id: 663,
+    name: "Justin Hammer",
+    aka: [],
+    appearance: "What If...?",
+    tier: "common",
+    image: "common/justinwi.jpeg"
+  },
+
+    {
+    id: 664,
+    name: "Kate Bishop",
+    aka: [],
+    appearance: "What If...?",
+    tier: "common",
+    image: "common/katewi.jpeg"
+  },
+
+
+
+
+
+
+
+
+
+  
+
+
+
+ 
+
+  
+
+
 
 
 
