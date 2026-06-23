@@ -13,6 +13,8 @@ const {
   removeCardFromAlbums
 } = require("../utils/albumUtils");
 
+const pendingBurns = new Map();
+
 function random(min, max) {
   return Math.floor(
     Math.random() * (max - min + 1)
@@ -65,6 +67,12 @@ module.exports = {
 
     const userId = message.author.id;
 
+    if (pendingBurns.has(userId)) {
+      return message.reply(
+        "⚠️ You already have a burn confirmation pending. Confirm or cancel it first."
+      );
+    }
+
     let burnedEntry;
 
     if (!args[0]) {
@@ -95,6 +103,8 @@ module.exports = {
     if (!card) {
       return message.reply("❌ Card data not found.");
     }
+
+    pendingBurns.set(userId, burnedEntry.code);
 
     const confirmEmbed = new EmbedBuilder()
       .setColor(0xff0000)
@@ -130,7 +140,7 @@ module.exports = {
     });
 
     collector.on("collect", async interaction => {
-      if (interaction.user.id !== message.author.id) {
+      if (interaction.user.id !== userId) {
         return interaction.reply({
           content: "❌ This is not your burn confirmation.",
           ephemeral: true
@@ -138,7 +148,8 @@ module.exports = {
       }
 
       if (interaction.customId === "cancel") {
-        collector.stop();
+        pendingBurns.delete(userId);
+        collector.stop("cancelled");
 
         return interaction.update({
           content: "❌ Burn canceled.",
@@ -148,7 +159,23 @@ module.exports = {
       }
 
       if (interaction.customId === "confirm") {
-        collector.stop();
+        collector.stop("confirmed");
+
+        const deleteResult = await collectionsCol.deleteOne({
+          _id: burnedEntry._id,
+          userId,
+          code: burnedEntry.code
+        });
+
+        if (deleteResult.deletedCount === 0) {
+          pendingBurns.delete(userId);
+
+          return interaction.update({
+            content: "❌ This card was already burned, traded, or removed.",
+            embeds: [],
+            components: []
+          });
+        }
 
         let coins = 0;
         let shards = 0;
@@ -182,15 +209,11 @@ module.exports = {
 
         const shardType = getRandomShard();
 
-        await collectionsCol.deleteOne({
-          _id: burnedEntry._id
-        });
-
         await removeCardFromAlbums(
-  db,
-  userId,
-  burnedEntry.code
-);
+          db,
+          userId,
+          burnedEntry.code
+        );
 
         await balancesCol.updateOne(
           { userId },
@@ -242,11 +265,25 @@ module.exports = {
           })
           .setTimestamp();
 
-        await interaction.update({
+        pendingBurns.delete(userId);
+
+        return interaction.update({
           embeds: [resultEmbed],
           components: []
         });
       }
+    });
+
+    collector.on("end", async reason => {
+      pendingBurns.delete(userId);
+
+      if (reason === "confirmed" || reason === "cancelled") return;
+
+      try {
+        await confirmMessage.edit({
+          components: []
+        });
+      } catch (err) {}
     });
   }
 };
