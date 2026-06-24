@@ -380,12 +380,13 @@ async function startTopggWebhook(client) {
 
       console.log("📩 Top.gg webhook received:", vote);
 
-      const userId =
-        vote.user ||
-        vote.userId ||
-        vote.discord_id ||
-        vote.discordId;
-
+     const userId =
+  vote.user ||
+  vote.userId ||
+  vote.discord_id ||
+  vote.discordId ||
+  vote.data?.user?.platform_id ||
+  vote.data?.user?.id;
       if (!userId) {
         return res.status(400).send("Missing user id");
       }
