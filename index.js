@@ -6,6 +6,8 @@ const path = require("path");
 const connectDB = require("./database");
 const cards = require("./data/cards");
 const autoDrop = require("./systems/autoDrop");
+const express = require("express");
+const Topgg = require("@top-gg/sdk");
 
 const {
   Client,
@@ -262,6 +264,9 @@ client.once("clientReady", async () => {
   autoDrop(client);
 
   startReminderChecker(client);
+
+  startTopggWebhook(client);
+
 });
 
 client.on("guildCreate", () => {
@@ -363,5 +368,103 @@ process.on("unhandledRejection", err => {
 process.on("uncaughtException", err => {
   console.error("UNCAUGHT EXCEPTION:", err);
 });
+
+async function startTopggWebhook(client) {
+  const app = express();
+
+  const webhook = new Topgg.Webhook(
+    process.env.TOPGG_WEBHOOK_AUTH
+  );
+
+  app.post(
+    "/topgg",
+    webhook.listener(async vote => {
+      try {
+        const userId = vote.user;
+
+        const db = await connectDB();
+
+        const balancesCol =
+          db.collection("balances");
+
+        const cooldownsCol =
+          db.collection("cooldowns");
+
+        const now = Date.now();
+
+        const lastVote =
+          await cooldownsCol.findOne({
+            type: "vote",
+            userId
+          });
+
+        if (
+          lastVote &&
+          now - lastVote.timestamp <
+            11.5 * 60 * 60 * 1000
+        ) {
+          console.log(
+            `⚠️ Duplicate vote ignored for ${userId}`
+          );
+          return;
+        }
+
+        await balancesCol.updateOne(
+          { userId },
+          {
+            $inc: {
+              coins: 700,
+              ultronChips: 1
+            }
+          },
+          { upsert: true }
+        );
+
+        await cooldownsCol.updateOne(
+          {
+            type: "vote",
+            userId
+          },
+          {
+            $set: {
+              timestamp: now,
+              notified: false
+            }
+          },
+          { upsert: true }
+        );
+
+        try {
+          const user =
+            await client.users.fetch(userId);
+
+          await user.send(
+            "🗳️ Thanks for voting for **GrootX**!\n\n" +
+            "<:grootcoin:1504742213110861834> **+700 Coins**\n" +
+            "🎫 **+1 Ultron Chip**"
+          );
+        } catch {}
+
+        console.log(
+          `✅ Vote reward given to ${userId}`
+        );
+
+      } catch (err) {
+        console.error(
+          "❌ Top.gg webhook error:",
+          err
+        );
+      }
+    })
+  );
+
+  const PORT = process.env.PORT || 3000;
+
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(
+      `✅ Top.gg webhook running on port ${PORT}`
+    );
+  });
+}
 
 client.login(process.env.TOKEN);
