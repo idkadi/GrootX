@@ -487,12 +487,7 @@ async function startTopggWebhook(client) {
 
       const cooldownsCol = db.collection("cooldowns");
 
-      const existing = await cooldownsCol.findOne({
-        type: "vote",
-        userId
-      });
-
-     const now = Date.now();
+const now = Date.now();
 const voteCooldown = 11.5 * 60 * 60 * 1000;
 
 const existing = await cooldownsCol.findOne({
