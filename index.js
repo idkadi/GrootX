@@ -372,98 +372,70 @@ process.on("uncaughtException", err => {
 async function startTopggWebhook(client) {
   const app = express();
 
-  const webhook = new Topgg.Webhook(
-    process.env.TOPGG_WEBHOOK_AUTH
-  );
+  app.use(express.json());
 
-  app.post(
-    "/topgg",
-    webhook.listener(async vote => {
-      try {
-        const userId = vote.user;
+  app.post("/topgg", async (req, res) => {
+    try {
+      const vote = req.body;
 
-        const db = await connectDB();
+      console.log("📩 Top.gg webhook received:", vote);
 
-        const balancesCol =
-          db.collection("balances");
+      const userId =
+        vote.user ||
+        vote.userId ||
+        vote.discord_id ||
+        vote.discordId;
 
-        const cooldownsCol =
-          db.collection("cooldowns");
-
-        const now = Date.now();
-
-        const lastVote =
-          await cooldownsCol.findOne({
-            type: "vote",
-            userId
-          });
-
-        if (
-          lastVote &&
-          now - lastVote.timestamp <
-            11.5 * 60 * 60 * 1000
-        ) {
-          console.log(
-            `⚠️ Duplicate vote ignored for ${userId}`
-          );
-          return;
-        }
-
-        await balancesCol.updateOne(
-          { userId },
-          {
-            $inc: {
-              coins: 700,
-              ultronChips: 1
-            }
-          },
-          { upsert: true }
-        );
-
-        await cooldownsCol.updateOne(
-          {
-            type: "vote",
-            userId
-          },
-          {
-            $set: {
-              timestamp: now,
-              notified: false
-            }
-          },
-          { upsert: true }
-        );
-
-        try {
-          const user =
-            await client.users.fetch(userId);
-
-          await user.send(
-            "🗳️ Thanks for voting for **GrootX**!\n\n" +
-            "<:grootcoin:1504742213110861834> **+700 Coins**\n" +
-            "🎫 **+1 Ultron Chip**"
-          );
-        } catch {}
-
-        console.log(
-          `✅ Vote reward given to ${userId}`
-        );
-
-      } catch (err) {
-        console.error(
-          "❌ Top.gg webhook error:",
-          err
-        );
+      if (!userId) {
+        return res.status(400).send("Missing user id");
       }
-    })
-  );
+
+      const db = await connectDB();
+
+      await db.collection("balances").updateOne(
+        { userId },
+        {
+          $inc: {
+            coins: 700,
+            ultronChips: 1
+          }
+        },
+        { upsert: true }
+      );
+
+      await db.collection("cooldowns").updateOne(
+        { type: "vote", userId },
+        {
+          $set: {
+            timestamp: Date.now(),
+            notified: false
+          }
+        },
+        { upsert: true }
+      );
+
+      try {
+        const user = await client.users.fetch(userId);
+        await user.send(
+          "🗳️ Thanks for voting for **GrootX**!\n\n" +
+          "<:grootcoin:1504742213110861834> **+700 Coins**\n" +
+          "🎫 **+1 Ultron Chip**"
+        );
+      } catch {}
+
+      console.log(`✅ Vote reward given to ${userId}`);
+
+      return res.status(200).send("OK");
+    } catch (err) {
+      console.error("❌ Top.gg webhook error:", err);
+      return res.status(500).send("Error");
+    }
+  });
 
   const PORT = process.env.PORT || 3000;
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(
-      `✅ Top.gg webhook running on port ${PORT}`
-    );
+    console.log(`✅ Top.gg webhook running on port ${PORT}`);
   });
 }
 
