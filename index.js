@@ -492,13 +492,33 @@ async function startTopggWebhook(client) {
         userId
       });
 
-      if (
-        existing &&
-        Date.now() - existing.timestamp < 11.5 * 60 * 60 * 1000
-      ) {
-        console.log(`⚠️ Duplicate vote ignored for ${userId}`);
-        return res.status(200).send("Duplicate");
-      }
+     const now = Date.now();
+const voteCooldown = 11.5 * 60 * 60 * 1000;
+
+const existing = await cooldownsCol.findOne({
+  type: "vote",
+  userId
+});
+
+if (
+  existing &&
+  now - existing.timestamp < voteCooldown
+) {
+  console.log(`⚠️ Duplicate vote ignored for ${userId}`);
+  return res.status(200).send("Duplicate");
+}
+
+// LOCK THE VOTE IMMEDIATELY
+await cooldownsCol.updateOne(
+  { type: "vote", userId },
+  {
+    $set: {
+      timestamp: now,
+      notified: false
+    }
+  },
+  { upsert: true }
+);
 
       const voteStreaksCol = db.collection("voteStreaks");
 
@@ -571,17 +591,7 @@ async function startTopggWebhook(client) {
         { upsert: true }
       );
 
-      await cooldownsCol.updateOne(
-        { type: "vote", userId },
-        {
-          $set: {
-            timestamp: Date.now(),
-            notified: false
-          }
-        },
-        { upsert: true }
-      );
-
+     
       await voteStreaksCol.updateOne(
         { userId },
         {

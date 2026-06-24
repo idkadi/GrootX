@@ -256,8 +256,6 @@ function getLocationBoost(card, location, serial) {
     ) return 3;
   }
 
-  if ((Number(serial) || 999999) <= 100) return 3;
-
   return 0;
 }
 
