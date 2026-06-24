@@ -69,7 +69,7 @@ module.exports = {
 
           `<:grootcoin:1504742213110861834> Coins: **${coins.toLocaleString()}**\n` +
 
-          `🎫 Ultron Chips: **${ultronChips.toLocaleString()}**`
+          `<:chipslogo:1519287944421048320> Ultron Chips: **${ultronChips.toLocaleString()}**`
 
         )
 

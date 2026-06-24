@@ -20,7 +20,7 @@ function getBasePower(card) {
 function getSerialBoost(serial) {
   const s = Number(serial) || 999999;
 
-  if (s <= 15) return 5;
+  if (s <= 20) return 5;
   if (s <= 50) return 4;
   if (s <= 100) return 3;
   if (s <= 200) return 2;
@@ -85,6 +85,15 @@ function getLocationBoost(card, location, serial) {
       name.includes("venom") ||
       name.includes("carnage") ||
       name.includes("kingpin") ||
+      name.includes("hela") ||
+      name.includes("gorr") ||
+      name.includes("doctor doom") ||
+      name.includes("galactus") ||
+      name.includes("ebony maw") ||
+      name.includes("corvus glaive") ||
+      name.includes("proxima midnight") ||
+      name.includes("black dwarf") ||
+      name.includes("cull obsidian") ||
       name.includes("loki")
     ) return 3;
   }
@@ -116,6 +125,7 @@ function getLocationBoost(card, location, serial) {
       name.includes("groot") ||
       name.includes("rocket") ||
       name.includes("star-lord") ||
+      name.includes("star") ||
       name.includes("gamora") ||
       name.includes("drax") ||
       name.includes("mantis") ||
@@ -159,8 +169,9 @@ function getLocationBoost(card, location, serial) {
       name.includes("grandmaster") ||
       name.includes("korg") ||
       name.includes("miek") ||
+      name.includes("loki") ||
       appearance.includes("ragnarok")
-    ) return 2;
+    ) return 3;
   }
 
   if (loc.includes("void")) {
@@ -172,17 +183,18 @@ function getLocationBoost(card, location, serial) {
       name.includes("wolverine") ||
       name.includes("x-23") ||
       name.includes("laura") ||
-      appearance.includes("loki")     
+      appearance.includes("loki") ||
+      appearance.includes("deadpool & wolverine")
     ) return 3;
+  }
 
-     if (loc.includes("baxter")) {
+  if (loc.includes("baxter")) {
     if (
       name.includes("reed richard") ||
       name.includes("sue storm") ||
       name.includes("the thing") ||
       name.includes("human torch") ||
-      appearance.includes("fantastic four") 
-      
+      appearance.includes("fantastic four")
     ) return 3;
   }
 
@@ -192,44 +204,59 @@ function getLocationBoost(card, location, serial) {
       name.includes("punisher") ||
       name.includes("bullseye") ||
       name.includes("kingpin") ||
+      name.includes("fisk") ||
       appearance.includes("daredevil") ||
       appearance.includes("punisher")
-      
     ) return 3;
   }
 
-   if (loc.includes("tower")) {
+  if (
+    loc.includes("new avenger") ||
+    loc.includes("thunderbolt")
+  ) {
     if (
-      appearance.includes("thunderbolt") 
+      name.includes("yelena") ||
+      name.includes("winter soldier") ||
+      name.includes("bucky") ||
+      name.includes("red guardian") ||
+      name.includes("ghost") ||
+      name.includes("taskmaster") ||
+      name.includes("u.s. agent") ||
+      name.includes("us agent") ||
+      name.includes("john walker") ||
+      name.includes("sentry") ||
+      name.includes("bob reynolds") ||
+      name.includes("valentina") ||
+      appearance.includes("thunderbolt")
     ) return 3;
   }
 
-   if (loc.includes("quantum")) {
+  if (loc.includes("quantum")) {
     if (
       name.includes("ant") ||
       name.includes("wasp") ||
       name.includes("kang") ||
       appearance.includes("quantum")
-      
     ) return 3;
   }
 
-   if (loc.includes("ta lo")) {
+  if (loc.includes("ta lo")) {
     if (
+      name.includes("shang") ||
       appearance.includes("shang")
-      
     ) return 3;
   }
 
-   if (loc.includes("red room")) {
+  if (loc.includes("red room")) {
     if (
+      name.includes("widow") ||
+      name.includes("yelena") ||
+      name.includes("red guardian") ||
       appearance.includes("widow")
-      
     ) return 3;
   }
 
-    if ((Number(serial) || 999999) <= 100) return 3;
-  }
+  if ((Number(serial) || 999999) <= 100) return 3;
 
   return 0;
 }

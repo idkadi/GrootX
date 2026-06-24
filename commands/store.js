@@ -75,7 +75,7 @@ module.exports = {
               "🌌 Extra Drop",
 
             value:
-              "**Cost:** 1 🎫 Ultron Chip\n" +
+              "**Cost:** 1 <:chipslogo:1519287944421048320> Ultron Chip\n" +
               "**Use:** Instantly gives you one extra drop.",
 
             inline: false
@@ -86,7 +86,7 @@ module.exports = {
               "⚡ Extra Grab",
 
             value:
-              "**Cost:** 1 🎫 Ultron Chip\n" +
+              "**Cost:** 1 <:chipslogo:1519287944421048320> Ultron Chip\n" +
               "**Use:** Instantly resets your pickup/grab cooldown once.",
 
             inline: false

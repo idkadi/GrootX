@@ -282,7 +282,7 @@ module.exports = {
             name: "💰 Economy",
             value:
               `<:grootcoin:1504742213110861834> **Coins:** ${formatNumber(coins)}\n` +
-              `🎫 **Ultron Chips:** ${formatNumber(ultronChips)}`,
+              `<:chipslogo:1519287944421048320> **Ultron Chips:** ${formatNumber(ultronChips)}`,
             inline: true
           },
           {

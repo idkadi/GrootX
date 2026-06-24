@@ -8,6 +8,7 @@ const cards = require("./data/cards");
 const autoDrop = require("./systems/autoDrop");
 const express = require("express");
 const Topgg = require("@top-gg/sdk");
+const topggApi = new Topgg.Api(process.env.TOPGG_TOKEN);
 
 const {
   Client,
@@ -129,7 +130,7 @@ async function startReminderChecker(client) {
             type: "pickup"
           });
 
-          cooldownTime = 5 * 60 * 1000;
+          cooldownTime = 4 * 60 * 1000;
         }
 
         else if (reminder.type === "vote") {
@@ -254,6 +255,13 @@ client.once("clientReady", async () => {
 
   console.log(`${client.user.tag} is online!`);
 
+  await updateTopggStats();
+
+setInterval(
+  updateTopggStats,
+  30 * 60 * 1000
+);
+
   updateBotStatus();
 
   setInterval(
@@ -271,10 +279,12 @@ client.once("clientReady", async () => {
 
 client.on("guildCreate", () => {
   updateBotStatus();
+  updateTopggStats();
 });
 
 client.on("guildDelete", () => {
   updateBotStatus();
+  updateTopggStats();
 });
 
 client.on("messageCreate", async message => {
@@ -369,10 +379,86 @@ process.on("uncaughtException", err => {
   console.error("UNCAUGHT EXCEPTION:", err);
 });
 
+async function updateTopggStats() {
+  try {
+    const serverCount = client.guilds.cache.size;
+
+    await topggApi.postStats({
+      serverCount
+    });
+
+    console.log(`✅ Top.gg updated: ${serverCount} servers`);
+  } catch (err) {
+    console.error("❌ Top.gg update failed:", err);
+  }
+}
+
 async function startTopggWebhook(client) {
   const app = express();
 
   app.use(express.json());
+
+  const COIN_EMOJI = "<:grootcoin:1504742213110861834>";
+  const CHIP_EMOJI = "<:chipslogo:1519287944421048320>";
+  const EPIC_EMOJI = "<:epic:1504510771214680175>";
+  const LEGENDARY_EMOJI = "<:legendary:1504511435974377552>";
+
+  async function generateUniqueCode(collectionsCol) {
+    const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+
+    while (true) {
+      let code = "";
+
+      for (let i = 0; i < 6; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+
+      const exists = await collectionsCol.findOne({ code });
+
+      if (!exists) return code;
+    }
+  }
+
+  async function giveRandomCard(db, userId, tier) {
+    const collectionsCol = db.collection("collections");
+    const serialsCol = db.collection("serials");
+
+    const tierCards = cards.filter(
+      card => card.tier?.toLowerCase() === tier.toLowerCase()
+    );
+
+    if (tierCards.length === 0) return null;
+
+    const card = tierCards[Math.floor(Math.random() * tierCards.length)];
+
+    await serialsCol.updateOne(
+      { cardId: card.id },
+      { $inc: { serial: 1 } },
+      { upsert: true }
+    );
+
+    const serialDoc = await serialsCol.findOne({
+      cardId: card.id
+    });
+
+    const serial = serialDoc.serial;
+    const code = await generateUniqueCode(collectionsCol);
+
+    await collectionsCol.insertOne({
+      userId,
+      cardId: card.id,
+      serial,
+      code,
+      tag: null,
+      favorite: false
+    });
+
+    return {
+      card,
+      serial,
+      code
+    };
+  }
 
   app.post("/topgg", async (req, res) => {
     try {
@@ -380,31 +466,112 @@ async function startTopggWebhook(client) {
 
       console.log("📩 Top.gg webhook received:", vote);
 
-     const userId =
-  vote.user ||
-  vote.userId ||
-  vote.discord_id ||
-  vote.discordId ||
-  vote.data?.user?.platform_id ||
-  vote.data?.user?.id;
+      if (vote.type === "webhook.test") {
+        console.log("🧪 Top.gg test event ignored");
+        return res.status(200).send("OK");
+      }
+
+      const userId =
+        vote.user ||
+        vote.userId ||
+        vote.discord_id ||
+        vote.discordId ||
+        vote.data?.user?.platform_id ||
+        vote.data?.user?.id;
+
       if (!userId) {
         return res.status(400).send("Missing user id");
       }
 
       const db = await connectDB();
 
+      const cooldownsCol = db.collection("cooldowns");
+
+      const existing = await cooldownsCol.findOne({
+        type: "vote",
+        userId
+      });
+
+      if (
+        existing &&
+        Date.now() - existing.timestamp < 11.5 * 60 * 60 * 1000
+      ) {
+        console.log(`⚠️ Duplicate vote ignored for ${userId}`);
+        return res.status(200).send("Duplicate");
+      }
+
+      const voteStreaksCol = db.collection("voteStreaks");
+
+      const streakDoc = await voteStreaksCol.findOne({ userId });
+      let streak = (streakDoc?.streak || 0) + 1;
+
+      let extraChips = 0;
+      const rewardLines = [];
+
+      if (streak === 5) {
+        extraChips += 3;
+        rewardLines.push(`${CHIP_EMOJI} **Milestone 5:** +3 Ultron Chips`);
+      }
+
+      if (streak === 10) {
+        const reward = await giveRandomCard(db, userId, "epic");
+
+        if (reward) {
+          rewardLines.push(
+            `${EPIC_EMOJI} **Milestone 10:** ${reward.card.name} #${reward.serial} • \`${reward.code}\``
+          );
+        }
+      }
+
+      if (streak === 15) {
+        extraChips += 3;
+        rewardLines.push(`${CHIP_EMOJI} **Milestone 15:** +3 Ultron Chips`);
+      }
+
+      if (streak === 20) {
+        const rewards = [];
+
+        for (let i = 0; i < 3; i++) {
+          const reward = await giveRandomCard(db, userId, "epic");
+          if (reward) rewards.push(reward);
+        }
+
+        if (rewards.length > 0) {
+          rewardLines.push(
+            `${EPIC_EMOJI} **Milestone 20:**\n` +
+            rewards
+              .map(r => `• ${r.card.name} #${r.serial} • \`${r.code}\``)
+              .join("\n")
+          );
+        }
+      }
+
+      let resetStreak = false;
+
+      if (streak === 30) {
+        const reward = await giveRandomCard(db, userId, "legendary");
+
+        if (reward) {
+          rewardLines.push(
+            `${LEGENDARY_EMOJI} **Milestone 30:** ${reward.card.name} #${reward.serial} • \`${reward.code}\``
+          );
+        }
+
+        resetStreak = true;
+      }
+
       await db.collection("balances").updateOne(
         { userId },
         {
           $inc: {
             coins: 700,
-            ultronChips: 1
+            ultronChips: 1 + extraChips
           }
         },
         { upsert: true }
       );
 
-      await db.collection("cooldowns").updateOne(
+      await cooldownsCol.updateOne(
         { type: "vote", userId },
         {
           $set: {
@@ -415,16 +582,34 @@ async function startTopggWebhook(client) {
         { upsert: true }
       );
 
+      await voteStreaksCol.updateOne(
+        { userId },
+        {
+          $set: {
+            streak: resetStreak ? 0 : streak,
+            updatedAt: Date.now()
+          }
+        },
+        { upsert: true }
+      );
+
       try {
         const user = await client.users.fetch(userId);
+
         await user.send(
           "🗳️ Thanks for voting for **GrootX**!\n\n" +
-          "<:grootcoin:1504742213110861834> **+700 Coins**\n" +
-          "🎫 **+1 Ultron Chip**"
+          `${COIN_EMOJI} **+700 Coins**\n` +
+          `${CHIP_EMOJI} **+1 Ultron Chip**\n\n` +
+          `🔥 **Vote Streak:** ${resetStreak ? 0 : streak}/30\n` +
+          (rewardLines.length > 0
+            ? `\n🎁 **Milestone Reward:**\n${rewardLines.join("\n")}`
+            : "")
         );
       } catch {}
 
-      console.log(`✅ Vote reward given to ${userId}`);
+      console.log(
+        `✅ Vote reward given to ${userId} | streak: ${resetStreak ? 0 : streak}/30`
+      );
 
       return res.status(200).send("OK");
     } catch (err) {

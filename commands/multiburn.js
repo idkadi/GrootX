@@ -64,6 +64,8 @@ module.exports = {
       );
     }
 
+    const codes = [...new Set(args.map(code => code.toLowerCase()))];
+
     const warningEmbed = new EmbedBuilder()
       .setColor(0xff0000)
       .setTitle("⚠️ Confirm Multi Burn")
@@ -104,16 +106,16 @@ module.exports = {
       const totalShards = {};
       const burnedCards = [];
 
-      for (const rawCode of args) {
-        const code = rawCode.toLowerCase();
-
-        const entry = await collectionsCol.findOne({
+      for (const code of codes) {
+        const deleted = await collectionsCol.findOneAndDelete({
           userId,
-          code
+          code,
+          favorite: { $ne: true }
         });
 
+        const entry = deleted?.value || deleted;
+
         if (!entry) continue;
-        if (entry.favorite) continue;
 
         const card = cards.find(
           c => Number(c.id) === Number(entry.cardId)
@@ -186,10 +188,6 @@ module.exports = {
             upsert: true
           }
         );
-
-        await collectionsCol.deleteOne({
-          _id: entry._id
-        });
 
         await removeCardFromAlbums(
           db,
