@@ -5993,6 +5993,55 @@ module.exports = [
     image: "common/katewi.jpeg"
   },
 
+  
+    {
+    id: 665,
+    name: "Logan",
+    aka: [],
+    appearance: "Deadpool & Wolverine",
+    tier: "",
+    image: "uncommon/logandw.jpeg"
+  },
+
+   {
+    id: 666,
+    name: "Black Widow",
+    aka: ["Natasha Romanoff"],
+    appearance: "Avengers : Age of Ultron",
+    tier: "rare",
+    image: "rare/widowage.jpeg"
+  },
+
+  {
+    id: 667,
+    name: "Polaris",
+    aka: ["Lorana Dane"],
+    appearance: "The Gifted",
+    tier: "rare",
+    image: "rare/polaris.jpeg"
+  },
+
+   {
+    id: 668,
+    name: "Doctor Doom",
+    aka: [],
+    appearance: "Ultimate Spider-man",
+    tier: "epic",
+    image: "epic/ultidoom.jpeg"
+  },
+
+  {
+    id: 669,
+    name: "Taskmaster",
+    aka: [],
+    appearance: "Ultimate Spider-man",
+    tier: "rare",
+    image: "rare/ultitask.jpeg"
+  },
+
+
+
+
 
 
 

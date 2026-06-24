@@ -29,18 +29,15 @@ function getSerialBoost(serial) {
   return 0;
 }
 
+// ✅ Same-name buff removed
+// ✅ Only same-appearance synergy remains
 function getSynergyBoost(card, cardsAtLocation = []) {
   let boost = 0;
-
-  const sameName = cardsAtLocation.filter(c =>
-    normalize(c.name) === normalize(card.name)
-  ).length;
 
   const sameAppearance = cardsAtLocation.filter(c =>
     normalize(c.appearance) === normalize(card.appearance)
   ).length;
 
-  if (sameName > 1) boost += sameName - 1;
   if (sameAppearance > 1) boost += sameAppearance - 1;
 
   return boost;
