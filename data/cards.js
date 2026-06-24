@@ -5999,7 +5999,7 @@ module.exports = [
     name: "Logan",
     aka: [],
     appearance: "Deadpool & Wolverine",
-    tier: "",
+    tier: "uncommon",
     image: "uncommon/logandw.jpeg"
   },
 
