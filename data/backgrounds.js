@@ -131,6 +131,24 @@ module.exports = [
     name: "Marvel Pets",
     file: "petsbg.jpeg"
   },
+
+   {
+    id: 23,
+    name: "Captain America",
+    file: "captainamericabg.jpeg"
+  },
+
+    {
+    id: 24,
+    name: "Homecoming",
+    file: "homecomingbg.jpeg"
+  },
+  
+   {
+    id: 25,
+    name: "Dr. Strange",
+    file: "drstrangebg.jpeg"
+  },
   
   
   

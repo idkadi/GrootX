@@ -189,6 +189,13 @@ const backgrounds = [
      free: false
   },
 
+   {
+    id: 25,
+    name: "Dr. Strange",
+    file: "drstrangebg.jpeg",
+     free: false
+  },
+
 
 
 ];

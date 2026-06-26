@@ -414,7 +414,7 @@ module.exports = [
   },
 
    {
-    id: 37,
+    id: 47,
     name: "JJ Jameson",
     aka: ["JJJ"],
     appearance: "Spider-man : No way home",
@@ -5534,6 +5534,16 @@ module.exports = [
     image: "epic/doomf4.jpeg"
   },
 
+  
+    {
+    id: 614,
+    name: "Jonathan Pangborn",
+    aka: [],
+    appearance: "Doctor Strange",
+    tier: "rare",
+    image: "rare/pangbornds.jpeg"
+  },
+
   {
     id: 615,
     name: "Mordo",
@@ -5570,14 +5580,6 @@ module.exports = [
     image: "rare/christineds.jpeg"
   },
 
-    {
-    id: 618,
-    name: "Jonathan Pangborn",
-    aka: [],
-    appearance: "Doctor Strange",
-    tier: "rare",
-    image: "rare/pangbornds.jpeg"
-  },
 
     {
     id: 619,

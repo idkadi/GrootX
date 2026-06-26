@@ -341,6 +341,13 @@ client.on("interactionCreate", async interaction => {
   try {
     if (!interaction.isButton()) return;
 
+    if (
+      interaction.customId.startsWith("battle_accept_") ||
+      interaction.customId.startsWith("battle_decline_")
+    ) {
+      return;
+    }
+
     const battleCommand = client.commands.get("battle");
 
     if (
@@ -348,7 +355,7 @@ client.on("interactionCreate", async interaction => {
       battleCommand &&
       typeof battleCommand.handleButton === "function"
     ) {
-      return battleCommand.handleButton(interaction);
+      return await battleCommand.handleButton(interaction);
     }
 
   } catch (error) {

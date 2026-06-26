@@ -871,10 +871,26 @@ module.exports = {
 
       return msg.edit(payload);
     });
+        collector.on("end", async (_, reason) => {
+      if (reason === "time") {
+        await msg.edit({
+          content: "⏰ Battle challenge expired.",
+          files: [],
+          components: []
+        }).catch(() => {});
+      }
+    });
   },
 
-  async handleButton(interaction) {
-    const battle = activeBattles.get(interaction.user.id);
+ async handleButton(interaction) {
+  if (
+    interaction.customId.startsWith("battle_accept_") ||
+    interaction.customId.startsWith("battle_decline_")
+  ) {
+    return;
+  }
+
+  const battle = activeBattles.get(interaction.user.id);
 
     if (!battle) {
       return interaction.reply({

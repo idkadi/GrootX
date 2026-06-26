@@ -180,8 +180,18 @@ const backgrounds = [
     name: "Homecoming",
      price: 5000,
     file: "homecomingbg.jpeg",
+
+    
     
   },
+
+   {
+    id: 25,
+    name: "Dr. Strange",
+      price: 5000,
+    file: "drstrangebg.jpeg"
+  },
+  
   
 
   
