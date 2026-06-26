@@ -6041,6 +6041,149 @@ module.exports = [
     image: "rare/ultitask.jpeg"
   },
 
+  {
+    id: 670,
+    name: "Ant-Man",
+    aka: ["Scott Lang"],
+    appearance: "Ant-Man",
+    tier: "legendary",
+    image: "legendary/antman.jpeg"
+  },
+
+   {
+    id: 671,
+    name: "Yellowjacket",
+    aka: [],
+    appearance: "Ant-Man",
+    tier: "legendary",
+    image: "legendary/yellowjacket.jpeg"
+  },
+
+  {
+    id: 672,
+    name: "Hope Van Dyne",
+    aka: [],
+    appearance: "Ant-Man",
+    tier: "epic",
+    image: "epic/hopeant.jpeg"
+  },
+
+    {
+    id: 673,
+    name: "Janet Van Dyne",
+    aka: [],
+    appearance: "Ant-Man",
+    tier: "epic",
+    image: "epic/janetant.jpeg"
+  },
+
+  
+    {
+    id: 674,
+    name: "Hank Pym",
+    aka: [],
+    appearance: "Ant-Man",
+    tier: "epic",
+    image: "epic/hankant.jpeg"
+  },
+
+  {
+    id: 675,
+    name: "Jim Paxton",
+    aka: [],
+    appearance: "Ant-Man",
+    tier: "rare",
+    image: "rare/jimant.jpeg"
+  },
+
+   {
+    id: 676,
+    name: "Luis",
+    aka: [],
+    appearance: "Ant-Man",
+    tier: "rare",
+    image: "rare/luisant.jpeg"
+  },
+
+     {
+    id: 677,
+    name: "Cassie Lang",
+    aka: [],
+    appearance: "Ant-Man",
+    tier: "rare",
+    image: "rare/cassieant.jpeg"
+  },
+
+   {
+    id: 678,
+    name: "Dave",
+    aka: [],
+    appearance: "Ant-Man",
+    tier: "uncommon",
+    image: "uncommon/daveant.jpeg"
+  },
+
+     {
+    id: 679,
+    name: "Gale",
+    aka: [],
+    appearance: "Ant-Man",
+    tier: "uncommon",
+    image: "uncommon/galeant.jpeg"
+  },
+
+   {
+    id: 680,
+    name: "Kurt",
+    aka: [],
+    appearance: "Ant-Man",
+    tier: "uncommon",
+    image: "uncommon/kurtant.jpeg"
+  },
+
+   {
+    id: 681,
+    name: "Maggie Lang",
+    aka: [],
+    appearance: "Ant-Man",
+    tier: "uncommon",
+    image: "uncommon/maggieant.jpeg"
+  },
+
+    {
+    id: 682,
+    name: "Peachy",
+    aka: [],
+    appearance: "Ant-Man",
+    tier: "common",
+    image: "common/peachyant.jpeg"
+  },
+
+    {
+    id: 683,
+    name: "Dale",
+    aka: [],
+    appearance: "Ant-Man",
+    tier: "common",
+    image: "common/daleant.jpeg"
+  },
+
+   {
+    id: 684,
+    name: "Frank",
+    aka: [],
+    appearance: "Ant-Man",
+    tier: "common",
+    image: "common/frankant.jpeg"
+  },
+
+
+
+
+
+
+
+
 
 
 
