@@ -6177,6 +6177,152 @@ module.exports = [
     image: "common/frankant.jpeg"
   },
 
+   {
+    id: 685,
+    name: "Mr. Fantastic",
+    aka: ["Reed Richards"],
+    appearance: "Fantastic Four (2005)",
+    tier: "epic",
+    image: "epic/reedf4old.jpeg"
+  },
+
+    {
+    id: 686,
+    name: "Invisible Woman",
+    aka: ["Sue Storm"],
+    appearance: "Fantastic Four (2005)",
+    tier: "epic",
+    image: "epic/womanf4old.jpeg"
+  },
+
+    {
+    id: 687,
+    name: "The Thing",
+    aka: ["Ben Grimm"],
+    appearance: "Fantastic Four (2005)",
+    tier: "epic",
+    image: "epic/benf4old.jpeg"
+  },
+    {
+    id: 688,
+    name: "Human Torch",
+    aka: ["Johnny Storm"],
+    appearance: "Fantastic Four (2005)",
+    tier: "epic",
+    image: "epic/torchf4old.jpeg"
+  },
+
+    {
+    id: 689,
+    name: "Doctor Doom",
+    aka: ["Victor Van Doom"],
+    appearance: "Fantastic Four (2005)",
+    tier: "epic",
+    image: "epic/doomf4old.jpeg"
+  },
+
+    {
+    id: 690,
+    name: "Alicia Masters",
+    aka: [],
+    appearance: "Fantastic Four (2005)",
+    tier: "common",
+    image: "common/aliciaf4old.jpeg"
+  },
+
+      {
+    id: 691,
+    name: "Debbie Mcllvane",
+    aka: [],
+    appearance: "Fantastic Four (2005)",
+    tier: "common",
+    image: "common/debbief4old.jpeg"
+  },
+
+    {
+    id: 692,
+    name: "Leonard Kirk",
+    aka: [],
+    appearance: "Fantastic Four (2005)",
+    tier: "common",
+    image: "common/kirkf4old.jpeg"
+  },
+
+    {
+    id: 693,
+    name: "Jimmy O'Hoolihan",
+    aka: [],
+    appearance: "Fantastic Four (2005)",
+    tier: "common",
+    image: "common/jimmyf4old.jpeg"
+  },
+
+ 
+    {
+    id: 694,
+    name: "Julia",
+    aka: [],
+    appearance: "Fantastic Four : The rise of Silver Surfer",
+    tier: "common",
+    image: "common/juliaf4ss.jpeg"
+  },
+
+   {
+    id: 695,
+    name: "Frankie Raye",
+    aka: [],
+    appearance: "Fantastic Four : The rise of Silver Surfer",
+    tier: "common",
+    image: "common/frankief4ss.jpeg"
+  },
+
+   {
+    id: 696,
+    name: "Candy",
+    aka: [],
+    appearance: "Fantastic Four : The rise of Silver Surfer",
+    tier: "common",
+    image: "common/candyf4ss.jpeg"
+  },
+
+   {
+    id: 697,
+    name: "Sherman",
+    aka: [],
+    appearance: "Fantastic Four : The rise of Silver Surfer",
+    tier: "common",
+    image: "common/shermanf4ss.jpeg"
+  },
+
+   {
+    id: 698,
+    name: "General Hager",
+    aka: [],
+    appearance: "Fantastic Four : The rise of Silver Surfer",
+    tier: "uncommon",
+    image: "uncommon/hagerf4ss.jpeg"
+  },
+
+  
+   {
+    id: 699,
+    name: "Silver Surfer",
+    aka: [],
+    appearance: "Fantastic Four : The rise of Silver Surfer",
+    tier: "epic",
+    image: "epic/surferf4ss.jpeg"
+  },
+
+
+
+
+
+
+
+
+
+
+
 
 
 
