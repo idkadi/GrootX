@@ -12,7 +12,6 @@ const COLORS = {
 async function renderCard(card, serial = "000000") {
   const W = 1054;
   const H = 1492;
-
   const canvas = createCanvas(W, H);
   const ctx = canvas.getContext("2d");
 
@@ -25,65 +24,62 @@ async function renderCard(card, serial = "000000") {
 
   const img = await loadImage(imagePath);
 
-  // main image full card
-  roundRect(ctx, 40, 40, W - 80, H - 80, 18);
+  // Full image, no black border/background
+  roundRect(ctx, 35, 35, W - 70, H - 70, 14);
   ctx.save();
   ctx.clip();
-  ctx.drawImage(img, 40, 40, W - 80, H - 80);
+  ctx.drawImage(img, 35, 35, W - 70, H - 70);
   ctx.restore();
 
-  // thin tier border only
+  // Thin tier border
   ctx.strokeStyle = color;
-  ctx.lineWidth = 8;
-  roundRect(ctx, 25, 25, W - 50, H - 50, 0);
-  ctx.stroke();
+  ctx.lineWidth = 7;
+  ctx.strokeRect(12, 12, W - 24, H - 24);
 
-  // bottom translucent panel
-  const panelX = 40;
-  const panelY = 1160;
-  const panelW = W - 80;
-  const panelH = 292;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 3;
+  ctx.strokeRect(24, 24, W - 48, H - 48);
+
+  // Bottom panel like your reference
+  const panelX = 35;
+  const panelY = 1185;
+  const panelW = W - 70;
+  const panelH = 230;
 
   const gradient = ctx.createLinearGradient(panelX, panelY, panelX + panelW, panelY);
-  gradient.addColorStop(0, hexToRgba(color, 0.85));
-  gradient.addColorStop(1, hexToRgba(color, 0.45));
+  gradient.addColorStop(0, hexToRgba(color, 0.82));
+  gradient.addColorStop(1, hexToRgba(color, 0.55));
 
   ctx.fillStyle = gradient;
-  roundRect(ctx, panelX, panelY, panelW, panelH, 14);
+  roundRect(ctx, panelX, panelY, panelW, panelH, 12);
   ctx.fill();
 
-  // text
-  ctx.fillStyle = "#fff";
+  // Text smaller + compact
+  ctx.fillStyle = "#ffffff";
 
-  ctx.font = "bold 34px Arial";
-  ctx.fillText(`#${serial}`, 70, 1235);
+  ctx.font = "bold 28px Arial";
+  ctx.fillText(`#${String(serial).padStart(6, "0")}`, 65, 1255);
 
-  ctx.font = "bold 54px Arial";
-  ctx.fillText(card.name.toUpperCase(), 70, 1310);
+  ctx.font = "bold 38px Arial";
+  ctx.fillText(String(card.name || "UNKNOWN").toUpperCase(), 65, 1305);
 
-  ctx.font = "bold 32px Arial";
-  ctx.fillText(card.appearance.toUpperCase(), 70, 1360);
+  ctx.font = "bold 25px Arial";
+  ctx.fillText(String(card.appearance || "").toUpperCase(), 65, 1343);
 
   return canvas.toBuffer("image/png");
 }
 
 function roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath();
-
-  if (r <= 0) {
-    ctx.rect(x, y, w, h);
-  } else {
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + w - r, y);
-    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-    ctx.lineTo(x + w, y + h - r);
-    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-    ctx.lineTo(x + r, y + h);
-    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-    ctx.lineTo(x, y + r);
-    ctx.quadraticCurveTo(x, y, x + r, y);
-  }
-
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
   ctx.closePath();
 }
 
