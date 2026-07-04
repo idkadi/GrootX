@@ -879,7 +879,8 @@ module.exports = [
     aka: [],
     appearance: "Daredevil : Born Again",
     tier: "common",
-    image: "common/bburichddba.jpeg"
+    image: "common/bburichddba.jpeg",
+    rawImage: "raw/bbddba.png"
   },
 
   {
@@ -888,7 +889,8 @@ module.exports = [
     aka: [],
     appearance: "Daredevil : Born Again",
     tier: "common",
-    image: "common/buckddba.jpeg"
+    image: "common/buckddba.jpeg",
+    rawImage: "raw/buckddba.png"
   },
 
   {
@@ -897,7 +899,8 @@ module.exports = [
     aka: [],
     appearance: "Daredevil : Born Again",
     tier: "common",
-    image: "common/danielddba.jpeg"
+    image: "common/danielddba.jpeg",
+    rawImage: "raw/danielddba.png"
   },
 
   {
@@ -906,7 +909,9 @@ module.exports = [
     aka: ["Dr. Glenn"],
     appearance: "Daredevil : Born Again",
     tier: "common",
-    image: "common/glennddba.jpeg"
+    image: "common/glennddba.jpeg",
+    rawImage: "raw/glennddba.png"
+  
   },
 
   {
@@ -915,7 +920,10 @@ module.exports = [
     aka: [],
     appearance: "Daredevil : Born Again",
     tier: "common",
-    image: "common/kirstenddba.jpeg"
+    image: "common/kirstenddba.jpeg",
+     rawImage: "raw/kirstenddba.png"
+  
+
   },
 
   {
@@ -924,7 +932,8 @@ module.exports = [
     aka: [],
     appearance: "Daredevil : Born Again",
     tier: "common",
-    image: "common/powellddba.jpeg"
+    image: "common/powellddba.jpeg",
+    rawImage: "raw/powellddba.png"
   },
 
   {
@@ -933,7 +942,8 @@ module.exports = [
     aka: [],
     appearance: "Daredevil : Born Again",
     tier: "common",
-    image: "common/shieladdba.jpeg"
+    image: "common/shieladdba.jpeg",
+    rawImage: "raw/shieladdba.png"
   },
 
   {
@@ -942,7 +952,9 @@ module.exports = [
     aka: ["Bastian Cooper"],
     appearance: "Daredevil : Born Again",
     tier: "uncommon",
-    image: "uncommon/museddba.jpeg"
+    image: "uncommon/museddba.jpeg",
+    rawImage: "raw/museddba.png"
+
   },
 
    {
@@ -951,7 +963,8 @@ module.exports = [
     aka: ["Hector Ayala"],
     appearance: "Daredevil : Born Again",
     tier: "uncommon",
-    image: "uncommon/whitetigerddba.jpeg"
+    image: "uncommon/whitetigerddba.jpeg",
+    rawImage: "raw/whitetigerddba.png"
   },
 
    {
@@ -960,7 +973,8 @@ module.exports = [
     aka: [],
     appearance: "Daredevil : Born Again",
     tier: "rare",
-    image: "rare/jessicaddba.jpeg"
+    image: "rare/jessicaddba.jpeg",
+     rawImage: "raw/jonesddba.png"
   },
 
    {
@@ -969,7 +983,8 @@ module.exports = [
     aka: ["Ben Poindex", "Benjamin Poindexter"],
     appearance: "Daredevil : Born Again",
     tier: "epic",
-    image: "epic/bullseyeddba.jpeg"
+    image: "epic/bullseyeddba.jpeg",
+    rawImage: "raw/bullseyeddba.png"
   },
 
   {
@@ -978,7 +993,9 @@ module.exports = [
     aka: ["Frank Castle"],
     appearance: "Daredevil : Born Again",
     tier: "epic",
-    image: "epic/punisherddba.jpeg"
+    image: "epic/punisherddba.jpeg",
+    rawImage: "raw/punisherddba.png"
+
   },
 
   {
@@ -987,7 +1004,8 @@ module.exports = [
     aka: ["Wilson Fisk"],
     appearance: "Daredevil : Born Again",
     tier: "epic",
-    image: "epic/kingpinddba.jpeg"
+    image: "epic/kingpinddba.jpeg",
+    rawImage: "raw/kingpinddba.png"
   },
 
   {
@@ -996,7 +1014,8 @@ module.exports = [
     aka: ["Matt Murdock"],
     appearance: "Daredevil : Born Again",
     tier: "legendary",
-    image: "legendary/daredevilddba.jpeg"
+    image: "legendary/daredevilddba.jpeg",
+    rawImage: "raw/daredevilddba.png"
   },
 
    {
