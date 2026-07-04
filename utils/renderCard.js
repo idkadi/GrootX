@@ -25,10 +25,10 @@ async function renderCard(card, serial = "000000") {
 
   const img = await loadImage(imagePath);
 
-  // no black background
+  // Clear canvas
   ctx.clearRect(0, 0, W, H);
 
-  // draw image full card size
+  // Draw artwork (cover entire card)
   const scale = Math.max(W / img.width, H / img.height);
   const drawW = img.width * scale;
   const drawH = img.height * scale;
@@ -37,33 +37,41 @@ async function renderCard(card, serial = "000000") {
 
   ctx.drawImage(img, drawX, drawY, drawW, drawH);
 
-  // bottom panel
-  const panelY = 1168;
-  const panelH = 250;
+  // Bottom info panel
+  const panelY = 1225;
+  const panelH = H - panelY;
 
   const gradient = ctx.createLinearGradient(0, panelY, W, panelY);
-  gradient.addColorStop(0, hexToRgba(color, 0.86));
-  gradient.addColorStop(1, hexToRgba(color, 0.5));
+  gradient.addColorStop(0, hexToRgba(color, 0.88));
+  gradient.addColorStop(1, hexToRgba(color, 0.70));
 
   ctx.fillStyle = gradient;
   ctx.fillRect(0, panelY, W, panelH);
 
-  // text
-  ctx.fillStyle = "#ffffff";
+  // Text
+  ctx.fillStyle = "#fff";
 
   ctx.font = "bold 32px Arial";
-  ctx.fillText(`#${String(serial).padStart(6, "0")}`, 65, 1245);
+  ctx.fillText(`#${String(serial).padStart(6, "0")}`, 65, 1305);
 
   ctx.font = "bold 52px Arial";
-  ctx.fillText(String(card.name || "UNKNOWN").toUpperCase(), 65, 1315);
+  ctx.fillText(
+    String(card.name || "UNKNOWN").toUpperCase(),
+    65,
+    1385
+  );
 
   ctx.font = "bold 34px Arial";
-  ctx.fillText(String(card.appearance || "").toUpperCase(), 65, 1370);
+  ctx.fillText(
+    String(card.appearance || "").toUpperCase(),
+    65,
+    1445
+  );
 
-  // ONLY thin rarity border, no black border
+  // Thin rarity border
   ctx.strokeStyle = color;
-  ctx.lineWidth = 8;
-  ctx.strokeRect(4, 4, W - 8, H - 8);
+  ctx.lineWidth = 6;
+  ctx.strokeRect(3, 3, W - 6, H - 6);
 
   return canvas.toBuffer("image/png");
 }
