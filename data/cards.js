@@ -5,7 +5,8 @@ module.exports = [
     aka: ["Aunt May"],
     appearance: "Spider-Man (2002)",
     tier: "common",
-    image: "common/mayparkersp.jpeg"
+    image: "common/mayparkersp.jpeg",
+    rawImage: "raw/auntmaysp.png"
   },
 
   {
@@ -14,7 +15,8 @@ module.exports = [
     aka: ["Uncle Ben"],
     appearance: "Spider-Man (2002)",
     tier: "common",
-    image: "common/benparkersp.jpeg"
+    image: "common/benparkersp.jpeg",
+    rawImage: "raw/unclebensp.png"
   },
 
   {
@@ -23,7 +25,8 @@ module.exports = [
     aka: ["Betty"],
     appearance: "Spider-Man (2002)",
     tier: "common",
-    image: "common/bettybrantsp.jpeg"
+    image: "common/bettybrantsp.jpeg",
+     rawImage: "raw/bettysp.png"
   },
 
   {
@@ -32,7 +35,8 @@ module.exports = [
     aka: ["MJ", "Mary Jane"],
     appearance: "Spider-Man (2002)",
     tier: "common",
-    image: "common/mjsp.jpeg"
+    image: "common/mjsp.jpeg",
+     rawImage: "raw/marryjanesp.png"
   },
 
   {
@@ -41,7 +45,8 @@ module.exports = [
     aka: ["Flash"],
     appearance: "Spider-Man (2002)",
     tier: "common",
-    image: "common/flashsp.jpeg"
+    image: "common/flashsp.jpeg",
+     rawImage: "raw/flashsp.png"
   },
 
   {
@@ -50,7 +55,8 @@ module.exports = [
     aka: ["Harry"],
     appearance: "Spider-Man (2002)",
     tier: "common",
-    image: "common/harrysp.jpeg"
+    image: "common/harrysp.jpeg",
+     rawImage: "raw/harryosbornsp.png"
   },
 
   {
@@ -59,7 +65,8 @@ module.exports = [
     aka: [],
     appearance: "Spider-Man 2 (2004)",
     tier: "common",
-    image: "common/curtconnorssp.jpeg"
+    image: "common/curtconnorssp.jpeg",
+     rawImage: "raw/connorssp2.png"
   },
 
   {
@@ -68,7 +75,8 @@ module.exports = [
     aka: [],
     appearance: "Spider-Man 2 (2004)",
     tier: "common",
-    image: "common/johnjameson.jpeg"
+    image: "common/johnjameson.jpeg",
+     rawImage: "raw/johnsp2.png"
   },
 
   {
@@ -77,7 +85,8 @@ module.exports = [
     aka: ["JJJ"],
     appearance: "Spider-Man (2002)",
     tier: "common",
-    image: "common/jjjsp.jpeg"
+    image: "common/jjjsp.jpeg",
+     rawImage: "raw/jjjsp.png"
   },
 
   {
@@ -104,7 +113,8 @@ module.exports = [
     aka: [],
     appearance: "Spider-Man 2 (2004)",
     tier: "common",
-    image: "common/rosie.jpeg"
+    image: "common/rosie.jpeg",
+     rawImage: "raw/rosaliesp2.png"
   },
 
   {
@@ -123,7 +133,8 @@ module.exports = [
     aka: ["Doc opp","Octavius","Otto octavius"],
     appearance: "Spider-Man 2 (2004)",
     tier: "uncommon",
-    image: "uncommon/docoppsp.jpeg"
+    image: "uncommon/docoppsp.jpeg",
+     rawImage: "raw/octaviussp2.png"
   },
 
    {
@@ -150,7 +161,8 @@ module.exports = [
     aka: ["Noman Osborn", "Goblin"],
     appearance: "Spider-Man (2002)",
     tier: "rare",
-    image: "rare/greengoblinsp.jpeg"
+    image: "rare/greengoblinsp.jpeg",
+     rawImage: "raw/greengoblinsp.png"
   },
   {
     id: 18,
@@ -167,7 +179,8 @@ module.exports = [
     aka: ["Spidey","Peter","Peter Parker"],
     appearance: "Spider-Man (2002)",
     tier: "legendary",
-    image: "legendary/spider-man.jpeg"
+    image: "legendary/spider-man.jpeg",
+     rawImage: "raw/spiderman2002.png"
   },
 
   {
