@@ -2714,7 +2714,9 @@ module.exports = [
     aka: [],
     appearance: "Venom",
     tier: "common",
-    image: "common/rolandv.jpeg"
+    image: "common/rolandv.jpeg",
+     rawImage: "raw/rolandv.png"
+
   },
 
   {
@@ -2723,7 +2725,8 @@ module.exports = [
     aka: [],
     appearance: "Venom",
     tier: "common",
-    image: "common/issacv.jpeg"
+    image: "common/issacv.jpeg",
+    rawImage: "raw/issacv.png"
   },
 
   {
@@ -2732,7 +2735,8 @@ module.exports = [
     aka: [],
     appearance: "Venom",
     tier: "common",
-    image: "common/mariav.jpeg"
+    image: "common/mariav.jpeg",
+    rawImage: "raw/mariav.png"
   },
 
   {
@@ -2741,7 +2745,8 @@ module.exports = [
     aka: [],
     appearance: "Venom",
     tier: "common",
-    image: "common/danv.jpeg"
+    image: "common/danv.jpeg",
+    rawImage: "raw/danv.png"
   },
 
   {
@@ -2750,7 +2755,8 @@ module.exports = [
     aka: [],
     appearance: "Venom",
     tier: "common",
-    image: "common/chenv.jpeg"
+    image: "common/chenv.jpeg",
+    rawImage: "raw/chenv.png"
   },
 
   {
@@ -2759,7 +2765,8 @@ module.exports = [
     aka: [],
     appearance: "Venom",
     tier: "common",
-    image: "common/dorav.jpeg"
+    image: "common/dorav.jpeg",
+    rawImage: "raw/dorav.png"
   },
 
     {
@@ -2768,7 +2775,8 @@ module.exports = [
     aka: [],
     appearance: "Venom",
     tier: "uncommon",
-    image: "uncommon/annev.jpeg"
+    image: "uncommon/annev.jpeg",
+    rawImage: "raw/annev.png"
   },
 
     {
@@ -2777,7 +2785,8 @@ module.exports = [
     aka: ["Carlton Drake"],
     appearance: "Venom",
     tier: "rare",
-    image: "rare/riotv.jpeg"
+    image: "rare/riotv.jpeg",
+    rawImage: "raw/riotv.png"
   },
 
    {
@@ -2786,7 +2795,8 @@ module.exports = [
     aka: ["Anne Weying"],
     appearance: "Venom",
     tier: "rare",
-    image: "rare/shevenomv.jpeg"
+    image: "rare/shevenomv.jpeg",
+    rawImage: "raw/shevenomv.png"
   },
 
     {
@@ -2795,7 +2805,8 @@ module.exports = [
     aka: ["Eddie Brock"],
     appearance: "Venom",
     tier: "epic",
-    image: "epic/venomv.jpeg"
+    image: "epic/venomv.jpeg",
+    rawImage: "raw/venomv.png"
   },
 
    {
@@ -2804,7 +2815,9 @@ module.exports = [
     aka: [],
     appearance: "Venom : Let There Be Carnage",
     tier: "common",
-    image: "common/pazzovc.jpeg"
+    image: "common/pazzovc.jpeg",
+    rawImage: "raw/camillecar.png"
+    
   },
 
    {
@@ -2813,7 +2826,8 @@ module.exports = [
     aka: [],
     appearance: "Venom : Let There Be Carnage",
     tier: "common",
-    image: "common/patrickvc.jpeg"
+    image: "common/patrickvc.jpeg",
+    rawImage: "raw/patrickcar.png"
   },
 
    {
@@ -2822,7 +2836,8 @@ module.exports = [
     aka: ["Frances Louise Barrison"],
     appearance: "Venom : Let There Be Carnage",
     tier: "uncommon",
-    image: "uncommon/shriekvc.jpeg"
+    image: "uncommon/shriekvc.jpeg",
+    rawImage: "raw/shriekcar.png"
   },
 
   {
@@ -2831,7 +2846,8 @@ module.exports = [
     aka: [],
     appearance: "Venom : Let There Be Carnage",
     tier: "uncommon",
-    image: "uncommon/cletusvc.jpeg"
+    image: "uncommon/cletusvc.jpeg",
+    rawImage: "raw/cletuscar.png"
   },
 
   {
@@ -2840,7 +2856,8 @@ module.exports = [
     aka: [],
     appearance: "Venom : Let There Be Carnage",
     tier: "epic",
-    image: "epic/carnagevc.jpeg"
+    image: "epic/carnagevc.jpeg",
+    rawImage: "raw/carnagecar.png"
   },
 
   {
