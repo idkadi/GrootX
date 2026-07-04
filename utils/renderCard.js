@@ -25,59 +25,90 @@ async function renderCard(card, serial = "000000") {
 
   const img = await loadImage(imagePath);
 
-  // Clear canvas
   ctx.clearRect(0, 0, W, H);
 
-  // Draw artwork (cover entire card)
-  const scale = Math.max(W / img.width, H / img.height);
+  // ===== Artwork =====
+  const margin = 36;
+
+  const imgX = margin;
+  const imgY = margin;
+  const imgW = W - margin * 2;
+  const imgH = H - margin * 2;
+
+  const scale = Math.max(imgW / img.width, imgH / img.height);
+
   const drawW = img.width * scale;
   const drawH = img.height * scale;
-  const drawX = (W - drawW) / 2;
-  const drawY = (H - drawH) / 2;
+
+  const drawX = imgX + (imgW - drawW) / 2;
+  const drawY = imgY + (imgH - drawH) / 2;
+
+  ctx.save();
+
+  ctx.beginPath();
+  ctx.moveTo(imgX + 18, imgY);
+  ctx.lineTo(imgX + imgW - 18, imgY);
+  ctx.quadraticCurveTo(imgX + imgW, imgY, imgX + imgW, imgY + 18);
+  ctx.lineTo(imgX + imgW, imgY + imgH - 18);
+  ctx.quadraticCurveTo(
+    imgX + imgW,
+    imgY + imgH,
+    imgX + imgW - 18,
+    imgY + imgH
+  );
+  ctx.lineTo(imgX + 18, imgY + imgH);
+  ctx.quadraticCurveTo(imgX, imgY + imgH, imgX, imgY + imgH - 18);
+  ctx.lineTo(imgX, imgY + 18);
+  ctx.quadraticCurveTo(imgX, imgY, imgX + 18, imgY);
+  ctx.closePath();
+  ctx.clip();
 
   ctx.drawImage(img, drawX, drawY, drawW, drawH);
 
-  // Bottom info panel
-  const panelY = 1225;
+  ctx.restore();
+
+  // ===== Bottom Panel =====
+  const panelY = 1210;
   const panelH = H - panelY;
 
   const gradient = ctx.createLinearGradient(0, panelY, W, panelY);
-  gradient.addColorStop(0, hexToRgba(color, 0.88));
-  gradient.addColorStop(1, hexToRgba(color, 0.70));
+  gradient.addColorStop(0, hexToRgba(color, 0.90));
+  gradient.addColorStop(1, hexToRgba(color, 0.72));
 
   ctx.fillStyle = gradient;
-  ctx.fillRect(0, panelY, W, panelH);
+  ctx.fillRect(margin, panelY, W - margin * 2, panelH);
 
-  // Text
+  // ===== Text =====
   ctx.fillStyle = "#fff";
 
   ctx.font = "bold 32px Arial";
-  ctx.fillText(`#${String(serial).padStart(6, "0")}`, 65, 1305);
+  ctx.fillText(`#${String(serial).padStart(6, "0")}`, 70, 1285);
 
-  ctx.font = "bold 52px Arial";
+  ctx.font = "bold 54px Arial";
   ctx.fillText(
     String(card.name || "UNKNOWN").toUpperCase(),
-    65,
-    1385
+    70,
+    1365
   );
 
   ctx.font = "bold 34px Arial";
   ctx.fillText(
     String(card.appearance || "").toUpperCase(),
-    65,
-    1445
+    70,
+    1425
   );
 
-  // Thin rarity border
+  // ===== Thin rarity border =====
   ctx.strokeStyle = color;
   ctx.lineWidth = 6;
-  ctx.strokeRect(3, 3, W - 6, H - 6);
+  ctx.strokeRect(6, 6, W - 12, H - 12);
 
   return canvas.toBuffer("image/png");
 }
 
 function hexToRgba(hex, alpha) {
   const n = parseInt(hex.replace("#", ""), 16);
+
   return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
 }
 
