@@ -1165,7 +1165,8 @@ module.exports = [
     aka: [],
     appearance: "Moonknight",
     tier: "common",
-    image: "common/jbmk.jpeg"
+    image: "common/jbmk.jpeg",
+     rawImage: "raw/jbmk.png"
   },
 
   {
@@ -1174,7 +1175,8 @@ module.exports = [
     aka: [],
     appearance: "Moonknight",
     tier: "common",
-    image: "common/donnamk.jpeg"
+    image: "common/donnamk.jpeg",
+     rawImage: "raw/donnamk.png"
   },
 
   {
@@ -1182,6 +1184,7 @@ module.exports = [
     name: "Anton Mogart",
     aka: [],
     appearance: "Moonknight",
+     rawImage: "raw/antonmk.png",
     tier: "common",
     image: "common/antonmk.jpeg"
   },
@@ -1192,7 +1195,8 @@ module.exports = [
     aka: [],
     appearance: "Moonknight",
     tier: "common",
-    image: "common/taweretmk.jpeg"
+    image: "common/taweretmk.jpeg",
+    rawImage: "raw/tawretmk.png"
   },
 
   {
@@ -1201,7 +1205,8 @@ module.exports = [
     aka: [],
     appearance: "Moonknight",
     tier: "common",
-    image: "common/bertrandmk.jpeg"
+    image: "common/bertrandmk.jpeg",
+    rawImage: "raw/crawleymk.png"
   },
 
   {
@@ -1210,7 +1215,8 @@ module.exports = [
     aka: [],
     appearance: "Moonknight",
     tier: "rare",
-    image: "rare/khonshumk.jpeg"
+    image: "rare/khonshumk.jpeg",
+     rawImage: "raw/khonshumk.png"
   },
 
    {
@@ -1219,7 +1225,8 @@ module.exports = [
     aka: [],
     appearance: "Moonknight",
     tier: "uncommon",
-    image: "uncommon/arthurmk.jpeg"
+    image: "uncommon/arthurmk.jpeg",
+     rawImage: "raw/arthurmk.png"
   },
 
     {
@@ -1228,7 +1235,8 @@ module.exports = [
     aka: [],
     appearance: "Moonknight",
     tier: "uncommon",
-    image: "uncommon/ammitmk.jpeg"
+    image: "uncommon/ammitmk.jpeg",
+     rawImage: "raw/ammitmk.png"
   },
 
   {
@@ -1237,16 +1245,18 @@ module.exports = [
     aka: ["Layla El-Faouly"],
     appearance: "Moonknight",
     tier: "rare",
-    image: "rare/scarletmk.jpeg"
+    image: "rare/scarletmk.jpeg",
+     rawImage: "raw/laylamk.png"
   },
 
    {
     id: 124,
-    name: "MoonKnight",
+    name: "Mr.Knight",
     aka: ["Steven Grant"],
     appearance: "Moonknight",
     tier: "epic",
-    image: "epic/stevemk.jpeg"
+    image: "epic/stevemk.jpeg",
+     rawImage: "raw/mrknight.png"
   },
 
    {
@@ -1255,7 +1265,8 @@ module.exports = [
     aka: ["Marc Spector"],
     appearance: "Moonknight",
     tier: "legendary",
-    image: "legendary/moonknightmk.jpeg"
+    image: "legendary/moonknightmk.jpeg",
+     rawImage: "raw/moonknightmk.png"
   },
 
   {
@@ -1264,7 +1275,8 @@ module.exports = [
     aka: [],
     appearance: "Deadpool & Wolverine ",
     tier: "common",
-    image: "common/ladypooldw.jpeg"
+    image: "common/ladypooldw.jpeg",
+     rawImage: "raw/ladypooldw.png"
   },
 
    {
@@ -1273,7 +1285,8 @@ module.exports = [
     aka: [],
     appearance: "Deadpool & Wolverine ",
     tier: "common",
-    image: "common/kidpooldw.jpeg"
+    image: "common/kidpooldw.jpeg",
+     rawImage: "raw/kidpooldw.png"
   },
 
    {
@@ -1282,7 +1295,8 @@ module.exports = [
     aka: [],
     appearance: "Deadpool & Wolverine ",
     tier: "common",
-    image: "common/babypooldw.jpeg"
+    image: "common/babypooldw.jpeg",
+     rawImage: "raw/babypooldw.png"
   },
 
    {
@@ -1291,7 +1305,8 @@ module.exports = [
     aka: [],
     appearance: "Deadpool & Wolverine ",
     tier: "common",
-    image: "common/cowboypooldw.jpeg"
+    image: "common/cowboypooldw.jpeg",
+     rawImage: "raw/cowboypooldw.png"
   },
 
    {
@@ -1300,7 +1315,8 @@ module.exports = [
     aka: [],
     appearance: "Deadpool & Wolverine ",
     tier: "common",
-    image: "common/headpooldw.jpeg"
+    image: "common/headpooldw.jpeg",
+     rawImage: "raw/headpooldw.png"
   },
 
    {
@@ -1309,7 +1325,8 @@ module.exports = [
     aka: [],
     appearance: "Deadpool & Wolverine ",
     tier: "common",
-    image: "common/nicepooldw.jpeg"
+    image: "common/nicepooldw.jpeg",
+     rawImage: "raw/nicepooldw.png"
   },
 
    {
@@ -1318,7 +1335,8 @@ module.exports = [
     aka: ["Peter Wisdom"],
     appearance: "Deadpool & Wolverine ",
     tier: "common",
-    image: "common/peterpooldw.jpeg"
+    image: "common/peterpooldw.jpeg",
+     rawImage: "raw/peterpooldw.png"
   },
 
    {
@@ -1327,7 +1345,8 @@ module.exports = [
     aka: [],
     appearance: "Deadpool & Wolverine ",
     tier: "common",
-    image: "common/pyrodw.jpeg"
+    image: "common/pyrodw.jpeg",
+     rawImage: "raw/pyrodw.png"
   },
 
    {
@@ -1336,7 +1355,8 @@ module.exports = [
     aka: [],
     appearance: "Deadpool & Wolverine ",
     tier: "common",
-    image: "common/sabertoothdw.jpeg"
+    image: "common/sabertoothdw.jpeg",
+     rawImage: "raw/sabertoothdw.png"
   },
 
    {
@@ -1345,7 +1365,8 @@ module.exports = [
     aka: [],
     appearance: "Deadpool & Wolverine ",
     tier: "common",
-    image: "common/paradoxdw.jpeg"
+    image: "common/paradoxdw.jpeg",
+     rawImage: "raw/paradoxdw.png"
   },
 
    {
@@ -1354,7 +1375,8 @@ module.exports = [
     aka: ["Remy Etienne LeBeau"],
     appearance: "Deadpool & Wolverine ",
     tier: "uncommon",
-    image: "uncommon/gambitdw.jpeg"
+    image: "uncommon/gambitdw.jpeg",
+     rawImage: "raw/gambitdw.png"
   },
 
    {
@@ -1363,7 +1385,8 @@ module.exports = [
     aka: [],
     appearance: "Deadpool & Wolverine ",
     tier: "uncommon",
-    image: "uncommon/elektradw.jpeg"
+    image: "uncommon/elektradw.jpeg",
+     rawImage: "raw/elektradw.png"
   },
 
   {
@@ -1372,7 +1395,8 @@ module.exports = [
     aka: ["Mary Puppins"],
     appearance: "Deadpool & Wolverine ",
     tier: "uncommon",
-    image: "uncommon/dogpooldw.jpeg"
+    image: "uncommon/dogpooldw.jpeg",
+     rawImage: "raw/dogpooldw.png"
   },
 
   {
@@ -1381,7 +1405,8 @@ module.exports = [
     aka: ["Eric Brooks"],
     appearance: "Deadpool & Wolverine ",
     tier: "uncommon",
-    image: "uncommon/bladedw.jpeg"
+    image: "uncommon/bladedw.jpeg",
+     rawImage: "raw/bladedw.png"
   },
 
    {
@@ -1390,7 +1415,8 @@ module.exports = [
     aka: ["Laura Kinney"],
     appearance: "Deadpool & Wolverine ",
     tier: "uncommon",
-    image: "uncommon/x23dw.jpeg"
+    image: "uncommon/x23dw.jpeg",
+     rawImage: "raw/x23dw.png"
   },
 
    {
@@ -1399,7 +1425,8 @@ module.exports = [
     aka: [],
     appearance: "Deadpool & Wolverine ",
     tier: "uncommon",
-    image: "uncommon/novadw.jpeg"
+    image: "uncommon/novadw.jpeg",
+     rawImage: "raw/novadw.png"
   },
 
   
@@ -1409,7 +1436,8 @@ module.exports = [
     aka: ["Johnny Storm"],
     appearance: "Deadpool & Wolverine ",
     tier: "rare",
-    image: "rare/humantorchdw.jpeg"
+    image: "rare/humantorchdw.jpeg",
+     rawImage: "raw/torchdw.png"
   },
 
   {
@@ -1418,7 +1446,8 @@ module.exports = [
     aka: ["Wade Wilson"],
     appearance: "Deadpool & Wolverine ",
     tier: "legendary",
-    image: "legendary/deadpooldw.jpeg"
+    image: "legendary/deadpooldw.jpeg",
+     rawImage: "raw/deadpooldw.png"
   },
 
   {
@@ -1427,7 +1456,8 @@ module.exports = [
     aka: ["James Howlett" , "Logan"],
     appearance: "Deadpool & Wolverine ",
     tier: "legendary",
-    image: "legendary/wolverinedw.jpeg"
+    image: "legendary/wolverinedw.jpeg",
+     rawImage: "raw/wolverinedw.png"
   },
 
   {
@@ -1436,7 +1466,8 @@ module.exports = [
     aka: [],
     appearance: "Iron Man",
     tier: "common",
-    image: "common/pepperim.jpeg"
+    image: "common/pepperim.jpeg",
+     rawImage: "raw/pepperim1.png"
   },
 
   {
@@ -1445,7 +1476,8 @@ module.exports = [
     aka: [],
     appearance: "Iron Man",
     tier: "common",
-    image: "common/jamesim.jpeg"
+    image: "common/jamesim.jpeg",
+     rawImage: "raw/jamesim.png"
   },
 
   {
@@ -1454,7 +1486,8 @@ module.exports = [
     aka: [],
     appearance: "Iron Man 2",
     tier: "common",
-    image: "common/elonim.jpeg"
+    image: "common/elonim.jpeg",
+     rawImage: "raw/elonmuskim2.png"
   },
 
   {
@@ -1463,7 +1496,8 @@ module.exports = [
     aka: [],
     appearance: "Iron Man",
     tier: "common",
-    image: "common/sternim.jpeg"
+    image: "common/sternim.jpeg",
+     rawImage: "raw/sternim.png"
   },
 
    {
@@ -1472,7 +1506,8 @@ module.exports = [
     aka: [],
     appearance: "Iron Man",
     tier: "common",
-    image: "common/razaim.jpeg"
+    image: "common/razaim.jpeg",
+     rawImage: "raw/razaim.png"
   },
 
   {
@@ -1481,7 +1516,8 @@ module.exports = [
     aka: [],
     appearance: "Iron Man",
     tier: "common",
-    image: "common/everhartim.jpeg"
+    image: "common/everhartim.jpeg",
+     rawImage: "raw/everhartim.png"
   },
 
   {
@@ -1490,7 +1526,8 @@ module.exports = [
     aka: [],
     appearance: "Iron Man 2",
     tier: "common",
-    image: "common/justinim.jpeg"
+    image: "common/justinim.jpeg",
+     rawImage: "raw/justinim.png"
   },
 
   {
@@ -1499,7 +1536,9 @@ module.exports = [
     aka: [],
     appearance: "Iron Man 3",
     tier: "common",
-    image: "common/mayaim.jpeg"
+    image: "common/mayaim.jpeg",
+     rawImage: "raw/mayaim.png"
+
   },
 
   {
@@ -1508,7 +1547,8 @@ module.exports = [
     aka: [],
     appearance: "Iron Man",
     tier: "common",
-    image: "common/yinsenim.jpeg"
+    image: "common/yinsenim.jpeg",
+     rawImage: "raw/hoim.png"
   },
 
   {
@@ -1517,7 +1557,8 @@ module.exports = [
     aka: [],
     appearance: "Iron Man 3",
     tier: "common",
-    image: "common/ellisim.jpeg"
+    image: "common/ellisim.jpeg",
+     rawImage: "raw/mathewim.png"
   },
 
   {
@@ -1526,7 +1567,8 @@ module.exports = [
     aka: [],
     appearance: "Iron Man 3",
     tier: "common",
-    image: "common/savinim.jpeg"
+    image: "common/savinim.jpeg",
+    rawImage: "raw/ericim.png"
   },
 
   {
@@ -1535,7 +1577,9 @@ module.exports = [
     aka: [],
     appearance: "Iron Man 3",
     tier: "common",
-    image: "common/harleyim.jpeg"
+    image: "common/harleyim.jpeg",
+     rawImage: "raw/kidim3.png"
+
   },
 
   {
@@ -1544,7 +1588,8 @@ module.exports = [
     aka: [],
     appearance: "Iron Man 3",
     tier: "common",
-    image: "common/ellenim.jpeg"
+    image: "common/ellenim.jpeg",
+     rawImage: "raw/ellenim.png"
   },
 
   {
@@ -1553,7 +1598,8 @@ module.exports = [
     aka: ["Tony Stark"],
     appearance: "Iron Man",
     tier: "uncommon",
-    image: "uncommon/ironmanmk1.jpeg"
+    image: "uncommon/ironmanmk1.jpeg",
+     rawImage: "raw/mark1im.png"
   },
 
    {
@@ -1562,7 +1608,8 @@ module.exports = [
     aka: ["Obadiah Stane"],
     appearance: "Iron Man",
     tier: "uncommon",
-    image: "uncommon/ironmongerim.jpeg"
+    image: "uncommon/ironmongerim.jpeg",
+     rawImage: "raw/ironmongerim.png"
   },
 
    {
@@ -1571,7 +1618,8 @@ module.exports = [
     aka: [],
     appearance: "Iron Man 2",
     tier: "uncommon",
-    image: "uncommon/happyim.jpeg"
+    image: "uncommon/happyim.jpeg",
+    rawImage: "raw/happyim.png"
   },
 
    {
@@ -1580,7 +1628,8 @@ module.exports = [
     aka: [],
     appearance: "Iron Man 3",
     tier: "uncommon",
-    image: "uncommon/aldrichim.jpeg"
+    image: "uncommon/aldrichim.jpeg",
+     rawImage: "raw/adrichim.png"
   },
 
    {
@@ -1589,7 +1638,8 @@ module.exports = [
     aka: ["Trevor Slattery"],
     appearance: "Iron Man 3",
     tier: "uncommon",
-    image: "uncommon/mandarinim.jpeg"
+    image: "uncommon/mandarinim.jpeg",
+     rawImage: "raw/mandarinim.png"
   },
 
    {
@@ -1598,7 +1648,8 @@ module.exports = [
     aka: [],
     appearance: "Iron Man 3",
     tier: "uncommon",
-    image: "uncommon/ironpatriotim.jpeg"
+    image: "uncommon/ironpatriotim.jpeg",
+    rawImage: "raw/ironpatriotim.png"
   },
 
   {
@@ -1607,7 +1658,8 @@ module.exports = [
     aka: ["James Rhoades"],
     appearance: "Iron Man 2",
     tier: "uncommon",
-    image: "uncommon/warmachineim.jpeg"
+    image: "uncommon/warmachineim.jpeg",
+    rawImage: "raw/ironpatriotim.png"
   },
 
   {
@@ -1616,7 +1668,8 @@ module.exports = [
     aka: ["Tony Stark"],
     appearance: "Iron Man",
     tier: "rare",
-    image: "rare/ironmanmk2.jpeg"
+    image: "rare/ironmanmk2.jpeg",
+     rawImage: "raw/mark2im.png"
   },
 
    {
@@ -1625,7 +1678,8 @@ module.exports = [
     aka: [],
     appearance: "Iron Man 2",
     tier: "rare",
-    image: "rare/ivanim.jpeg"
+    image: "rare/ivanim.jpeg",
+     rawImage: "raw/ivanim.png"
   },
 
    {
@@ -1634,7 +1688,8 @@ module.exports = [
     aka: ["Black Widow"],
     appearance: "Iron Man 2",
     tier: "rare",
-    image: "rare/natashaim.jpeg"
+    image: "rare/natashaim.jpeg",
+     rawImage: "raw/natashaim.png"
   },
 
    {
@@ -1643,7 +1698,8 @@ module.exports = [
     aka: ["Tony Stark"],
     appearance: "Iron Man",
     tier: "epic",
-    image: "epic/ironmanmk3.jpeg"
+    image: "epic/ironmanmk3.jpeg",
+     rawImage: "raw/ironmanim.png"
   },
 
   {
@@ -1652,7 +1708,8 @@ module.exports = [
     aka: ["Tony Stark"],
     appearance: "Iron Man 2",
     tier: "epic",
-    image: "epic/ironmanim2.jpeg"
+    image: "epic/ironmanim2.jpeg",
+     rawImage: "raw/ironman2.png"
   },
 
   {
@@ -1661,7 +1718,8 @@ module.exports = [
     aka: ["Tony Stark"],
     appearance: "Iron Man 3",
     tier: "legendary",
-    image: "legendary/ironmanim3.jpeg"
+    image: "legendary/ironmanim3.jpeg",
+    rawImage: "raw/ironman3.png"
   },
 
    {
