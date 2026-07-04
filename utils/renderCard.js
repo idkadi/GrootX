@@ -1,5 +1,9 @@
-const { createCanvas, loadImage } = require("canvas");
+const { createCanvas, loadImage, registerFont } = require("canvas");
 const path = require("path");
+
+registerFont(path.join(__dirname, "..", "fonts", "Oswald-Bold.ttf"), {
+  family: "Oswald",
+});
 
 const COLORS = {
   common: "#8B5A2B",
@@ -25,11 +29,9 @@ async function renderCard(card, serial = "000000") {
 
   const img = await loadImage(imagePath);
 
-  // fill background so no transparent/black area shows
   ctx.fillStyle = color;
   ctx.fillRect(0, 0, W, H);
 
-  // artwork area
   const margin = 36;
   const radius = 18;
 
@@ -48,7 +50,6 @@ async function renderCard(card, serial = "000000") {
   ctx.drawImage(img, drawX, drawY, drawW, drawH);
   ctx.restore();
 
-  // bottom panel
   const panelY = 1210;
   const panelH = H - panelY - margin;
 
@@ -59,22 +60,17 @@ async function renderCard(card, serial = "000000") {
   ctx.fillStyle = gradient;
   ctx.fillRect(imgX, panelY, imgW, panelH);
 
-  // text
   ctx.fillStyle = "#fff";
+  ctx.textAlign = "left";
 
-  ctx.font = "bold 32px Arial";
+  ctx.font = "700 32px Oswald";
   ctx.fillText(`#${String(serial).padStart(6, "0")}`, 70, 1285);
 
-  ctx.font = "bold 54px Arial";
+  ctx.font = "700 54px Oswald";
   ctx.fillText(String(card.name || "UNKNOWN").toUpperCase(), 70, 1365);
 
-  ctx.font = "bold 34px Arial";
+  ctx.font = "700 34px Oswald";
   ctx.fillText(String(card.appearance || "").toUpperCase(), 70, 1425);
-
-  // outer rarity border
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 8;
-  ctx.strokeRect(6, 6, W - 12, H - 12);
 
   return canvas.toBuffer("image/png");
 }

@@ -22,24 +22,56 @@ console.log("\n========== CARD LOADING ==========");
 console.log(`✅ Total Cards Loaded: ${cards.length}`);
 
 let brokenImages = 0;
+let brokenRawImages = 0;
+
+const rawDir = path.join(__dirname, "images", "raw");
+
+let rawImageFiles = [];
+
+try {
+  rawImageFiles = fs
+    .readdirSync(rawDir)
+    .filter(file =>
+      [".png", ".jpg", ".jpeg", ".webp"].includes(
+        path.extname(file).toLowerCase()
+      )
+    );
+
+  console.log(`🖼️ Total Raw Images Found: ${rawImageFiles.length}`);
+} catch (err) {
+  console.log("❌ images/raw folder not found!");
+  console.log(`Path checked: ${rawDir}`);
+}
 
 cards.forEach(card => {
-  const imagePath = path.join(__dirname, "images", card.image);
+  if (card.rawImage) {
+    const rawPath = path.join(__dirname, "images", card.rawImage);
 
-  if (!fs.existsSync(imagePath)) {
-    console.log(`❌ Missing Image: ${card.image}`);
+    if (!fs.existsSync(rawPath)) {
+      console.log(`❌ Missing Raw Image: ${card.name} => ${card.rawImage}`);
+      brokenRawImages++;
+    }
+  } else if (card.image) {
+    const imagePath = path.join(__dirname, "images", card.image);
+
+    if (!fs.existsSync(imagePath)) {
+      console.log(`❌ Missing Image: ${card.name} => ${card.image}`);
+      brokenImages++;
+    }
+  } else {
+    console.log(`❌ No image/rawImage set for card: ${card.name}`);
     brokenImages++;
   }
 });
 
-if (brokenImages === 0) {
-  console.log("✅ All card images found!");
+if (brokenImages === 0 && brokenRawImages === 0) {
+  console.log("✅ All card images and raw images found!");
 } else {
-  console.log(`❌ ${brokenImages} broken images found`);
+  console.log(`❌ Broken normal images: ${brokenImages}`);
+  console.log(`❌ Broken raw images: ${brokenRawImages}`);
 }
 
 console.log("==================================\n");
-
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,

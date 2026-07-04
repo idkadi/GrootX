@@ -278,7 +278,8 @@ module.exports = [
     aka: ["Harry"],
     appearance: "The Amazing Spider-man 2",
     tier: "common",
-    image: "common/harrytasm.jpeg"
+    image: "common/harrytasm.jpeg",
+     rawImage: "raw/harryosborntasm.png"
   },
 
   {
@@ -287,7 +288,8 @@ module.exports = [
     aka: [],
     appearance: "The Amazing Spider-man 2",
     tier: "common",
-    image: "common/jeorge.jpeg"
+    image: "common/jeorge.jpeg",
+     rawImage: "raw/vegatasm.png"
   },
 
   {
@@ -306,7 +308,8 @@ module.exports = [
     aka: ["Harry Osborn",],
     appearance: "The Amazing Spider-man 2",
     tier: "uncommon",
-    image: "uncommon/newgoblintasm.jpeg"
+    image: "uncommon/newgoblintasm.jpeg",
+     rawImage: "raw/newgoblintasm.png"
   },
 
   {
@@ -326,7 +329,9 @@ module.exports = [
     aka: [],
     appearance: "The Amazing Spider-man 2",
     tier: "uncommon",
-    image: "uncommon/rhinotasm.jpeg"
+    image: "uncommon/rhinotasm.jpeg",
+     rawImage: "raw/rhinotasm.png"
+
   },
 
   {
@@ -335,7 +340,8 @@ module.exports = [
     aka: [],
     appearance: "The Amazing Spider-man 2",
     tier: "common",
-    image: "common/feliciatasm.jpeg"
+    image: "common/feliciatasm.jpeg",
+     rawImage: "raw/feliciatasm.png"
   },
 
   {
@@ -344,7 +350,8 @@ module.exports = [
     aka: ["Max Dillon"],
     appearance: "The Amazing Spider-man 2",
     tier: "rare",
-    image: "rare/electrotasm.jpeg"
+    image: "rare/electrotasm.jpeg",
+     rawImage: "raw/electrotasm.png"
   },
 
   {
@@ -406,7 +413,8 @@ module.exports = [
     aka: [],
     appearance: "Spider-man : Homecoming",
     tier: "common",
-    image: "common/bettybranthome.jpeg"
+    image: "common/bettybranthome.jpeg",
+    rawImage: "raw/bettyhome.png"
   },
 
   {
@@ -415,7 +423,9 @@ module.exports = [
     aka: [],
     appearance: "Spider-man : Far from Home",
     tier: "common",
-    image: "common/bradhome.jpeg"
+    image: "common/bradhome.jpeg",
+    rawImage: "raw/bradhome.png"
+    
   },
 
   {
@@ -424,7 +434,8 @@ module.exports = [
     aka: [],
     appearance: "Spider-man : Homecoming",
     tier: "common",
-    image: "common/flashhome.jpeg"
+    image: "common/flashhome.jpeg",
+     rawImage: "raw/flashhome.png"
   },
  
  {
@@ -433,7 +444,8 @@ module.exports = [
     aka: [],
     appearance: "Spider-man : Homecoming",
     tier: "common",
-    image: "common/lizhome.jpeg"
+    image: "common/lizhome.jpeg",
+     rawImage: "raw/lizhome.png"
   }, 
 
   {
@@ -442,7 +454,9 @@ module.exports = [
     aka: [],
     appearance: "Spider-man : No way home",
     tier: "common",
-    image: "common/mithome.jpeg"
+    image: "common/mithome.jpeg",
+    rawImage: "raw/mithome.png"
+
   },
 
   {
@@ -451,7 +465,10 @@ module.exports = [
     aka: [],
     appearance: "Spider-man : Homecoming",
     tier: "common",
-    image: "common/rogerhome.jpeg"
+    image: "common/rogerhome.jpeg",
+     rawImage: "raw/rogerhome.png"
+
+
   },
 
    {
@@ -460,7 +477,8 @@ module.exports = [
     aka: ["JJJ"],
     appearance: "Spider-man : No way home",
     tier: "common",
-    image: "common/jjjhome.jpeg"
+    image: "common/jjjhome.jpeg",
+     rawImage: "raw/jjjhome.png"
   },
 
   {
@@ -469,7 +487,8 @@ module.exports = [
     aka: ["Adrian Toomes"],
     appearance: "Spider-man : Homecoming",
     tier: "uncommon",
-    image: "uncommon/vulturehome.jpeg"
+    image: "uncommon/vulturehome.jpeg",
+     rawImage: "raw/vulturehome.png"
   },
 
   {
@@ -478,7 +497,8 @@ module.exports = [
     aka: [],
     appearance: "Spider-man : Far from Home",
     tier: "uncommon",
-    image: "uncommon/nickhome.jpeg"
+    image: "uncommon/nickhome.jpeg",
+     rawImage: "raw/nickfuryhome.png"
   },
 
   {
@@ -487,7 +507,8 @@ module.exports = [
     aka: [],
     appearance: "Spider-man : Far from Home",
     tier: "uncommon",
-    image: "uncommon/airhome.jpeg"
+    image: "uncommon/airhome.jpeg",
+    rawImage: "raw/airhome.png"
   },
 
   {
@@ -496,7 +517,8 @@ module.exports = [
     aka: [],
     appearance: "Spider-man : Far from Home",
     tier: "uncommon",
-    image: "uncommon/earthhome.jpeg"
+    image: "uncommon/earthhome.jpeg",
+    rawImage: "raw/earthhome.png"
   },
 
   {
@@ -505,7 +527,8 @@ module.exports = [
     aka: [],
     appearance: "Spider-man : Far from Home",
     tier: "uncommon",
-    image: "uncommon/firehome.jpeg"
+    image: "uncommon/firehome.jpeg",
+    rawImage: "raw/firehome.png"
   },
 
   {
@@ -514,7 +537,8 @@ module.exports = [
     aka: [],
     appearance: "Spider-man : Far from Home",
     tier: "uncommon",
-    image: "uncommon/waterhome.jpeg"
+    image: "uncommon/waterhome.jpeg",
+    rawImage: "raw/waterhome.png"
   },
 
   {
@@ -523,7 +547,8 @@ module.exports = [
     aka: ["Iron Man"],
     appearance: "Spider-man : Homecoming",
     tier: "rare",
-    image: "rare/tonystarkhome.jpeg"
+    image: "rare/tonystarkhome.jpeg",
+     rawImage: "raw/tonyhome.png"
   },
 
   {
@@ -532,7 +557,8 @@ module.exports = [
     aka: ["Peter Parker"],
     appearance: "Spider-man : Far from Home",
     tier: "rare",
-    image: "rare/nightmonkeyhome.jpeg"
+    image: "rare/nightmonkeyhome.jpeg",
+     rawImage: "raw/nightmonkeyhome.png"
   },
 
   {
@@ -541,7 +567,8 @@ module.exports = [
     aka: ["Quentin Beck"],
     appearance: "Spider-man : Far from Home",
     tier: "rare",
-    image: "rare/mysteriohome.jpeg"
+    image: "rare/mysteriohome.jpeg",
+     rawImage: "raw/mysteriohome.png"
   },
 
   {
@@ -550,7 +577,8 @@ module.exports = [
     aka: ["Max Dillon"],
     appearance: "Spider-man : No way home",
     tier: "rare",
-    image: "rare/electrohome.jpeg"
+    image: "rare/electrohome.jpeg",
+     rawImage: "raw/electrohome.png"
   },
 
   {
@@ -559,7 +587,8 @@ module.exports = [
     aka: ["Noman Osborn"],
     appearance: "Spider-man : No way home",
     tier: "epic",
-    image: "epic/greengoblinhome.jpeg"
+    image: "epic/greengoblinhome.jpeg",
+     rawImage: "raw/goblinhome.png"
   },
 
   {
@@ -568,7 +597,8 @@ module.exports = [
     aka: ["Peter Parker"],
     appearance: "Spider-man : No way home",
     tier: "epic",
-    image: "epic/ironspiderhome.jpeg"
+    image: "epic/ironspiderhome.jpeg",
+     rawImage: "raw/ironspiderhome.png"
   },
 
   {
@@ -577,7 +607,8 @@ module.exports = [
     aka: ["Peter Parker"],
     appearance: "Spider-man : Homecoming",
     tier: "epic",
-    image: "epic/spiderhome.jpeg"
+    image: "epic/spiderhome.jpeg",
+      rawImage: "raw/spiderhome.png"
   },
 
   {
@@ -586,7 +617,8 @@ module.exports = [
     aka: ["Peter Parker"],
     appearance: "Spider-man : No way home",
     tier: "legendary",
-    image: "legendary/spider-mannwh.jpeg"
+    image: "legendary/spider-mannwh.jpeg",
+    rawImage: "raw/spidermannwh.png"
   },
 
   {
@@ -4586,7 +4618,8 @@ module.exports = [
     aka: [],
     appearance: "Black Widow",
     tier: "common",
-    image: "common/dreykovbw.jpeg"
+    image: "common/dreykovbw.jpeg",
+    rawImage: "dreykovbw.png"
   },
 
   {
@@ -4595,7 +4628,8 @@ module.exports = [
     aka: [],
     appearance: "Black Widow",
     tier: "common",
-    image: "common/rickbw.jpeg"
+    image: "common/rickbw.jpeg",
+    rawImage: "rickmasonbw.png"
   },
 
   {
@@ -4604,7 +4638,8 @@ module.exports = [
     aka: ["Antonia Dreykov"],
     appearance: "Black Widow",
     tier: "rare",
-    image: "rare/taskmasterbw.jpeg"
+    image: "rare/taskmasterbw.jpeg",
+    rawImage: "taskmasterbw.png"
   },
 
   {
@@ -4613,7 +4648,8 @@ module.exports = [
     aka: ["Alexei Shostakov"],
     appearance: "Black Widow",
     tier: "rare",
-    image: "rare/redbw.jpeg"
+    image: "rare/redbw.jpeg",
+     rawImage: "redguardianbw.png"
   },
 
    {
@@ -4622,7 +4658,8 @@ module.exports = [
     aka: [],
     appearance: "Black Widow",
     tier: "rare",
-    image: "rare/melinabw.jpeg"
+    image: "rare/melinabw.jpeg",
+     rawImage: "melinabw.png"
   },
 
    {
@@ -4631,7 +4668,8 @@ module.exports = [
     aka: [],
     appearance: "Black Widow",
     tier: "epic",
-    image: "epic/yelenabw.jpeg"
+    image: "epic/yelenabw.jpeg",
+     rawImage: "yelenabw.png"
   },
 
      {
@@ -4640,7 +4678,8 @@ module.exports = [
     aka: ["Natasha Romanoff"],
     appearance: "Black Widow",
     tier: "legendary",
-    image: "legendary/blackwidowbw.jpeg"
+    image: "legendary/blackwidowbw.jpeg",
+     rawImage: "blackwidowbw.png"
   },
 
    {
@@ -4676,7 +4715,8 @@ module.exports = [
     aka: [],
     appearance: "Spider-man (2002)",
     tier: "common",
-    image: "common/dennissp.jpeg"
+    image: "common/dennissp.jpeg",
+    rawImage: "dennissp.png"
   },
 
    {
