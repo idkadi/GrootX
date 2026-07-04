@@ -627,7 +627,8 @@ module.exports = [
     aka: [],
     appearance: "Daredevil",
     tier: "common",
-    image: "common/benurichdd.jpeg"
+    image: "common/benurichdd.jpeg",
+    rawImage: "raw/benurichdd.png"
   },
 
   {
@@ -636,7 +637,8 @@ module.exports = [
     aka: [],
     appearance: "Daredevil",
     tier: "common",
-    image: "common/brettdd.jpeg"
+    image: "common/brettdd.jpeg",
+     rawImage: "raw/brettdd.png"
   },
 
   {
@@ -645,7 +647,8 @@ module.exports = [
     aka: [],
     appearance: "Daredevil",
     tier: "common",
-    image: "common/clairedd.jpeg"
+    image: "common/clairedd.jpeg",
+     rawImage: "raw/clairedd.png"
   },
 
   {
@@ -654,7 +657,8 @@ module.exports = [
     aka: [],
     appearance: "Daredevil",
     tier: "common",
-    image: "common/ellisondd.jpeg"
+    image: "common/ellisondd.jpeg",
+    rawImage: "raw/michdd.png"
   },
 
   {
@@ -663,7 +667,8 @@ module.exports = [
     aka: [],
     appearance: "Daredevil",
     tier: "common",
-    image: "common/gaodd.jpeg"
+    image: "common/gaodd.jpeg",
+     rawImage: "raw/gaodd.png"
   },
 
   {
@@ -672,7 +677,8 @@ module.exports = [
     aka: [],
     appearance: "Daredevil",
     tier: "common",
-    image: "common/grottodd.jpeg"
+    image: "common/grottodd.jpeg",
+     rawImage: "raw/grottodd.png"
   },
 
   {
@@ -681,7 +687,8 @@ module.exports = [
     aka: [],
     appearance: "Daredevil",
     tier: "common",
-    image: "common/jackdd.jpeg"
+    image: "common/jackdd.jpeg",
+     rawImage: "raw/jackdd.png"
   },
 
   {
@@ -690,7 +697,8 @@ module.exports = [
     aka: [],
     appearance: "Daredevil",
     tier: "common",
-    image: "common/jamesdd.jpeg"
+    image: "common/jamesdd.jpeg",
+     rawImage: "raw/jamesdd.png"
   },
 
   {
@@ -699,7 +707,8 @@ module.exports = [
     aka: [],
     appearance: "Daredevil",
     tier: "common",
-    image: "common/josiedd.jpeg"
+    image: "common/josiedd.jpeg",
+     rawImage: "raw/josiedd.png"
   },
 
   {
@@ -708,7 +717,8 @@ module.exports = [
     aka: [],
     appearance: "Daredevil",
     tier: "common",
-    image: "common/juliedd.jpeg"
+    image: "common/juliedd.jpeg",
+     rawImage: "raw/juliedd.png"
   },
 
   {
@@ -717,7 +727,9 @@ module.exports = [
     aka: [],
     appearance: "Daredevil",
     tier: "common",
-    image: "common/maggiedd.jpeg"
+    image: "common/maggiedd.jpeg",
+    rawImage: "raw/maggiedd.png"
+  
   },
 
   {
@@ -726,7 +738,9 @@ module.exports = [
     aka: [],
     appearance: "Daredevil",
     tier: "common",
-    image: "common/marcidd.jpeg"
+    image: "common/marcidd.jpeg",
+     rawImage: "raw/marcidd.png"
+  
   },
 
   {
@@ -735,7 +749,8 @@ module.exports = [
     aka: ["Father Lanthom"],
     appearance: "Daredevil",
     tier: "common",
-    image: "common/pauldd.jpeg"
+    image: "common/pauldd.jpeg",
+     rawImage: "raw/pauldd.png"
   },
 
   {
@@ -744,7 +759,8 @@ module.exports = [
     aka: [],
     appearance: "Daredevil",
     tier: "common",
-    image: "common/rahuldd.jpeg"
+    image: "common/rahuldd.jpeg",
+     rawImage: "raw/rahuldd.png"
   },
 
   {
@@ -753,7 +769,8 @@ module.exports = [
     aka: [],
     appearance: "Daredevil",
     tier: "common",
-    image: "common/stickdd.jpeg"
+    image: "common/stickdd.jpeg",
+    rawImage: "raw/stickdd.png"
   },
 
   {
@@ -762,7 +779,8 @@ module.exports = [
     aka: [],
     appearance: "Daredevil",
     tier: "common",
-    image: "common/turkdd.jpeg"
+    image: "common/turkdd.jpeg",
+    rawImage: "raw/turkdd.png"
   },
 
   {
@@ -771,7 +789,8 @@ module.exports = [
     aka: ["Old Foggy"],
     appearance: "Daredevil",
     tier: "uncommon",
-    image: "uncommon/foggydd.jpeg"
+    image: "uncommon/foggydd.jpeg",
+    rawImage: "raw/foggydd.png"
   },
 
    {
@@ -780,7 +799,8 @@ module.exports = [
     aka: [],
     appearance: "Daredevil",
     tier: "uncommon",
-    image: "uncommon/karendd.jpeg"
+    image: "uncommon/karendd.jpeg",
+    rawImage: "raw/karendd.png"
   },
 
    {
@@ -789,7 +809,8 @@ module.exports = [
     aka: [],
     appearance: "Daredevil",
     tier: "uncommon",
-    image: "uncommon/nobudd.jpeg"
+    image: "uncommon/nobudd.jpeg",
+    rawImage: "raw/nobudd.png"
   },
 
    {
@@ -798,7 +819,8 @@ module.exports = [
     aka: ["Mrs Fisk"],
     appearance: "Daredevil",
     tier: "uncommon",
-    image: "uncommon/vanessadd.jpeg"
+    image: "uncommon/vanessadd.jpeg",
+    rawImage: "raw/vanessadd.png"
   },
 
    {
@@ -807,7 +829,8 @@ module.exports = [
     aka: ["Bullseye" , "Ben Poindex"],
     appearance: "Daredevil",
     tier: "rare",
-    image: "rare/benpoindexdd.jpeg"
+    image: "rare/benpoindexdd.jpeg",
+     rawImage: "raw/benpoindexdd.png"
   },
 
   {
@@ -816,7 +839,8 @@ module.exports = [
     aka: [],
     appearance: "Daredevil",
     tier: "rare",
-    image: "rare/elektradd.jpeg"
+    image: "rare/elektradd.jpeg",
+     rawImage: "raw/elektradd.png"
   },
 
   {
@@ -825,7 +849,8 @@ module.exports = [
     aka: ["The Punisher"],
     appearance: "Daredevil",
     tier: "rare",
-    image: "rare/frankdd.jpeg"
+    image: "rare/frankdd.jpeg",
+     rawImage: "raw/frankdd.png"
   },
 
   {
@@ -834,7 +859,8 @@ module.exports = [
     aka: ["Kingpin"],
     appearance: "Daredevil",
     tier: "rare",
-    image: "rare/wilsondd.jpeg"
+    image: "rare/wilsondd.jpeg",
+     rawImage: "raw/wilsondd.png"
   },
 
   {
@@ -843,7 +869,8 @@ module.exports = [
     aka: ["Matt Murdock"],
     appearance: "Daredevil",
     tier: "epic",
-    image: "epic/daredevildd.jpeg"
+    image: "epic/daredevildd.jpeg",
+     rawImage: "raw/daredevildd.png"
   },
 
   {
@@ -4619,7 +4646,7 @@ module.exports = [
     appearance: "Black Widow",
     tier: "common",
     image: "common/dreykovbw.jpeg",
-    rawImage: "dreykovbw.png"
+    rawImage: "raw/dreykovbw.png"
   },
 
   {
@@ -4629,7 +4656,7 @@ module.exports = [
     appearance: "Black Widow",
     tier: "common",
     image: "common/rickbw.jpeg",
-    rawImage: "rickmasonbw.png"
+    rawImage: "raw/rickmasonbw.png"
   },
 
   {
@@ -4639,7 +4666,7 @@ module.exports = [
     appearance: "Black Widow",
     tier: "rare",
     image: "rare/taskmasterbw.jpeg",
-    rawImage: "taskmasterbw.png"
+    rawImage: "raw/taskmasterbw.png"
   },
 
   {
@@ -4649,7 +4676,7 @@ module.exports = [
     appearance: "Black Widow",
     tier: "rare",
     image: "rare/redbw.jpeg",
-     rawImage: "redguardianbw.png"
+     rawImage: "raw/redguardianbw.png"
   },
 
    {
@@ -4659,7 +4686,7 @@ module.exports = [
     appearance: "Black Widow",
     tier: "rare",
     image: "rare/melinabw.jpeg",
-     rawImage: "melinabw.png"
+     rawImage: "raw/melinabw.png"
   },
 
    {
@@ -4669,7 +4696,7 @@ module.exports = [
     appearance: "Black Widow",
     tier: "epic",
     image: "epic/yelenabw.jpeg",
-     rawImage: "yelenabw.png"
+     rawImage: "raw/yelenabw.png"
   },
 
      {
@@ -4679,7 +4706,7 @@ module.exports = [
     appearance: "Black Widow",
     tier: "legendary",
     image: "legendary/blackwidowbw.jpeg",
-     rawImage: "blackwidowbw.png"
+     rawImage: "raw/blackwidowbw.png"
   },
 
    {
@@ -4716,7 +4743,7 @@ module.exports = [
     appearance: "Spider-man (2002)",
     tier: "common",
     image: "common/dennissp.jpeg",
-    rawImage: "dennissp.png"
+    rawImage: "raw/dennissp.png"
   },
 
    {
