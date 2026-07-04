@@ -12,6 +12,7 @@ const COLORS = {
 async function renderCard(card, serial = "000000") {
   const W = 1054;
   const H = 1492;
+
   const canvas = createCanvas(W, H);
   const ctx = canvas.getContext("2d");
 
@@ -24,62 +25,65 @@ async function renderCard(card, serial = "000000") {
 
   const img = await loadImage(imagePath);
 
-  ctx.clearRect(0, 0, W, H);
-
-  // Thin tier frame
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 8;
-  ctx.strokeRect(28, 28, W - 56, H - 56);
-
-  ctx.strokeStyle = "#ffffff";
-  ctx.lineWidth = 3;
-  ctx.strokeRect(40, 40, W - 80, H - 80);
-
-  // Rounded image
-  roundRect(ctx, 65, 65, 924, 1290, 18);
+  // main image full card
+  roundRect(ctx, 40, 40, W - 80, H - 80, 18);
   ctx.save();
   ctx.clip();
-  ctx.drawImage(img, 65, 65, 924, 1290);
+  ctx.drawImage(img, 40, 40, W - 80, H - 80);
   ctx.restore();
 
-  // Bottom transparent panel
-  const panelY = 1170;
-  const panelH = 185;
+  // thin tier border only
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 8;
+  roundRect(ctx, 25, 25, W - 50, H - 50, 0);
+  ctx.stroke();
 
-  const gradient = ctx.createLinearGradient(65, panelY, 989, panelY + panelH);
-  gradient.addColorStop(0, hexToRgba(color, 0.82));
-  gradient.addColorStop(1, hexToRgba(color, 0.55));
+  // bottom translucent panel
+  const panelX = 40;
+  const panelY = 1160;
+  const panelW = W - 80;
+  const panelH = 292;
+
+  const gradient = ctx.createLinearGradient(panelX, panelY, panelX + panelW, panelY);
+  gradient.addColorStop(0, hexToRgba(color, 0.85));
+  gradient.addColorStop(1, hexToRgba(color, 0.45));
 
   ctx.fillStyle = gradient;
-  roundRect(ctx, 65, panelY, 924, panelH, 14);
+  roundRect(ctx, panelX, panelY, panelW, panelH, 14);
   ctx.fill();
 
-  // Text
+  // text
   ctx.fillStyle = "#fff";
 
+  ctx.font = "bold 34px Arial";
+  ctx.fillText(`#${serial}`, 70, 1235);
+
+  ctx.font = "bold 54px Arial";
+  ctx.fillText(card.name.toUpperCase(), 70, 1310);
+
   ctx.font = "bold 32px Arial";
-  ctx.fillText(`#${serial}`, 90, 1235);
-
-  ctx.font = "bold 46px Arial";
-  ctx.fillText(card.name.toUpperCase(), 90, 1295);
-
-  ctx.font = "bold 29px Arial";
-  ctx.fillText(card.appearance.toUpperCase(), 90, 1340);
+  ctx.fillText(card.appearance.toUpperCase(), 70, 1360);
 
   return canvas.toBuffer("image/png");
 }
 
 function roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
+
+  if (r <= 0) {
+    ctx.rect(x, y, w, h);
+  } else {
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+  }
+
   ctx.closePath();
 }
 
