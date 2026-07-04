@@ -1024,7 +1024,8 @@ module.exports = [
     aka: [],
     appearance: "The Punisher",
     tier: "common",
-    image: "common/leotp.jpeg"
+    image: "common/leotp.jpeg",
+    rawImage: "raw/leotp.png"
   },
 
    {
@@ -1033,7 +1034,8 @@ module.exports = [
     aka: [],
     appearance: "The Punisher",
     tier: "common",
-    image: "common/lisatp.jpeg"
+    image: "common/lisatp.jpeg",
+    rawImage: "raw/lisatp.png"
   },
 
    {
@@ -1042,7 +1044,8 @@ module.exports = [
     aka: [],
     appearance: "The Punisher",
     tier: "common",
-    image: "common/kristatp.jpeg"
+    image: "common/kristatp.jpeg",
+    rawImage: "raw/kirstatp.png"
   },
 
    {
@@ -1051,7 +1054,9 @@ module.exports = [
     aka: [],
     appearance: "The Punisher",
     tier: "common",
-    image: "common/mariatp.jpeg"
+    image: "common/mariatp.jpeg",
+    rawImage: "raw/mariatp.png"
+
   },
 
    {
@@ -1060,7 +1065,8 @@ module.exports = [
     aka: [],
     appearance: "The Punisher",
     tier: "common",
-    image: "common/zachtp.jpeg"
+    image: "common/zachtp.jpeg",
+     rawImage: "raw/zachtp.png"
   },
 
    {
@@ -1069,7 +1075,8 @@ module.exports = [
     aka: [],
     appearance: "The Punisher",
     tier: "common",
-    image: "common/sarahtp.jpeg"
+    image: "common/sarahtp.jpeg",
+     rawImage: "raw/sarahtp.png"
   },
 
    {
@@ -1078,7 +1085,8 @@ module.exports = [
     aka: [],
     appearance: "The Punisher",
     tier: "common",
-    image: "common/curtistp.jpeg"
+    image: "common/curtistp.jpeg",
+         rawImage: "raw/curtistp.png"
   },
 
    {
@@ -1087,7 +1095,8 @@ module.exports = [
     aka: [],
     appearance: "The Punisher",
     tier: "uncommon",
-    image: "uncommon/amytp.jpeg"
+    image: "uncommon/amytp.jpeg",
+     rawImage: "raw/amytp.png"
   },
 
   {
@@ -1096,7 +1105,8 @@ module.exports = [
     aka: [],
     appearance: "The Punisher",
     tier: "uncommon",
-    image: "uncommon/dinnahtp.jpeg"
+    image: "uncommon/dinnahtp.jpeg",
+     rawImage: "raw/dinahtp.png"
   },
 
     {
@@ -1105,7 +1115,8 @@ module.exports = [
     aka: ["David Lieberman"],
     appearance: "The Punisher",
     tier: "uncommon",
-    image: "uncommon/microtp.jpeg"
+    image: "uncommon/microtp.jpeg",
+     rawImage: "raw/microtp.png"
   },
 
     {
@@ -1114,7 +1125,8 @@ module.exports = [
     aka: [],
     appearance: "The Punisher",
     tier: "uncommon",
-    image: "uncommon/orangetp.jpeg"
+    image: "uncommon/orangetp.jpeg",
+     rawImage: "raw/orangetp.png"
   },
 
     {
@@ -1123,7 +1135,8 @@ module.exports = [
     aka: ["Billy Russo"],
     appearance: "The Punisher",
     tier: "rare",
-    image: "rare/jigsawtp.jpeg"
+    image: "rare/jigsawtp.jpeg",
+     rawImage: "raw/jigsawtp.png"
   },
 
     {
@@ -1132,7 +1145,8 @@ module.exports = [
     aka: [],
     appearance: "The Punisher",
     tier: "rare",
-    image: "rare/johntp.jpeg"
+    image: "rare/johntp.jpeg",
+     rawImage: "raw/johntp.png"
   },
 
     {
@@ -1141,7 +1155,8 @@ module.exports = [
     aka: ["Frank Castle"],
     appearance: "The Punisher",
     tier: "legendary",
-    image: "legendary/punishertp.jpeg"
+    image: "legendary/punishertp.jpeg",
+    rawImage: "raw/punishertp.png"
   },
 
    {
