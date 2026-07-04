@@ -36,7 +36,7 @@ module.exports = [
     appearance: "Spider-Man (2002)",
     tier: "common",
     image: "common/mjsp.jpeg",
-     rawImage: "raw/marryjanesp.png"
+     rawImage: "raw/maryjanesp.png"
   },
 
   {
@@ -95,7 +95,9 @@ module.exports = [
     aka: ["Eddie"],
     appearance: "Spider-Man 3 (2007)",
     tier: "common",
-    image: "common/eddiebrocksp.jpeg"
+    image: "common/eddiebrocksp.jpeg",
+    rawImage: "raw/eddiebrocksp3.png"
+
   },
 
   {
@@ -104,7 +106,8 @@ module.exports = [
     aka: ["Gwen"],
     appearance: "Spider-Man 3 (2007)",
     tier: "common",
-    image: "common/gwenstacysp.jpg"
+    image: "common/gwenstacysp.jpg",
+    rawImage: "raw/gwenstacysp3.png"
   },
 
   {
@@ -123,7 +126,8 @@ module.exports = [
     aka: ["Ursula"],
     appearance: "Spider-Man 3 (2007)",
     tier: "common",
-    image: "common/Ursula.jpeg"
+    image: "common/Ursula.jpeg",
+    rawImage: "raw/ursulasp3.png"
   },
 
  
@@ -143,7 +147,9 @@ module.exports = [
     aka: ["Harry","New Goblin",],
     appearance: "Spider-Man 3 (2007)",
     tier: "uncommon",
-    image: "uncommon/newgoblin.jpeg"
+    image: "uncommon/newgoblin.jpeg",
+     rawImage: "raw/harrysp3.png"
+
   },
 
  {
@@ -152,7 +158,8 @@ module.exports = [
     aka: ["Sand man","Flint Marko"],
     appearance: "Spider-Man 3 (2007)",
     tier: "uncommon",
-    image: "uncommon/sandmansp.jpeg"
+    image: "uncommon/sandmansp.jpeg",
+     rawImage: "raw/sandmansp3.png"
   },
 
   {
@@ -170,7 +177,8 @@ module.exports = [
     aka: [],
     appearance: "Spider-Man 3 (2007)",
     tier: "epic",
-    image: "epic/venomsp.jpeg"
+    image: "epic/venomsp.jpeg",
+     rawImage: "raw/venomsp3.png"
   },
 
   {
@@ -189,7 +197,8 @@ module.exports = [
     aka: ["Black Spider-man","Bully Maguire",],
     appearance: "Spider-Man 3 (2007)",
     tier: "legendary",
-    image: "legendary/bullymaguire.jpeg"
+    image: "legendary/bullymaguire.jpeg",
+     rawImage: "raw/spidervenom.png"
   },
 
   {
@@ -198,7 +207,8 @@ module.exports = [
     aka: ["Uncle ben"],
     appearance: "The Amazing Spider-man",
     tier: "common",
-    image: "common/benparkertasm.jpeg"
+    image: "common/benparkertasm.jpeg",
+     rawImage: "raw/unclebentasm.png"
   },
 
   {
@@ -207,7 +217,8 @@ module.exports = [
     aka: ["Aunt May"],
     appearance: "The Amazing Spider-man",
     tier: "common",
-    image: "common/mayparkertasm.jpeg"
+    image: "common/mayparkertasm.jpeg",
+     rawImage: "raw/auntmaytasm.png"
   },
 
   {
@@ -216,7 +227,8 @@ module.exports = [
     aka: [],
     appearance: "The Amazing Spider-man",
     tier: "common",
-    image: "common/richardparkertasm.jpeg"
+    image: "common/richardparkertasm.jpeg",
+     rawImage: "raw/richardtasm.png"
   },
 
   {
@@ -225,7 +237,8 @@ module.exports = [
     aka: [],
     appearance: "The Amazing Spider-man",
     tier: "common",
-    image: "common/maryparkertasm.jpeg"
+    image: "common/maryparkertasm.jpeg",
+     rawImage: "raw/maryparkertasm.png"
   },
 
   {
@@ -234,7 +247,8 @@ module.exports = [
     aka: ["Captain Stacy"],
     appearance: "The Amazing Spider-man",
     tier: "common",
-    image: "common/georgestacy.jpeg"
+    image: "common/georgestacy.jpeg",
+     rawImage: "raw/georgetasm.png"
   },
 
   {
@@ -243,7 +257,9 @@ module.exports = [
     aka: ["Flash"],
     appearance: "The Amazing Spider-man",
     tier: "common",
-    image: "common/flashtasm.jpeg"
+    image: "common/flashtasm.jpeg",
+    rawImage: "raw/flashtasm.png"
+
   },
 
   {
@@ -252,7 +268,8 @@ module.exports = [
     aka: [],
     appearance: "The Amazing Spider-man",
     tier: "common",
-    image: "common/ranjit.jpeg"
+    image: "common/ranjit.jpeg",
+    rawImage: "raw/ranjittasm.png"
   },
 
   {
@@ -279,7 +296,8 @@ module.exports = [
     aka: ["Curt Connors", "Doctor Connors"],
     appearance: "The Amazing Spider-man",
     tier: "uncommon",
-    image: "uncommon/lizardtasm.jpeg"
+    image: "uncommon/lizardtasm.jpeg",
+    rawImage: "raw/lizardtasm.png"
   },
 
   {
@@ -297,7 +315,9 @@ module.exports = [
     aka: ["Gwen"],
     appearance: "The Amazing Spider-man",
     tier: "uncommon",
-    image: "uncommon/gwenstacytasm.jpeg"
+    image: "uncommon/gwenstacytasm.jpeg",
+     rawImage: "raw/gwenstacytasm.png"
+
   },
 
   {
@@ -333,7 +353,9 @@ module.exports = [
     aka: ["Peter Parker","Spidey"],
     appearance: "The Amazing Spider-man",
     tier: "legendary",
-    image: "legendary/spider-mantasm.jpeg"
+    image: "legendary/spider-mantasm.jpeg",
+    rawImage: "raw/spidermantasm.png"
+
   },
 
   {
@@ -342,7 +364,8 @@ module.exports = [
     aka: ["Aunt May"],
     appearance: "Spider-man : Homecoming",
     tier: "common",
-    image: "common/mayparkerhome.jpeg"
+    image: "common/mayparkerhome.jpeg",
+    rawImage: "raw/mayparkerhome.png"
   },
 
   {
@@ -351,7 +374,8 @@ module.exports = [
     aka: [],
     appearance: "Spider-man : Homecoming",
     tier: "common",
-    image: "common/nedleeds.jpeg"
+    image: "common/nedleeds.jpeg",
+    rawImage: "raw/nedhome.png"
   },
 
   {
@@ -360,7 +384,9 @@ module.exports = [
     aka: ["MJ"],
     appearance: "Spider-man : Homecoming",
     tier: "common",
-    image: "common/mjhome.jpeg"
+    image: "common/mjhome.jpeg",
+    rawImage: "raw/mjhome.png"
+
   },
 
   {
@@ -369,7 +395,9 @@ module.exports = [
     aka: [],
     appearance: "Spider-man : Homecoming",
     tier: "common",
-    image: "common/aaronhome.jpeg"
+    image: "common/aaronhome.jpeg",
+    rawImage: "raw/aaronhome.png"
+
   },
 
   {
