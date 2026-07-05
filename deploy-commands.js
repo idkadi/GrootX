@@ -31,7 +31,11 @@ const rest = new REST({
     console.log(`Started refreshing ${commands.length} slash commands.`);
 
     await rest.put(
-      Routes.applicationCommands(process.env.CLIENT_ID),
+      Routes.applicationGuildCommands(
+  process.env.CLIENT_ID,
+  process.env.GUILD_ID
+),
+      
       {
         body: commands
       }
