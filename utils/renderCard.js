@@ -64,7 +64,7 @@ async function renderCard(card, serial = "000000") {
   ctx.textAlign = "left";
 
   ctx.font = "700 32px Oswald";
-  ctx.fillText(`#${String(serial).padStart(6, "0")}`, 70, 1285);
+ ctx.fillText(`#${serial}`, 70, 1285);
 
   ctx.font = "700 54px Oswald";
   ctx.fillText(String(card.name || "UNKNOWN").toUpperCase(), 70, 1365);

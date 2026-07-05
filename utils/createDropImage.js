@@ -38,9 +38,9 @@ async function createDropImage(cards) {
     const card = cards[i];
 
     const cardBuffer = await renderCard(
-      card,
-      card.tier.toUpperCase()
-    );
+  card,
+  card.serial
+);
 
     const image = await loadImage(cardBuffer);
 

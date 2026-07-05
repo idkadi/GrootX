@@ -304,7 +304,12 @@ module.exports = {
 
     const wishlistData = await getWishlistData(db, dropCards);
 
-    const dropImage = await createDropImage(dropCards);
+    const renderedCards = dropCards.map(card => ({
+  ...card,
+  serial: dropSerials[card.id]
+}));
+
+const dropImage = await createDropImage(renderedCards);
 
     const powerActive =
       stoneEffect?.powerUntil && stoneEffect.powerUntil > now;
