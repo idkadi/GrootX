@@ -48,7 +48,15 @@ if (ownedCard?.frameId) {
 
     ctx.save();
 
-    ctx.font = `700 ${text.size || 66}px Oswald`;
+   // Auto-fit text inside the frame
+const maxWidth = text.maxWidth || 860;
+let fontSize = text.size || 115;
+
+do {
+  ctx.font = `700 ${fontSize}px Oswald`;
+  if (ctx.measureText(cardName).width <= maxWidth) break;
+  fontSize -= 2;
+} while (fontSize > 55);
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 

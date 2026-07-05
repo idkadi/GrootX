@@ -1,5 +1,6 @@
 const { createCanvas, loadImage } = require("canvas");
-const path = require("path");
+
+const renderCard = require("../utils/renderCard");
 
 async function createDeckImage(deckCards) {
   const cols = 4;
@@ -28,42 +29,42 @@ async function createDeckImage(deckCards) {
     const item = deckCards[i];
 
     if (!item) {
-      ctx.fillStyle = "#24262d";
-      ctx.fillRect(x, y, cardWidth, cardHeight);
-
-      ctx.strokeStyle = "#555";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(x, y, cardWidth, cardHeight);
-
-      ctx.fillStyle = "#888";
-      ctx.font = "bold 28px sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText("+", x + cardWidth / 2, y + cardHeight / 2 + 10);
-
+      drawEmptySlot(ctx, x, y, cardWidth, cardHeight);
       continue;
     }
 
     try {
-      const imagePath = path.join(
-        __dirname,
-        "..",
-        "images",
-        item.card.image
-      );
+      const cardInfo = item.card;
+      const ownedCard = item.ownedCard || item.collectionCard || item;
 
-      const image = await loadImage(imagePath);
-      ctx.drawImage(image, x, y, cardWidth, cardHeight);
-    } catch {
-      ctx.fillStyle = "#24262d";
-      ctx.fillRect(x, y, cardWidth, cardHeight);
+      const serial = ownedCard.serial || item.serial || "000000";
 
-      ctx.strokeStyle = "#555";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(x, y, cardWidth, cardHeight);
+      const buffer = await renderCard(cardInfo, serial, ownedCard);
+      const renderedCard = await loadImage(buffer);
+
+      ctx.drawImage(renderedCard, x, y, cardWidth, cardHeight);
+    } catch (err) {
+      console.error("Deck image render error:", err);
+      drawEmptySlot(ctx, x, y, cardWidth, cardHeight);
     }
   }
 
   return canvas.toBuffer("image/png");
+}
+
+function drawEmptySlot(ctx, x, y, cardWidth, cardHeight) {
+  ctx.fillStyle = "#24262d";
+  ctx.fillRect(x, y, cardWidth, cardHeight);
+
+  ctx.strokeStyle = "#555";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x, y, cardWidth, cardHeight);
+
+  ctx.fillStyle = "#888";
+  ctx.font = "bold 28px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("+", x + cardWidth / 2, y + cardHeight / 2);
 }
 
 module.exports = createDeckImage;

@@ -5,7 +5,7 @@ module.exports = [
     image: "images/frames/blackdaliah.png",
     currency: "chips",
     price: 25,
-    text: { x: 527, y: 1350, size: 66, color: "#ffffff", glow: "#111111", stroke: "#000000" }
+    text: { x: 527, y: 1160, size: 115, color: "#ffffff", glow: "#ffffff", stroke: "#000000", strokeWidth: 10 }
   },
   {
     id: 2,
@@ -13,7 +13,7 @@ module.exports = [
     image: "images/frames/basicamerica.png",
     currency: "coins",
     price: 15000,
-    text: { x: 527, y: 1355, size: 64, color: "#ffffff", glow: "#ffffff", stroke: "#0b2cff" }
+    text: { x: 527, y: 1160, size: 115, color: "#ffffff", glow: "#ffffff", stroke: "#0b2cff", strokeWidth: 10 }
   },
   {
     id: 3,
@@ -21,7 +21,7 @@ module.exports = [
     image: "images/frames/cupidlove.png",
     currency: "coins",
     price: 30000,
-    text: { x: 527, y: 930, size: 72, color: "#ffffff", glow: "#ffffff", stroke: "#ff5ecb" }
+    text: { x: 527, y: 1160, size: 115, color: "#ffffff", glow: "#ffffff", stroke: "#ff5ecb", strokeWidth: 10 }
   },
   {
     id: 4,
@@ -29,7 +29,7 @@ module.exports = [
     image: "images/frames/cyanfuture.png",
     currency: "coins",
     price: 20000,
-    text: { x: 527, y: 1350, size: 66, color: "#ffffff", glow: "#00ffff", stroke: "#008c9e" }
+    text: { x: 527, y: 1160, size: 115, color: "#ffffff", glow: "#00ffff", stroke: "#008c9e", strokeWidth: 10 }
   },
   {
     id: 5,
@@ -37,7 +37,7 @@ module.exports = [
     image: "images/frames/deadpool.png",
     currency: "chips",
     price: 50,
-    text: { x: 527, y: 1350, size: 68, color: "#ffffff", glow: "#ff0000", stroke: "#000000" }
+    text: { x: 527, y: 1160, size: 115, color: "#ffffff", glow: "#ff0000", stroke: "#000000", strokeWidth: 10 }
   },
   {
     id: 6,
@@ -45,7 +45,7 @@ module.exports = [
     image: "images/frames/flowerbed.png",
     currency: "coins",
     price: 20000,
-    text: { x: 527, y: 1350, size: 64, color: "#ffffff", glow: "#ffb6c1", stroke: "#7a1f1f" }
+    text: { x: 527, y: 1160, size: 115, color: "#ffffff", glow: "#ffb6c1", stroke: "#7a1f1f", strokeWidth: 10 }
   },
   {
     id: 7,
@@ -53,7 +53,7 @@ module.exports = [
     image: "images/frames/goldflake.png",
     currency: "coins",
     price: 25000,
-    text: { x: 527, y: 1350, size: 66, color: "#ffffff", glow: "#ffd700", stroke: "#8b6b00" }
+    text: { x: 527, y: 1160, size: 115, color: "#ffffff", glow: "#ffd700", stroke: "#8b6b00", strokeWidth: 10 }
   },
   {
     id: 8,
@@ -61,7 +61,7 @@ module.exports = [
     image: "images/frames/greenfuture.png",
     currency: "coins",
     price: 20000,
-    text: { x: 527, y: 1350, size: 66, color: "#ffffff", glow: "#00ff55", stroke: "#006b22" }
+    text: { x: 527, y: 1160, size: 115, color: "#ffffff", glow: "#00ff55", stroke: "#006b22", strokeWidth: 10 }
   },
   {
     id: 9,
@@ -69,7 +69,7 @@ module.exports = [
     image: "images/frames/greenmythical.png",
     currency: "chips",
     price: 50,
-    text: { x: 527, y: 1350, size: 66, color: "#ffffff", glow: "#39ff14", stroke: "#003d12" }
+    text: { x: 527, y: 1160, size: 115, color: "#ffffff", glow: "#39ff14", stroke: "#003d12", strokeWidth: 10 }
   },
   {
     id: 10,
@@ -77,7 +77,7 @@ module.exports = [
     image: "images/frames/hawkeye.png",
     currency: "chips",
     price: 50,
-    text: { x: 527, y: 1350, size: 66, color: "#ffffff", glow: "#9b4dff", stroke: "#2b003f" }
+    text: { x: 527, y: 1160, size: 115, color: "#ffffff", glow: "#9b4dff", stroke: "#2b003f", strokeWidth: 10 }
   },
   {
     id: 11,
@@ -85,7 +85,7 @@ module.exports = [
     image: "images/frames/pinkmythical.png",
     currency: "chips",
     price: 50,
-    text: { x: 527, y: 1350, size: 66, color: "#ffffff", glow: "#ff9adf", stroke: "#73204f" }
+    text: { x: 527, y: 1160, size: 115, color: "#ffffff", glow: "#ff9adf", stroke: "#73204f", strokeWidth: 10 }
   },
   {
     id: 12,
@@ -93,7 +93,7 @@ module.exports = [
     image: "images/frames/punisherframe.png",
     currency: "coins",
     price: 30000,
-    text: { x: 527, y: 1350, size: 64, color: "#ffffff", glow: "#ffffff", stroke: "#000000" }
+    text: { x: 527, y: 1160, size: 115, color: "#ffffff", glow: "#ffffff", stroke: "#000000", strokeWidth: 10 }
   },
   {
     id: 13,
@@ -101,7 +101,7 @@ module.exports = [
     image: "images/frames/purplemythical.png",
     currency: "chips",
     price: 30,
-    text: { x: 527, y: 1350, size: 66, color: "#ffffff", glow: "#a855ff", stroke: "#2d0052" }
+    text: { x: 527, y: 1160, size: 115, color: "#ffffff", glow: "#a855ff", stroke: "#2d0052", strokeWidth: 10 }
   },
   {
     id: 14,
@@ -109,7 +109,7 @@ module.exports = [
     image: "images/frames/purplefuture.png",
     currency: "coins",
     price: 20000,
-    text: { x: 527, y: 1350, size: 66, color: "#ffffff", glow: "#a855ff", stroke: "#2d0052" }
+    text: { x: 527, y: 1160, size: 115, color: "#ffffff", glow: "#a855ff", stroke: "#2d0052", strokeWidth: 10 }
   },
   {
     id: 15,
@@ -117,7 +117,7 @@ module.exports = [
     image: "images/frames/redmythical.png",
     currency: "coins",
     price: 30000,
-    text: { x: 527, y: 1350, size: 66, color: "#ffffff", glow: "#ff2222", stroke: "#570000" }
+    text: { x: 527, y: 1160, size: 115, color: "#ffffff", glow: "#ff2222", stroke: "#570000", strokeWidth: 10 }
   },
   {
     id: 16,
@@ -125,7 +125,7 @@ module.exports = [
     image: "images/frames/thorframe.png",
     currency: "chips",
     price: 50,
-    text: { x: 527, y: 1350, size: 66, color: "#ffffff", glow: "#5ecbff", stroke: "#003b66" }
+    text: { x: 527, y: 1160, size: 115, color: "#ffffff", glow: "#5ecbff", stroke: "#003b66", strokeWidth: 10 }
   },
   {
     id: 17,
@@ -133,7 +133,7 @@ module.exports = [
     image: "images/frames/wanda.png",
     currency: "chips",
     price: 50,
-    text: { x: 527, y: 1350, size: 66, color: "#ffffff", glow: "#ff003c", stroke: "#4d000f" }
+    text: { x: 527, y: 1160, size: 115, color: "#ffffff", glow: "#ff003c", stroke: "#4d000f", strokeWidth: 10 }
   },
   {
     id: 18,
@@ -141,6 +141,6 @@ module.exports = [
     image: "images/frames/webwarrior.png",
     currency: "chips",
     price: 75,
-    text: { x: 527, y: 1350, size: 64, color: "#ffffff", glow: "#ff0000", stroke: "#001a66" }
+    text: { x: 527, y: 1160, size: 115, color: "#ffffff", glow: "#ff0000", stroke: "#001a66", strokeWidth: 10 }
   }
 ];
