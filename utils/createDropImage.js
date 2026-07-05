@@ -3,22 +3,20 @@ const {
   loadImage
 } = require("canvas");
 
-const path = require("path");
+const renderCard = require("./renderCard");
 
 async function createDropImage(cards) {
+  const spacing = 24;
 
-  const spacing = 20;
-
-  // Smaller cards when 4-card drop
   const cardWidth =
     cards.length === 4
-      ? 180
-      : 220;
+      ? 190
+      : 240;
 
   const cardHeight =
     cards.length === 4
-      ? 260
-      : 320;
+      ? 270
+      : 340;
 
   const width =
     (cardWidth * cards.length) +
@@ -33,35 +31,18 @@ async function createDropImage(cards) {
   const ctx =
     canvas.getContext("2d");
 
-  // Background
-  ctx.fillStyle =
-    "#1e1f22";
+  ctx.fillStyle = "#1e1f22";
+  ctx.fillRect(0, 0, width, height);
 
-  ctx.fillRect(
-    0,
-    0,
-    width,
-    height
-  );
-
-  // Draw cards
   for (let i = 0; i < cards.length; i++) {
+    const card = cards[i];
 
-    const card =
-      cards[i];
+    const cardBuffer = await renderCard(
+      card,
+      card.tier.toUpperCase()
+    );
 
-    const imagePath =
-      path.join(
-        __dirname,
-        "..",
-        "images",
-        card.image
-      );
-
-    const image =
-      await loadImage(
-        imagePath
-      );
+    const image = await loadImage(cardBuffer);
 
     const x =
       spacing +
@@ -76,8 +57,7 @@ async function createDropImage(cards) {
     );
   }
 
-  return canvas.toBuffer();
+  return canvas.toBuffer("image/png");
 }
 
-module.exports =
-  createDropImage;
+module.exports = createDropImage;
