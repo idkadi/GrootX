@@ -3649,7 +3649,8 @@ module.exports = [
     aka: [],
     appearance: "Thor : Ragnarok",
     tier: "common",
-    image: "common/fenristr.jpeg"
+    image: "common/fenristr.jpeg",
+     rawImage: "raw/wolftr.png"
   },
 
   {
@@ -3658,7 +3659,8 @@ module.exports = [
     aka: [],
     appearance: "Thor : Ragnarok",
     tier: "common",
-    image: "common/miektr.jpeg"
+    image: "common/miektr.jpeg",
+     rawImage: "raw/miektr.png"
   },
 
   {
@@ -3667,7 +3669,8 @@ module.exports = [
     aka: [],
     appearance: "Thor : Ragnarok",
     tier: "common",
-    image: "common/dougtr.jpeg"
+    image: "common/dougtr.jpeg",
+     rawImage: "raw/dougtr.png"
   },
 
    {
@@ -3676,7 +3679,8 @@ module.exports = [
     aka: [],
     appearance: "Thor : Ragnarok",
     tier: "common",
-    image: "common/topaztr.jpeg"
+    image: "common/topaztr.jpeg",
+     rawImage: "raw/topaztr.png"
   },
 
   {
@@ -3685,7 +3689,8 @@ module.exports = [
     aka: [],
     appearance: "Thor : Ragnarok",
     tier: "common",
-    image: "common/skurgetr.jpeg"
+    image: "common/skurgetr.jpeg",
+     rawImage: "raw/skurgetr.png"
   },
 
   {
@@ -3694,7 +3699,8 @@ module.exports = [
     aka: [],
     appearance: "Thor : Ragnarok",
     tier: "common",
-    image: "common/grandmastertr.jpeg"
+    image: "common/grandmastertr.jpeg",
+     rawImage: "raw/grandmastertr.png"
   },
 
   {
@@ -3703,7 +3709,8 @@ module.exports = [
     aka: [],
     appearance: "Thor : Ragnarok",
     tier: "uncommon",
-    image: "uncommon/korgtr.jpeg"
+    image: "uncommon/korgtr.jpeg",
+     rawImage: "raw/korgtr.png"
   },
 
   {
@@ -3712,7 +3719,8 @@ module.exports = [
     aka: [],
     appearance: "Thor : Ragnarok",
     tier: "uncommon",
-    image: "uncommon/heimdalltr.jpeg"
+    image: "uncommon/heimdalltr.jpeg",
+     rawImage: "raw/heimdalltr.png"
   },
 
   {
@@ -3721,7 +3729,8 @@ module.exports = [
     aka: [],
     appearance: "Thor : Ragnarok",
     tier: "rare",
-    image: "rare/valkrietr.jpeg"
+    image: "rare/valkrietr.jpeg",
+     rawImage: "raw/valktr.png"
   },
 
    {
@@ -3730,7 +3739,8 @@ module.exports = [
     aka: [],
     appearance: "Thor : Ragnarok",
     tier: "rare",
-    image: "rare/surturtr.jpeg"
+    image: "rare/surturtr.jpeg",
+     rawImage: "raw/surturtr.png"
   },
 
    {
@@ -3739,7 +3749,8 @@ module.exports = [
     aka: [],
     appearance: "Thor : Ragnarok",
     tier: "epic",
-    image: "epic/helatr.jpeg"
+    image: "epic/helatr.jpeg",
+     rawImage: "raw/helatr.png"
   },
 
    {
@@ -3748,7 +3759,8 @@ module.exports = [
     aka: [],
     appearance: "Thor : Ragnarok",
     tier: "epic",
-    image: "epic/lokitr.jpeg"
+    image: "epic/lokitr.jpeg",
+     rawImage: "raw/lokitr.png"
   },
 
   {
@@ -3757,7 +3769,8 @@ module.exports = [
     aka: ["Bruce Banner"],
     appearance: "Thor : Ragnarok",
     tier: "legendary",
-    image: "legendary/hulktr.jpeg"
+    image: "legendary/hulktr.jpeg",
+     rawImage: "raw/hulktr.png"
   },
 
    {
@@ -3766,7 +3779,8 @@ module.exports = [
     aka: [],
     appearance: "Thor : Ragnarok",
     tier: "legendary",
-    image: "legendary/thortr.jpeg"
+    image: "legendary/thortr.jpeg",
+     rawImage: "raw/thortr.png"
   },
 
   {
@@ -3775,7 +3789,8 @@ module.exports = [
     aka: [],
     appearance: "Avengers : Infinity War",
     tier: "common",
-    image: "common/mbakuiw.jpeg"
+    image: "common/mbakuiw.jpeg",
+     rawImage: "raw/mbakuiw.png"
   },
 
   {
@@ -3784,7 +3799,8 @@ module.exports = [
     aka: [],
     appearance: "Avengers : Infinity War",
     tier: "common",
-    image: "common/collectoriw.jpeg"
+    image: "common/collectoriw.jpeg",
+     rawImage: "raw/collectoriw.png"
   },
 
    {
@@ -3793,7 +3809,8 @@ module.exports = [
     aka: [],
     appearance: "Avengers : Infinity War",
     tier: "common",
-    image: "common/shuriiw.jpeg"
+    image: "common/shuriiw.jpeg",
+     rawImage: "raw/shuriiw.png"
   },
 
    {
@@ -3802,7 +3819,8 @@ module.exports = [
     aka: [],
     appearance: "Avengers : Infinity War",
     tier: "common",
-    image: "common/eitriiw.jpeg"
+    image: "common/eitriiw.jpeg",
+     rawImage: "raw/eitriiw.png"
   },
 
   {
@@ -3811,7 +3829,8 @@ module.exports = [
     aka: [],
     appearance: "Avengers : Infinity War",
     tier: "uncommon",
-    image: "uncommon/redskulliw.jpeg"
+    image: "uncommon/redskulliw.jpeg",
+     rawImage: "raw/redskulliw.png"
   },
 
    {
@@ -3820,7 +3839,8 @@ module.exports = [
     aka: [],
     appearance: "Avengers : Infinity War",
     tier: "uncommon",
-    image: "uncommon/okoyeiw.jpeg"
+    image: "uncommon/okoyeiw.jpeg",
+     rawImage: "raw/okoyeiw.png"
   },
 
    {
@@ -3829,7 +3849,8 @@ module.exports = [
     aka: [],
     appearance: "Avengers : Infinity War",
     tier: "uncommon",
-    image: "uncommon/mantisiw.jpeg"
+    image: "uncommon/mantisiw.jpeg",
+     rawImage: "raw/mantisiw.png"
   },
 
    {
@@ -3838,7 +3859,8 @@ module.exports = [
     aka: [],
     appearance: "Avengers : Infinity War",
     tier: "uncommon",
-    image: "uncommon/wongiw.jpeg"
+    image: "uncommon/wongiw.jpeg",
+     rawImage: "raw/wongiw.png"
   },
 
   {
@@ -3847,7 +3869,8 @@ module.exports = [
     aka: [],
     appearance: "Avengers : Infinity War",
     tier: "rare",
-    image: "rare/proximaiw.jpeg"
+    image: "rare/proximaiw.jpeg",
+     rawImage: "raw/proximaiw.png"
   },
 
    {
@@ -3856,7 +3879,8 @@ module.exports = [
     aka: [],
     appearance: "Avengers : Infinity War",
     tier: "rare",
-    image: "rare/corvusiw.jpeg"
+    image: "rare/corvusiw.jpeg",
+     rawImage: "raw/corvusiw.png"
   },
 
   {
@@ -3865,7 +3889,8 @@ module.exports = [
     aka: [],
     appearance: "Avengers : Infinity War",
     tier: "rare",
-    image: "rare/culliw.jpeg"
+    image: "rare/culliw.jpeg",
+     rawImage: "raw/culliw.png"
   },
 
   {
@@ -3874,7 +3899,8 @@ module.exports = [
     aka: [],
     appearance: "Avengers : Infinity War",
     tier: "rare",
-    image: "rare/ebonyiw.jpeg"
+    image: "rare/ebonyiw.jpeg",
+     rawImage: "raw/ebonyiw.png"
   },
 
   {
@@ -3883,7 +3909,8 @@ module.exports = [
     aka: ["James Bucky Barnes"],
     appearance: "Avengers : Infinity War",
     tier: "rare",
-    image: "rare/buckyiw.jpeg"
+    image: "rare/buckyiw.jpeg",
+     rawImage: "raw/buckyiw.png"
   },
 
   {
@@ -3892,7 +3919,8 @@ module.exports = [
     aka: [],
     appearance: "Avengers : Infinity War",
     tier: "rare",
-    image: "rare/rocketiw.jpeg"
+    image: "rare/rocketiw.jpeg",
+     rawImage: "raw/rocketiw.png"
   },
 
    {
@@ -3901,7 +3929,8 @@ module.exports = [
     aka: [],
     appearance: "Avengers : Infinity War",
     tier: "rare",
-    image: "rare/grootiw.jpeg"
+    image: "rare/grootiw.jpeg",
+     rawImage: "raw/grootiw.png"
   },
 
    {
@@ -3910,7 +3939,8 @@ module.exports = [
     aka: [],
     appearance: "Avengers : Infinity War",
     tier: "rare",
-    image: "rare/gamoraiw.jpeg"
+    image: "rare/gamoraiw.jpeg",
+     rawImage: "raw/gamoraiw.png"
   },
 
    {
@@ -3919,7 +3949,8 @@ module.exports = [
     aka: ["James Rhoades"],
     appearance: "Avengers : Infinity War",
     tier: "rare",
-    image: "rare/warmachineiw.jpeg"
+    image: "rare/warmachineiw.jpeg",
+     rawImage: "raw/warmachineiw.png"
   },
 
    {
@@ -3928,7 +3959,8 @@ module.exports = [
     aka: ["Natasha Romanoff"],
     appearance: "Avengers : Infinity War",
     tier: "rare",
-    image: "rare/widowiw.jpeg"
+    image: "rare/widowiw.jpeg",
+     rawImage: "raw/blackwidowiw.png"
   },
 
   {
@@ -3937,7 +3969,8 @@ module.exports = [
     aka: ["Bruce Banner"],
     appearance: "Avengers : Infinity War",
     tier: "rare",
-    image: "rare/hulkiw.jpeg"
+    image: "rare/hulkiw.jpeg",
+     rawImage: "raw/hulkiw.png"
   },
 
    {
@@ -3946,7 +3979,8 @@ module.exports = [
     aka: [],
     appearance: "Avengers : Infinity War",
     tier: "rare",
-    image: "rare/draxiw.jpeg"
+    image: "rare/draxiw.jpeg",
+     rawImage: "raw/draxiw.png"
   },
 
   {
@@ -3955,7 +3989,8 @@ module.exports = [
     aka: ["T'Challa"],
     appearance: "Avengers : Infinity War",
     tier: "epic",
-    image: "epic/blackpantheriw.jpeg"
+    image: "epic/blackpantheriw.jpeg",
+     rawImage: "raw/blackpantheriw.png"
   },
 
    {
@@ -3964,7 +3999,8 @@ module.exports = [
     aka: ["Peter Quill"],
     appearance: "Avengers : Infinity War",
     tier: "epic",
-    image: "epic/starlordiw.jpeg"
+    image: "epic/starlordiw.jpeg",
+     rawImage: "raw/starlordiw.png"
   },
 
     {
@@ -3973,7 +4009,8 @@ module.exports = [
     aka: [],
     appearance: "Avengers : Infinity War",
     tier: "epic",
-    image: "epic/strangeiw.jpeg"
+    image: "epic/strangeiw.jpeg",
+     rawImage: "raw/strangeiw.png"
   },
 
     {
@@ -3982,7 +4019,8 @@ module.exports = [
     aka: [],
     appearance: "Avengers : Infinity War",
     tier: "epic",
-    image: "epic/visioniw.jpeg"
+    image: "epic/visioniw.jpeg",
+     rawImage: "raw/visioniw.png"
   },
 
     {
@@ -3991,7 +4029,8 @@ module.exports = [
     aka: ["Wanda Maximoff"],
     appearance: "Avengers : Infinity War",
     tier: "epic",
-    image: "epic/wandaiw.jpeg"
+    image: "epic/wandaiw.jpeg",
+     rawImage: "raw/wandaiw.png"
   },
 
   {
@@ -4000,7 +4039,8 @@ module.exports = [
     aka: ["Peter Parker"],
     appearance: "Avengers : Infinity War",
     tier: "epic",
-    image: "epic/spideriw.jpeg"
+    image: "epic/spideriw.jpeg",
+     rawImage: "raw/spideriw.png"
   },
 
   {
@@ -4009,7 +4049,8 @@ module.exports = [
     aka: ["Steve Rogers"],
     appearance: "Avengers : Infinity War",
     tier: "epic",
-    image: "epic/capiw.jpeg"
+    image: "epic/capiw.jpeg",
+     rawImage: "raw/steveiw.png"
   },
 
    {
@@ -4018,7 +4059,8 @@ module.exports = [
     aka: ["Tony Stark"],
     appearance: "Avengers : Infinity War",
     tier: "epic",
-    image: "epic/ironmaniw.jpeg"
+    image: "epic/ironmaniw.jpeg",
+     rawImage: "raw/tonyiw.png"
   },
 
   {
@@ -4027,7 +4069,8 @@ module.exports = [
     aka: [],
     appearance: "Avengers : Infinity War",
     tier: "legendary",
-    image: "legendary/thoriw.jpeg"
+    image: "legendary/thoriw.jpeg",
+     rawImage: "raw/thoriw.png"
   },
 
    {
@@ -4036,7 +4079,8 @@ module.exports = [
     aka: [],
     appearance: "Avengers : Infinity War",
     tier: "legendary",
-    image: "legendary/thanosiw.jpeg"
+    image: "legendary/thanosiw.jpeg",
+     rawImage: "raw/thanosiw.png"
   },
 
    {
@@ -4045,7 +4089,8 @@ module.exports = [
     aka: [],
     appearance: "Avengers : Endgame",
     tier: "common",
-    image: "common/akihikoeg.jpeg"
+    image: "common/akihikoeg.jpeg",
+     rawImage: "raw/akihikoeg.png"
   },
 
      {
@@ -4054,7 +4099,8 @@ module.exports = [
     aka: [],
     appearance: "Avengers : Endgame",
     tier: "common",
-    image: "common/duckeg.jpeg"
+    image: "common/duckeg.jpeg",
+      rawImage: "raw/duckeg.png"
   },
 
    {
@@ -4063,7 +4109,8 @@ module.exports = [
     aka: [],
     appearance: "Avengers : Endgame",
     tier: "common",
-    image: "common/howardeg.jpeg"
+    image: "common/howardeg.jpeg",
+      rawImage: "raw/howardeg.png"
   },
 
   {
@@ -4072,7 +4119,8 @@ module.exports = [
     aka: [],
     appearance: "Avengers : Endgame",
     tier: "common",
-    image: "common/jarviseg.jpeg"
+    image: "common/jarviseg.jpeg",
+      rawImage: "raw/jarviseg.png"
   },
 
     {
@@ -4081,7 +4129,8 @@ module.exports = [
     aka: [],
     appearance: "Avengers : Endgame",
     tier: "common",
-    image: "common/nateg.jpeg"
+    image: "common/nateg.jpeg",
+      rawImage: "raw/nateg.png"
   },
 
   {
@@ -4090,7 +4139,8 @@ module.exports = [
     aka: [],
     appearance: "Avengers : Endgame",
     tier: "common",
-    image: "common/coopereg.jpeg"
+    image: "common/coopereg.jpeg",
+      rawImage: "raw/coopereg.png"
   },
 
   {
@@ -4099,7 +4149,8 @@ module.exports = [
     aka: [],
     appearance: "Avengers : Endgame",
     tier: "common",
-    image: "common/lilaeg.jpeg"
+    image: "common/lilaeg.jpeg",
+      rawImage: "raw/lilaeg.png"
   },
 
   {
@@ -4108,7 +4159,8 @@ module.exports = [
     aka: [],
     appearance: "Avengers : Endgame",
     tier: "common",
-    image: "common/lauraeg.jpeg"
+    image: "common/lauraeg.jpeg",
+      rawImage: "raw/lauraeg.png"
   },
 
     {
@@ -4117,7 +4169,8 @@ module.exports = [
     aka: [],
     appearance: "Avengers : Endgame",
     tier: "uncommon",
-    image: "uncommon/morganeg.jpeg"
+    image: "uncommon/morganeg.jpeg",
+      rawImage: "raw/morganeg.png"
   },
 
   {
@@ -4126,7 +4179,8 @@ module.exports = [
     aka: [],
     appearance: "Avengers : Endgame",
     tier: "rare",
-    image: "rare/valkyrieeg.jpeg"
+    image: "rare/valkyrieeg.jpeg",
+      rawImage: "raw/valkeg.png"
   },
 
     {
@@ -4135,7 +4189,8 @@ module.exports = [
     aka: [],
     appearance: "Avengers : Endgame",
     tier: "rare",
-    image: "rare/nebulaeg.jpeg"
+    image: "rare/nebulaeg.jpeg",
+      rawImage: "raw/nebulaeg.png"
   },
 
     {
@@ -4144,7 +4199,8 @@ module.exports = [
     aka: [],
     appearance: "Avengers : Endgame",
     tier: "rare",
-    image: "rare/peppereg.jpeg"
+    image: "rare/peppereg.jpeg",
+      rawImage: "raw/peppereg.png"
   },
 
   {
@@ -4153,7 +4209,8 @@ module.exports = [
     aka: ["Falcon"],
     appearance: "Avengers : Endgame",
     tier: "rare",
-    image: "rare/sameg.jpeg"
+    image: "rare/sameg.jpeg",
+      rawImage: "raw/sameg.png"
   },
 
   {
@@ -4162,7 +4219,8 @@ module.exports = [
     aka: ["Bruce Banner"],
     appearance: "Avengers : Endgame",
     tier: "rare",
-    image: "rare/hulkeg.jpeg"
+    image: "rare/hulkeg.jpeg",
+      rawImage: "raw/hulkeg.png"
   },
 
   {
@@ -4171,7 +4229,8 @@ module.exports = [
     aka: [],
     appearance: "Avengers : Endgame",
     tier: "rare",
-    image: "rare/thoreg.jpeg"
+    image: "rare/thoreg.jpeg",
+      rawImage: "raw/thoreg.png"
   },
 
    {
@@ -4180,7 +4239,8 @@ module.exports = [
     aka: ["Scott Lang"],
     appearance: "Avengers : Endgame",
     tier: "epic",
-    image: "epic/antmaneg.jpeg"
+    image: "epic/antmaneg.jpeg",
+      rawImage: "raw/antmaneg.png"
   },
 
    {
@@ -4189,7 +4249,8 @@ module.exports = [
     aka: ["Carol Denvers"],
     appearance: "Avengers : Endgame",
     tier: "epic",
-    image: "epic/capmarveleg.jpeg"
+    image: "epic/capmarveleg.jpeg",
+      rawImage: "raw/capmarveleg.png"
   },
 
     {
@@ -4198,7 +4259,8 @@ module.exports = [
     aka: ["Natasha Romanoff"],
     appearance: "Avengers : Endgame",
     tier: "legendary",
-    image: "legendary/blackwidoweg.jpeg"
+    image: "legendary/blackwidoweg.jpeg",
+      rawImage: "raw/blackwidoweg.png"
   },
 
     {
@@ -4207,7 +4269,8 @@ module.exports = [
     aka: ["Clint Barton"],
     appearance: "Avengers : Endgame",
     tier: "legendary",
-    image: "legendary/hawkeyeeg.jpeg"
+    image: "legendary/hawkeyeeg.jpeg",
+      rawImage: "raw/hawkeyeeg.png"
   },
 
    {
@@ -4216,7 +4279,8 @@ module.exports = [
     aka: ["Tony Stark"],
     appearance: "Avengers : Endgame",
     tier: "legendary",
-    image: "legendary/ironmaneg.jpeg"
+    image: "legendary/ironmaneg.jpeg",
+      rawImage: "raw/ironmaneg.png"
   },
 
    {
@@ -4225,7 +4289,8 @@ module.exports = [
     aka: ["Steve Rogers"],
     appearance: "Avengers : Endgame",
     tier: "legendary",
-    image: "legendary/steveeg.jpeg"
+    image: "legendary/steveeg.jpeg",
+      rawImage: "raw/steveeg.png"
   },
 
    {
@@ -4234,7 +4299,8 @@ module.exports = [
     aka: [],
     appearance: "Avengers : Endgame",
     tier: "legendary",
-    image: "legendary/thanoseg.jpeg"
+    image: "legendary/thanoseg.jpeg",
+      rawImage: "raw/thanoseg.png"
   },
 
   {
@@ -4243,7 +4309,8 @@ module.exports = [
     aka: [],
     appearance: "She Hulk : Attorney At Law",
     tier: "common",
-    image: "common/porcupinesh.jpeg"
+    image: "common/porcupinesh.jpeg",
+      rawImage: "raw/porcupinesh.png"
   },
 
    {
@@ -4252,7 +4319,8 @@ module.exports = [
     aka: [],
     appearance: "She Hulk : Attorney At Law",
     tier: "common",
-    image: "common/lukesh.jpeg"
+    image: "common/lukesh.jpeg",
+      rawImage: "raw/lukesh.png"
   },
 
    {
@@ -4261,7 +4329,8 @@ module.exports = [
     aka: [],
     appearance: "She Hulk : Attorney At Law",
     tier: "common",
-    image: "common/megansh.jpeg"
+    image: "common/megansh.jpeg",
+      rawImage: "raw/megansh.png"
   },
 
    {
@@ -4270,7 +4339,8 @@ module.exports = [
     aka: [],
     appearance: "She Hulk : Attorney At Law",
     tier: "common",
-    image: "common/nikkish.jpeg"
+    image: "common/nikkish.jpeg",
+      rawImage: "raw/nikkish.png"
   },
 
    {
@@ -4279,7 +4349,8 @@ module.exports = [
     aka: [],
     appearance: "She Hulk : Attorney At Law",
     tier: "common",
-    image: "common/augush.jpeg"
+    image: "common/augush.jpeg",
+      rawImage: "raw/agustussh.png"
   },
 
    {
@@ -4288,7 +4359,8 @@ module.exports = [
     aka: [],
     appearance: "She Hulk : Attorney At Law",
     tier: "common",
-    image: "common/mallorysh.jpeg"
+    image: "common/mallorysh.jpeg",
+      rawImage: "raw/mallorysh.png"
   },
 
    {
@@ -4297,7 +4369,8 @@ module.exports = [
     aka: [],
     appearance: "She Hulk : Attorney At Law",
     tier: "common",
-    image: "common/wongsh.jpeg"
+    image: "common/wongsh.jpeg",
+      rawImage: "raw/wongsh.png"
   },
 
    {
@@ -4306,7 +4379,8 @@ module.exports = [
     aka: [],
     appearance: "She Hulk : Attorney At Law",
     tier: "common",
-    image: "common/morrissh.jpeg"
+    image: "common/morrissh.jpeg",
+      rawImage: "raw/morrissh.png"
   },
 
    {
@@ -4315,7 +4389,8 @@ module.exports = [
     aka: ["Emil Blonsky"],
     appearance: "She Hulk : Attorney At Law",
     tier: "uncommon",
-    image: "uncommon/abominationsh.jpeg"
+    image: "uncommon/abominationsh.jpeg",
+      rawImage: "raw/abomsh.png"
   },
 
    {
@@ -4324,7 +4399,8 @@ module.exports = [
     aka: ["Teddy Altman"],
     appearance: "She Hulk : Attorney At Law",
     tier: "uncommon",
-    image: "uncommon/hulkkingsh.jpeg"
+    image: "uncommon/hulkkingsh.jpeg",
+      rawImage: "raw/hulkkingsh.png"
   },
 
    {
@@ -4333,7 +4409,8 @@ module.exports = [
     aka: [],
     appearance: "She Hulk : Attorney At Law",
     tier: "uncommon",
-    image: "uncommon/skaarsh.jpeg"
+    image: "uncommon/skaarsh.jpeg",
+      rawImage: "raw/skaarsh.png"
   },
 
    {
@@ -4342,7 +4419,8 @@ module.exports = [
     aka: ["Eugene Patilio"],
     appearance: "She Hulk : Attorney At Law",
     tier: "uncommon",
-    image: "uncommon/frogsh.jpeg"
+    image: "uncommon/frogsh.jpeg",
+      rawImage: "raw/frogsh.png"
   },
 
    {
@@ -4351,7 +4429,8 @@ module.exports = [
     aka: [],
     appearance: "She Hulk : Attorney At Law",
     tier: "uncommon",
-    image: "uncommon/titaniash.jpeg"
+    image: "uncommon/titaniash.jpeg",
+      rawImage: "raw/titaniash.png"
   },
 
      {
@@ -4360,7 +4439,8 @@ module.exports = [
     aka: ["Matt Murdock"],
     appearance: "She Hulk : Attorney At Law",
     tier: "rare",
-    image: "rare/daredevilsh.jpeg"
+    image: "rare/daredevilsh.jpeg",
+      rawImage: "raw/daredevilsh.png"
   },
 
   {
@@ -4369,7 +4449,8 @@ module.exports = [
     aka: ["Jennifer Walters"],
     appearance: "She Hulk : Attorney At Law",
     tier: "rare",
-    image: "rare/shehulksh.jpeg"
+    image: "rare/shehulksh.jpeg",
+      rawImage: "raw/shehulksh.png"
   },
 
    {
@@ -4378,7 +4459,8 @@ module.exports = [
     aka: [],
     appearance: "Thor : Love and Thunder",
     tier: "common",
-    image: "common/diothunder.jpeg"
+    image: "common/diothunder.jpeg",
+      rawImage: "raw/dinolove.png"
   },
   
     {
@@ -4387,7 +4469,8 @@ module.exports = [
     aka: [],
     appearance: "Thor : Love and Thunder",
     tier: "common",
-    image: "common/alxthunder.jpeg"
+    image: "common/alxthunder.jpeg",
+      rawImage: "raw/alxlove.png"
   },
 
     {
@@ -4396,7 +4479,8 @@ module.exports = [
     aka: [],
     appearance: "Thor : Love and Thunder",
     tier: "common",
-    image: "common/falligar.jpeg"
+    image: "common/falligar.jpeg",
+      rawImage: "raw/falligarlove.png"
   },
 
     {
@@ -4405,7 +4489,8 @@ module.exports = [
     aka: [],
     appearance: "Thor : Love and Thunder",
     tier: "common",
-    image: "common/miekthunder.jpeg"
+    image: "common/miekthunder.jpeg",
+      rawImage: "raw/mieklove.png"
   },
 
      {
@@ -4414,7 +4499,8 @@ module.exports = [
     aka: [],
     appearance: "Thor : Love and Thunder",
     tier: "uncommon",
-    image: "uncommon/lovethunder.jpeg"
+    image: "uncommon/lovethunder.jpeg",
+      rawImage: "raw/lovelove.png"
   },
 
      {
@@ -4423,7 +4509,8 @@ module.exports = [
     aka: [],
     appearance: "Thor : Love and Thunder",
     tier: "uncommon",
-    image: "uncommon/raputhunder.jpeg"
+    image: "uncommon/raputhunder.jpeg",
+      rawImage: "raw/rapulove.png"
   },
 
   
@@ -4433,7 +4520,8 @@ module.exports = [
     aka: [],
     appearance: "Thor : Love and Thunder",
     tier: "uncommon",
-    image: "uncommon/bastthunder.jpeg"
+    image: "uncommon/bastthunder.jpeg",
+      rawImage: "raw/bastlove.png"
   },
 
   
@@ -4443,7 +4531,8 @@ module.exports = [
     aka: [],
     appearance: "Thor : Love and Thunder",
     tier: "rare",
-    image: "rare/korgthunder.jpeg"
+    image: "rare/korgthunder.jpeg",
+      rawImage: "raw/korglove.png"
   },
 
    {
@@ -4452,7 +4541,8 @@ module.exports = [
     aka: [],
     appearance: "Thor : Love and Thunder",
     tier: "rare",
-    image: "rare/zeusthunder.jpeg"
+    image: "rare/zeusthunder.jpeg",
+      rawImage: "raw/zeuslove.png"
   },
 
    {
@@ -4461,7 +4551,8 @@ module.exports = [
     aka: [],
     appearance: "Thor : Love and Thunder",
     tier: "rare",
-    image: "rare/valkthunder.jpeg"
+    image: "rare/valkthunder.jpeg",
+      rawImage: "raw/valklove.png"
   },
 
   {
@@ -4470,7 +4561,8 @@ module.exports = [
     aka: [],
     appearance: "Thor : Love and Thunder",
     tier: "rare",
-    image: "rare/herthunder.jpeg"
+    image: "rare/herthunder.jpeg",
+      rawImage: "raw/herlove.png"
   },
 
   
@@ -4480,7 +4572,8 @@ module.exports = [
     aka: [],
     appearance: "Thor : Love and Thunder",
     tier: "epic",
-    image: "epic/gorrthunder.jpeg"
+    image: "epic/gorrthunder.jpeg",
+      rawImage: "raw/gorrlove.png"
   },
 
   {
@@ -4489,7 +4582,8 @@ module.exports = [
     aka: ["Mighty Thor"],
     appearance: "Thor : Love and Thunder",
     tier: "epic",
-    image: "epic/janethunder.jpeg"
+    image: "epic/janethunder.jpeg",
+      rawImage: "raw/janelove.png"
   },
 
    {
@@ -4498,7 +4592,8 @@ module.exports = [
     aka: [],
     appearance: "Thor : Love and Thunder",
     tier: "legendary",
-    image: "legendary/thorthunder.jpeg"
+    image: "legendary/thorthunder.jpeg",
+      rawImage: "raw/thorlove.png"
   },
 
   {
@@ -4507,7 +4602,8 @@ module.exports = [
     aka: [],
     appearance: "Doctor Strange in the Multiverse of Madness",
     tier: "common",
-    image: "common/rintrahmom.jpeg"
+    image: "common/rintrahmom.jpeg",
+    rawImage: "raw/rinmom.png"
   },
 
    {
@@ -4516,7 +4612,8 @@ module.exports = [
     aka: [],
     appearance: "Doctor Strange in the Multiverse of Madness",
     tier: "common",
-    image: "common/pizzamom.jpeg"
+    image: "common/pizzamom.jpeg",
+    rawImage: "raw/pizzamom.png"
   },
 
    {
@@ -4525,7 +4622,8 @@ module.exports = [
     aka: [],
     appearance: "Doctor Strange in the Multiverse of Madness",
     tier: "common",
-    image: "common/saramom.jpeg"
+    image: "common/saramom.jpeg",
+    rawImage: "raw/saramom.png"
   },
 
   {
@@ -4534,7 +4632,8 @@ module.exports = [
     aka: [],
     appearance: "Doctor Strange in the Multiverse of Madness",
     tier: "common",
-    image: "common/charliemom.jpeg"
+    image: "common/charliemom.jpeg",
+    rawImage: "raw/charliemom.png"
   },
 
    {
@@ -4543,7 +4642,8 @@ module.exports = [
     aka: [],
     appearance: "Doctor Strange in the Multiverse of Madness",
     tier: "uncommon",
-    image: "uncommon/mordomom.jpeg"
+    image: "uncommon/mordomom.jpeg",
+    rawImage: "raw/mordomom.png"
   },
 
   {
@@ -4552,7 +4652,8 @@ module.exports = [
     aka: [],
     appearance: "Doctor Strange in the Multiverse of Madness",
     tier: "uncommon",
-    image: "uncommon/palmermom.jpeg"
+    image: "uncommon/palmermom.jpeg",
+    rawImage: "raw/palmermom.png"
   },
 
   {
@@ -4561,7 +4662,8 @@ module.exports = [
     aka: ["Charles Xavier"],
     appearance: "Doctor Strange in the Multiverse of Madness",
     tier: "rare",
-    image: "rare/xmom.jpeg"
+    image: "rare/xmom.jpeg",
+    rawImage: "raw/xmom.png"
   },
 
     {
@@ -4570,7 +4672,8 @@ module.exports = [
     aka: [],
     appearance: "Doctor Strange in the Multiverse of Madness",
     tier: "rare",
-    image: "rare/chavesmom.jpeg"
+    image: "rare/chavesmom.jpeg",
+    rawImage: "raw/chavesmom.png"
   },
 
     {
@@ -4579,7 +4682,8 @@ module.exports = [
     aka: ["Blackagar Boltagon"],
     appearance: "Doctor Strange in the Multiverse of Madness",
     tier: "rare",
-    image: "rare/blackboltmom.jpeg"
+    image: "rare/blackboltmom.jpeg",
+    rawImage: "raw/blackboltmom.png"
   },
 
      {
@@ -4588,7 +4692,8 @@ module.exports = [
     aka: ["Maria Rambeau"],
     appearance: "Doctor Strange in the Multiverse of Madness",
     tier: "rare",
-    image: "rare/marvelmom.jpeg"
+    image: "rare/marvelmom.jpeg",
+    rawImage: "raw/marvelmom.png"
   },
 
    {
@@ -4597,7 +4702,8 @@ module.exports = [
     aka: ["Peggy Carter"],
     appearance: "Doctor Strange in the Multiverse of Madness",
     tier: "rare",
-    image: "rare/cartermom.jpeg"
+    image: "rare/cartermom.jpeg",
+    rawImage: "raw/cartermom.png"
   },
 
   {
@@ -4606,7 +4712,8 @@ module.exports = [
     aka: [""],
     appearance: "Doctor Strange in the Multiverse of Madness",
     tier: "rare",
-    image: "rare/wongmom.jpeg"
+    image: "rare/wongmom.jpeg",
+    rawImage: "raw/wongmom.png"
   },
 
    {
@@ -4615,7 +4722,8 @@ module.exports = [
     aka: ["Mr. Fantastic"],
     appearance: "Doctor Strange in the Multiverse of Madness",
     tier: "epic",
-    image: "epic/reedmom.jpeg"
+    image: "epic/reedmom.jpeg",
+    rawImage: "raw/reedmom.png"
   },
 
   {
@@ -4624,7 +4732,8 @@ module.exports = [
     aka: [],
     appearance: "Doctor Strange in the Multiverse of Madness",
     tier: "epic",
-    image: "epic/cleamom.jpeg"
+    image: "epic/cleamom.jpeg",
+    rawImage: "raw/cleamom.png"
   },
 
    {
@@ -4633,7 +4742,8 @@ module.exports = [
     aka: [],
     appearance: "Doctor Strange in the Multiverse of Madness",
     tier: "epic",
-    image: "epic/sinistermom.jpeg"
+    image: "epic/sinistermom.jpeg",
+    rawImage: "raw/sinistermom.png"
   },
 
   {
@@ -4642,7 +4752,8 @@ module.exports = [
     aka: [],
     appearance: "Doctor Strange in the Multiverse of Madness",
     tier: "epic",
-    image: "epic/defendermom.jpeg"
+    image: "epic/defendermom.jpeg",
+    rawImage: "raw/defendermom.png"
   },
 
     {
@@ -4651,7 +4762,8 @@ module.exports = [
     aka: [],
     appearance: "Doctor Strange in the Multiverse of Madness",
     tier: "legendary",
-    image: "legendary/drmom.jpeg"
+    image: "legendary/drmom.jpeg",
+    rawImage: "raw/drmom.png"
   },
 
   {
@@ -4660,7 +4772,8 @@ module.exports = [
     aka: [],
     appearance: "Doctor Strange in the Multiverse of Madness",
     tier: "legendary",
-    image: "legendary/wandamom.jpeg"
+    image: "legendary/wandamom.jpeg",
+    rawImage: "raw/wandamom.png"
   },
 
    {
@@ -4669,7 +4782,8 @@ module.exports = [
     aka: [],
     appearance: "I am Groot",
     tier: "common",
-    image: "common/grundsgroot.jpeg"
+    image: "common/grundsgroot.jpeg",
+     rawImage: "raw/grunds.png"
   },
 
      {
@@ -4678,7 +4792,8 @@ module.exports = [
     aka: [],
     appearance: "I am Groot",
     tier: "common",
-    image: "common/birdgroot.jpeg"
+    image: "common/birdgroot.jpeg",
+     rawImage: "raw/birdalien.png"
   },
 
        {
@@ -4687,7 +4802,8 @@ module.exports = [
     aka: [],
     appearance: "I am Groot",
     tier: "legendary",
-    image: "legendary/groot.jpeg"
+    image: "legendary/groot.jpeg",
+     rawImage: "raw/grootgroot.png"
   },
 
    {
@@ -4696,7 +4812,8 @@ module.exports = [
     aka: [],
     appearance: "The Incredible Hulk",
     tier: "common",
-    image: "common/rosshulk.jpeg"
+    image: "common/rosshulk.jpeg",
+     rawImage: "raw/rossih.png"
   },
 
    {
@@ -4705,7 +4822,8 @@ module.exports = [
     aka: [],
     appearance: "The Incredible Hulk",
     tier: "common",
-    image: "common/joehulk.jpeg"
+    image: "common/joehulk.jpeg",
+     rawImage: "raw/joeih.png"
   },
 
    {
@@ -4714,7 +4832,8 @@ module.exports = [
     aka: [],
     appearance: "The Incredible Hulk",
     tier: "common",
-    image: "common/sparrhulk.jpeg"
+    image: "common/sparrhulk.jpeg",
+     rawImage: "raw/kathih.png"
   },
 
     {
@@ -4723,7 +4842,8 @@ module.exports = [
     aka: [],
     appearance: "The Incredible Hulk",
     tier: "common",
-    image: "common/leonardhulk.jpeg"
+    image: "common/leonardhulk.jpeg",
+     rawImage: "raw/leonardih.png"
   },
 
    {
@@ -4732,7 +4852,8 @@ module.exports = [
     aka: [],
     appearance: "The Incredible Hulk",
     tier: "common",
-    image: "common/stanleyhulk.jpeg"
+    image: "common/stanleyhulk.jpeg",
+     rawImage: "raw/stanleyih.png"
   },
 
      {
@@ -4741,7 +4862,8 @@ module.exports = [
     aka: [],
     appearance: "The Incredible Hulk",
     tier: "common",
-    image: "common/samuelhulk.jpeg"
+    image: "common/samuelhulk.jpeg",
+     rawImage: "raw/samuelih.png"
   },
 
    {
@@ -4750,7 +4872,8 @@ module.exports = [
     aka: [],
     appearance: "The Incredible Hulk",
     tier: "uncommon",
-    image: "uncommon/bettyhulk.jpeg"
+    image: "uncommon/bettyhulk.jpeg",
+     rawImage: "raw/bettyih.png"
   },
 
   {
@@ -4759,7 +4882,8 @@ module.exports = [
     aka: ["Emil Blonsky"],
     appearance: "The Incredible Hulk",
     tier: "rare",
-    image: "rare/abominationhulk.jpeg"
+    image: "rare/abominationhulk.jpeg",
+     rawImage: "raw/abominationih.png"
   },
 
   {
@@ -4768,7 +4892,9 @@ module.exports = [
     aka: ["Bruce Banner"],
     appearance: "The Incredible Hulk",
     tier: "legendary",
-    image: "legendary/hulkhulk.jpeg"
+    image: "legendary/hulkhulk.jpeg",
+    rawImage: "raw/hulkih.png"
+
   },
 
     {
@@ -4777,7 +4903,8 @@ module.exports = [
     aka: [],
     appearance: "Eternals",
     tier: "common",
-    image: "common/karunet.jpeg"
+    image: "common/karunet.jpeg",
+    rawImage: "raw/karune.png"
   },
 
      {
@@ -4786,7 +4913,8 @@ module.exports = [
     aka: [],
     appearance: "Eternals",
     tier: "common",
-    image: "common/daneet.jpeg"
+    image: "common/daneet.jpeg",
+    rawImage: "raw/danee.png"
   },
 
   {
@@ -4795,7 +4923,8 @@ module.exports = [
     aka: [],
     appearance: "Eternals",
     tier: "common",
-    image: "common/janoet.jpeg"
+    image: "common/janoet.jpeg",
+    rawImage: "raw/janoe.png"
   },
 
    {
@@ -4804,7 +4933,8 @@ module.exports = [
     aka: [],
     appearance: "Eternals",
     tier: "common",
-    image: "common/pipet.jpeg"
+    image: "common/pipet.jpeg",
+    rawImage: "raw/pipe.png"
   },
 
   {
@@ -4813,7 +4943,8 @@ module.exports = [
     aka: [],
     appearance: "Eternals",
     tier: "common",
-    image: "common/jacket.jpeg"
+    image: "common/jacket.jpeg",
+    rawImage: "raw/jacke.png"
   },
 
   {
@@ -4822,7 +4953,8 @@ module.exports = [
     aka: [],
     appearance: "Eternals",
     tier: "uncommon",
-    image: "uncommon/enkiduet.jpeg"
+    image: "uncommon/enkiduet.jpeg",
+    rawImage: "raw/enkidue.png"
   },
 
    {
@@ -4831,7 +4963,8 @@ module.exports = [
     aka: [],
     appearance: "Eternals",
     tier: "rare",
-    image: "rare/kroet.jpeg"
+    image: "rare/kroet.jpeg",
+    rawImage: "raw/kroe.png"
   },
 
     {
@@ -4840,7 +4973,8 @@ module.exports = [
     aka: [],
     appearance: "Eternals",
     tier: "rare",
-    image: "rare/phastoset.jpeg"
+    image: "rare/phastoset.jpeg",
+    rawImage: "raw/phastose.png"
   },
 
     {
@@ -4849,7 +4983,8 @@ module.exports = [
     aka: [],
     appearance: "Eternals",
     tier: "rare",
-    image: "rare/gilet.jpeg"
+    image: "rare/gilet.jpeg",
+    rawImage: "raw/gilgameshe.png"
   },
 
    {
@@ -4858,7 +4993,8 @@ module.exports = [
     aka: [],
     appearance: "Eternals",
     tier: "rare",
-    image: "rare/makkariet.jpeg"
+    image: "rare/makkariet.jpeg",
+    rawImage: "raw/makkarie.png"
   },
 
   {
@@ -4867,7 +5003,8 @@ module.exports = [
     aka: [],
     appearance: "Eternals",
     tier: "rare",
-    image: "rare/ajaket.jpeg"
+    image: "rare/ajaket.jpeg",
+    rawImage: "raw/ajake.png"
   },
 
   {
@@ -4876,7 +5013,8 @@ module.exports = [
     aka: [],
     appearance: "Eternals",
     tier: "rare",
-    image: "rare/spriteet.jpeg"
+    image: "rare/spriteet.jpeg",
+    rawImage: "raw/spritee.png"
   },
 
    {
@@ -4885,7 +5023,8 @@ module.exports = [
     aka: ["Eros","Harry Styles"],
     appearance: "Eternals",
     tier: "epic",
-    image: "epic/starfoxet.jpeg"
+    image: "epic/starfoxet.jpeg",
+    rawImage: "raw/starfoxe.png"
   },
 
     {
@@ -4894,7 +5033,8 @@ module.exports = [
     aka: [],
     appearance: "Eternals",
     tier: "epic",
-    image: "epic/thenaet.jpeg"
+    image: "epic/thenaet.jpeg",
+    rawImage: "raw/thenae.png"
   },
 
     {
@@ -4903,7 +5043,8 @@ module.exports = [
     aka: [],
     appearance: "Eternals",
     tier: "epic",
-    image: "epic/kingoet.jpeg"
+    image: "epic/kingoet.jpeg",
+    rawImage: "raw/kingoe.png"
   },
 
    {
@@ -4912,7 +5053,8 @@ module.exports = [
     aka: [],
     appearance: "Eternals",
     tier: "epic",
-    image: "epic/druiget.jpeg"
+    image: "epic/druiget.jpeg",
+    rawImage: "raw/druige.png"
   },
 
    {
@@ -4921,7 +5063,8 @@ module.exports = [
     aka: [],
     appearance: "Eternals",
     tier: "legendary",
-    image: "legendary/ikariset.jpeg"
+    image: "legendary/ikariset.jpeg",
+    rawImage: "raw/ikarise.png"
   },
 
    {
@@ -4930,7 +5073,8 @@ module.exports = [
     aka: [],
     appearance: "Eternals",
     tier: "legendary",
-    image: "legendary/sersiet.jpeg"
+    image: "legendary/sersiet.jpeg",
+    rawImage: "raw/sersie.png"
   },
 
   
