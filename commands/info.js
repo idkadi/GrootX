@@ -1,5 +1,6 @@
 const cards = require("../data/cards");
-const path = require("path");
+const { AttachmentBuilder, EmbedBuilder } = require("discord.js");
+const renderInfo = require("../utils/renderInfo");
 
 const {
   EmbedBuilder
@@ -115,81 +116,54 @@ module.exports = {
 
 // SEND CARD EMBED
 async function sendCard(message, card) {
+  const buffer = await renderInfo(card);
 
-  const imagePath = path.join(
-    __dirname,
-    "..",
-    "images",
-    card.image
-  );
-
-  const imageName =
-    card.image.split("/").pop();
+  const attachment = new AttachmentBuilder(buffer, {
+    name: "info-card.png",
+  });
 
   const embed = new EmbedBuilder()
-
     .setColor(getColor(card.tier))
-
     .setAuthor({
-      name: "Marvel Heroes Database"
+      name: "Marvel Heroes Database",
     })
-
     .setTitle(card.name)
-
     .setDescription(
       `✨ **AKA:** ${
-        card.aka.length > 0
+        card.aka && card.aka.length > 0
           ? card.aka.join(", ")
           : "None"
       }`
     )
-
     .addFields(
       {
         name: "🎬 Appearance",
-        value: card.appearance,
-        inline: true
+        value: card.appearance || "Unknown",
+        inline: true,
       },
-
       {
         name: "⭐ Tier",
         value:
           card.tier.charAt(0).toUpperCase() +
           card.tier.slice(1),
-        inline: true
+        inline: true,
       },
-
       {
         name: "🆔 Card ID",
         value: `${card.id}`,
-        inline: true
+        inline: true,
       }
     )
-
-    .setImage(
-      `attachment://${imageName}`
-    )
-
+    .setImage("attachment://info-card.png")
     .setFooter({
-      text:
-        "GrootX • Marvel Card Collection"
+      text: "GrootX • Marvel Card Collection",
     })
-
     .setTimestamp();
 
   await message.reply({
-
     embeds: [embed],
-
-    files: [
-      {
-        attachment: imagePath,
-        name: imageName
-      }
-    ]
-
+    files: [attachment],
   });
-
 }
 
 // RARITY COLORS
