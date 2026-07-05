@@ -90,7 +90,7 @@ module.exports = {
 
     const tagDisplay = tagDoc?.emoji || "No Tag";
 
-    const serial = String(foundCard.serial || "000000").padStart(6, "0");
+ const serial = foundCard.serial || "?";
 
     const buffer = await renderCard(card, serial);
 

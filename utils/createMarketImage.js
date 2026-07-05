@@ -3,7 +3,7 @@ const {
   loadImage
 } = require("canvas");
 
-const path = require("path");
+const renderCard = require("./renderCard");
 
 async function createMarketImage(cards) {
   const spacing = 20;
@@ -15,7 +15,7 @@ async function createMarketImage(cards) {
     cardWidth * cards.length +
     spacing * (cards.length + 1);
 
-  const height = 430;
+  const height = 385;
 
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
@@ -31,20 +31,18 @@ async function createMarketImage(cards) {
   for (let i = 0; i < cards.length; i++) {
     const card = cards[i];
 
-    const imagePath = path.join(
-      __dirname,
-      "..",
-      "images",
-      card.image
-    );
-
     const x =
       spacing +
       i * (cardWidth + spacing);
 
     const y = 75;
 
-    const image = await loadImage(imagePath);
+    const cardBuffer = await renderCard(
+      card,
+      card.serial ?? card.tier.toUpperCase()
+    );
+
+    const image = await loadImage(cardBuffer);
 
     ctx.drawImage(
       image,
@@ -59,27 +57,13 @@ async function createMarketImage(cards) {
     ctx.textAlign = "center";
 
     ctx.fillText(
-      card.name,
-      x + cardWidth / 2,
-      y + cardHeight + 30
-    );
-
-    ctx.font = "16px Arial";
-
-    ctx.fillText(
-      card.tier.toUpperCase(),
-      x + cardWidth / 2,
-      y + cardHeight + 55
-    );
-
-    ctx.fillText(
       `${card.price.toLocaleString()} coins`,
       x + cardWidth / 2,
-      y + cardHeight + 80
+      y + cardHeight + 35
     );
   }
 
-  return canvas.toBuffer();
+  return canvas.toBuffer("image/png");
 }
 
 module.exports = createMarketImage;
