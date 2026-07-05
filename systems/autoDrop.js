@@ -1,4 +1,5 @@
-const path = require("path");
+
+const createDropImage = require("../utils/createDropImage");
 
 const {
   ActionRowBuilder,
@@ -7,10 +8,7 @@ const {
   AttachmentBuilder
 } = require("discord.js");
 
-const {
-  createCanvas,
-  loadImage
-} = require("canvas");
+
 
 const cards = require("../data/cards");
 const connectDB = require("../database");
@@ -207,49 +205,16 @@ module.exports = client => {
             const claimed = [false, false, false];
             const claimedUsers = new Set();
 
-            const cardWidth = 250;
-            const cardHeight = 360;
-            const spacing = 20;
+           const imageBuffer = await createDropImage(
+  dropCards.map(card => ({
+    ...card,
+    serial: dropSerials[card.id]
+  }))
+);
 
-            const canvas = createCanvas(
-              (cardWidth * 3) + (spacing * 4),
-              cardHeight + 40
-            );
-
-            const ctx = canvas.getContext("2d");
-
-            ctx.fillStyle = "#1e1f22";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            const images = await Promise.all(
-              dropCards.map(card =>
-                loadImage(
-                  path.join(
-                    __dirname,
-                    "..",
-                    "images",
-                    card.image
-                  )
-                )
-              )
-            );
-
-            images.forEach((img, i) => {
-              ctx.drawImage(
-                img,
-                spacing + (i * (cardWidth + spacing)),
-                20,
-                cardWidth,
-                cardHeight
-              );
-            });
-
-            const attachment = new AttachmentBuilder(
-              canvas.toBuffer(),
-              {
-                name: "drop.png"
-              }
-            );
+const attachment = new AttachmentBuilder(imageBuffer, {
+  name: "drop.png"
+});
 
             const dropText =
               "🎴 **A New Auto Drop Has Appeared!**\n" +

@@ -2898,6 +2898,7 @@ module.exports = [
     appearance: "Venom : The Last Dance",
     tier: "common",
     image: "common/novavld.jpeg",
+    rawImage: "raw/novalast.png"
   },
 
     {

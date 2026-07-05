@@ -72,6 +72,7 @@ if (brokenImages === 0 && brokenRawImages === 0) {
 }
 
 console.log("==================================\n");
+
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -98,6 +99,11 @@ const commandFiles = fs
 for (const file of commandFiles) {
   const filePath = path.join(commandsPath, file);
   const command = require(filePath);
+
+  if (!command.name) {
+    console.log(`⚠️ Command file missing name: ${file}`);
+    continue;
+  }
 
   client.commands.set(command.name, command);
 }
@@ -282,6 +288,31 @@ async function safeSendError(message) {
   }
 }
 
+async function safeSlashError(interaction) {
+  const payload = {
+    content: "❌ An error occurred while executing this command.",
+    ephemeral: true
+  };
+
+  try {
+    if (interaction.deferred || interaction.replied) {
+      await interaction.followUp(payload).catch(() => {});
+    } else {
+      await interaction.reply(payload).catch(() => {});
+    }
+  } catch (err) {
+    console.error("❌ Could not send slash error:", err);
+  }
+}
+
+function findCommand(commandName) {
+  return client.commands.get(commandName) ||
+    client.commands.find(cmd =>
+      cmd.aliases &&
+      cmd.aliases.includes(commandName)
+    );
+}
+
 client.once("clientReady", async () => {
   await connectDB();
 
@@ -289,10 +320,10 @@ client.once("clientReady", async () => {
 
   await updateTopggStats();
 
-setInterval(
-  updateTopggStats,
-  30 * 60 * 1000
-);
+  setInterval(
+    updateTopggStats,
+    30 * 60 * 1000
+  );
 
   updateBotStatus();
 
@@ -306,7 +337,6 @@ setInterval(
   startReminderChecker(client);
 
   startTopggWebhook(client);
-
 });
 
 client.on("guildCreate", () => {
@@ -333,21 +363,39 @@ client.on("messageCreate", async message => {
 
     const PREFIX = guildPrefix?.prefix || "!";
 
-    if (!message.content.startsWith(PREFIX)) return;
+    const content = message.content.trim();
 
-    const args = message.content
-      .slice(PREFIX.length)
-      .trim()
-      .split(/ +/);
+    const mentionRegex = new RegExp(`^<@!?${client.user.id}>\\s*`);
+
+    let args = null;
+
+    if (content.startsWith(PREFIX)) {
+      args = content
+        .slice(PREFIX.length)
+        .trim()
+        .split(/ +/);
+    }
+
+    else if (mentionRegex.test(content)) {
+      args = content
+        .replace(mentionRegex, "")
+        .trim()
+        .split(/ +/);
+    }
+
+    else {
+      return;
+    }
+
+    if (!args || !args[0]) {
+      return message.reply(
+        `👋 My prefix here is \`${PREFIX}\`.\nYou can use \`${PREFIX}help\` or mention me like \`@${client.user.username} help\`.`
+      ).catch(() => {});
+    }
 
     const commandName = args.shift().toLowerCase();
 
-    const command =
-      client.commands.get(commandName) ||
-      client.commands.find(cmd =>
-        cmd.aliases &&
-        cmd.aliases.includes(commandName)
-      );
+    const command = findCommand(commandName);
 
     if (!command) return;
 
@@ -371,6 +419,36 @@ client.on("messageCreate", async message => {
 
 client.on("interactionCreate", async interaction => {
   try {
+    if (interaction.isChatInputCommand()) {
+      const command = client.commands.get(interaction.commandName);
+
+      if (!command) {
+        return interaction.reply({
+          content: "❌ Unknown slash command.",
+          ephemeral: true
+        }).catch(() => {});
+      }
+
+      if (typeof command.slashExecute !== "function") {
+        return interaction.reply({
+          content: "❌ This slash command is not ready yet. Use the prefix command for now.",
+          ephemeral: true
+        }).catch(() => {});
+      }
+
+      try {
+        await command.slashExecute(
+          interaction,
+          client
+        );
+      } catch (error) {
+        console.error("❌ Slash command error:", error);
+        await safeSlashError(interaction);
+      }
+
+      return;
+    }
+
     if (!interaction.isButton()) return;
 
     if (
@@ -394,7 +472,7 @@ client.on("interactionCreate", async interaction => {
     console.error("❌ Interaction error:", error);
 
     const payload = {
-      content: "❌ Something went wrong with this button.",
+      content: "❌ Something went wrong with this interaction.",
       ephemeral: true
     };
 
@@ -526,33 +604,32 @@ async function startTopggWebhook(client) {
 
       const cooldownsCol = db.collection("cooldowns");
 
-const now = Date.now();
-const voteCooldown = 11.5 * 60 * 60 * 1000;
+      const now = Date.now();
+      const voteCooldown = 11.5 * 60 * 60 * 1000;
 
-const existing = await cooldownsCol.findOne({
-  type: "vote",
-  userId
-});
+      const existing = await cooldownsCol.findOne({
+        type: "vote",
+        userId
+      });
 
-if (
-  existing &&
-  now - existing.timestamp < voteCooldown
-) {
-  console.log(`⚠️ Duplicate vote ignored for ${userId}`);
-  return res.status(200).send("Duplicate");
-}
+      if (
+        existing &&
+        now - existing.timestamp < voteCooldown
+      ) {
+        console.log(`⚠️ Duplicate vote ignored for ${userId}`);
+        return res.status(200).send("Duplicate");
+      }
 
-// LOCK THE VOTE IMMEDIATELY
-await cooldownsCol.updateOne(
-  { type: "vote", userId },
-  {
-    $set: {
-      timestamp: now,
-      notified: false
-    }
-  },
-  { upsert: true }
-);
+      await cooldownsCol.updateOne(
+        { type: "vote", userId },
+        {
+          $set: {
+            timestamp: now,
+            notified: false
+          }
+        },
+        { upsert: true }
+      );
 
       const voteStreaksCol = db.collection("voteStreaks");
 
@@ -625,7 +702,6 @@ await cooldownsCol.updateOne(
         { upsert: true }
       );
 
-     
       await voteStreaksCol.updateOne(
         { userId },
         {
