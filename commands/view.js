@@ -1,12 +1,12 @@
-const path = require("path");
-
 const cards = require("../data/cards");
 
 const {
+  AttachmentBuilder,
   EmbedBuilder
 } = require("discord.js");
 
 const connectDB = require("../database");
+const renderCard = require("../utils/renderCard");
 
 function getTierEmoji(tier) {
   switch (tier.toLowerCase()) {
@@ -76,15 +76,6 @@ module.exports = {
       return message.reply("❌ Card data not found.");
     }
 
-    const imagePath = path.join(
-      __dirname,
-      "..",
-      "images",
-      card.image
-    );
-
-    const imageName = card.image.split("/").pop();
-
     let ownerName = "Unknown User";
 
     try {
@@ -99,6 +90,14 @@ module.exports = {
 
     const tagDisplay = tagDoc?.emoji || "No Tag";
 
+    const serial = String(foundCard.serial || "000000").padStart(6, "0");
+
+    const buffer = await renderCard(card, serial);
+
+    const attachment = new AttachmentBuilder(buffer, {
+      name: "view-card.png"
+    });
+
     const embed = new EmbedBuilder()
       .setColor(getColor(card.tier))
       .setTitle(`${getTierEmoji(card.tier)} ${card.name}`)
@@ -110,7 +109,7 @@ module.exports = {
         },
         {
           name: "🎴 Serial",
-          value: `#${foundCard.serial}`,
+          value: `#${serial}`,
           inline: true
         },
         {
@@ -130,13 +129,10 @@ module.exports = {
         },
         {
           name: "🎬 Appearance",
-          value:
-            card.show ||
-            card.appearance ||
-            "Unknown"
+          value: card.show || card.appearance || "Unknown"
         }
       )
-      .setImage(`attachment://${imageName}`)
+      .setImage("attachment://view-card.png")
       .setFooter({
         text: `Card ID: ${card.id}`
       })
@@ -144,12 +140,7 @@ module.exports = {
 
     await message.reply({
       embeds: [embed],
-      files: [
-        {
-          attachment: imagePath,
-          name: imageName
-        }
-      ]
+      files: [attachment]
     });
   }
 };
