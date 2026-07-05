@@ -1,6 +1,8 @@
 const { createCanvas, loadImage, registerFont } = require("canvas");
 const path = require("path");
 
+const frames = require("../data/frames");
+
 registerFont(path.join(__dirname, "..", "fonts", "Oswald-Bold.ttf"), {
   family: "Oswald",
 });
@@ -13,21 +15,40 @@ const COLORS = {
   legendary: "#E53935",
 };
 
-async function renderCard(card, serial = "000000") {
+async function renderCard(card, serial = "000000", ownedCard = null) {
   const W = 1054;
   const H = 1492;
 
   const canvas = createCanvas(W, H);
   const ctx = canvas.getContext("2d");
 
-  const tier = (card.tier || "common").toLowerCase();
-  const color = COLORS[tier] || COLORS.common;
-
   const imagePath = card.rawImage
     ? path.join(__dirname, "..", "images", card.rawImage)
     : path.join(__dirname, "..", "images", card.image);
 
   const img = await loadImage(imagePath);
+
+  // ✅ IF CARD HAS FRAME: raw image + frame only
+  if (ownedCard?.frameId) {
+    ctx.drawImage(img, 0, 0, W, H);
+
+    const frameData = frames.find(
+      f => Number(f.id) === Number(ownedCard.frameId)
+    );
+
+    if (frameData) {
+      const framePath = path.join(__dirname, "..", frameData.image);
+      const frameImg = await loadImage(framePath);
+
+      ctx.drawImage(frameImg, 0, 0, W, H);
+    }
+
+    return canvas.toBuffer("image/png");
+  }
+
+  // ✅ IF NO FRAME: old normal render
+  const tier = (card.tier || "common").toLowerCase();
+  const color = COLORS[tier] || COLORS.common;
 
   ctx.fillStyle = color;
   ctx.fillRect(0, 0, W, H);
@@ -64,7 +85,7 @@ async function renderCard(card, serial = "000000") {
   ctx.textAlign = "left";
 
   ctx.font = "700 32px Oswald";
- ctx.fillText(`#${serial}`, 70, 1285);
+  ctx.fillText(`#${serial}`, 70, 1285);
 
   ctx.font = "700 54px Oswald";
   ctx.fillText(String(card.name || "UNKNOWN").toUpperCase(), 70, 1365);

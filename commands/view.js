@@ -92,7 +92,7 @@ module.exports = {
 
  const serial = foundCard.serial || "?";
 
-    const buffer = await renderCard(card, serial);
+   const buffer = await renderCard(card, serial, foundCard);
 
     const attachment = new AttachmentBuilder(buffer, {
       name: "view-card.png"

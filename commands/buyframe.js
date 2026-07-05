@@ -55,23 +55,16 @@ module.exports = {
     }
 
     const db = await connectDB();
-
     const balancesCol = db.collection("balances");
     const frameInventoryCol = db.collection("frameInventory");
 
     const userId = message.author.id;
-
     let index = 0;
 
     function getFramePayload() {
       const frame = frames[index];
 
-      const imagePath = path.join(
-        __dirname,
-        "..",
-        frame.image
-      );
-
+      const imagePath = path.join(__dirname, "..", frame.image);
       const imageName = `frame_${frame.id}.png`;
 
       const file = new AttachmentBuilder(imagePath, {
@@ -80,7 +73,7 @@ module.exports = {
 
       const embed = new EmbedBuilder()
         .setColor(0x8b5cf6)
-        .setTitle(`🖼️ Frame Store`)
+        .setTitle("🖼️ Frame Store")
         .setDescription(
           `**${frame.name}**\n\n` +
           `Frame ID: **${frame.id}**\n` +
@@ -95,7 +88,7 @@ module.exports = {
         })
         .setTimestamp();
 
-      const row1 = new ActionRowBuilder().addComponents(
+      const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId("frame_prev5")
           .setLabel("⏪ -5")
@@ -124,9 +117,10 @@ module.exports = {
       );
 
       return {
+        content: null,
         embeds: [embed],
         files: [file],
-        components: [row1]
+        components: [row]
       };
     }
 
@@ -147,28 +141,24 @@ module.exports = {
       if (interaction.customId === "frame_prev") {
         index--;
         if (index < 0) index = frames.length - 1;
-
         return interaction.update(getFramePayload());
       }
 
       if (interaction.customId === "frame_next") {
         index++;
         if (index >= frames.length) index = 0;
-
         return interaction.update(getFramePayload());
       }
 
       if (interaction.customId === "frame_prev5") {
         index -= 5;
         while (index < 0) index += frames.length;
-
         return interaction.update(getFramePayload());
       }
 
       if (interaction.customId === "frame_next5") {
         index += 5;
         index = index % frames.length;
-
         return interaction.update(getFramePayload());
       }
 
@@ -189,23 +179,28 @@ module.exports = {
             .setStyle(ButtonStyle.Danger)
         );
 
-        await interaction.reply({
+        return interaction.update({
           content:
             `Buy **${frame.name}** for ` +
             `${getCurrencyEmoji(frame.currency)} **${formatNumber(frame.price)} ${frame.currency}**?`,
-          components: [confirmRow],
-          ephemeral: true
+          embeds: [],
+          files: [],
+          components: [confirmRow]
         });
       }
 
       if (interaction.customId === "frame_cancel") {
         return interaction.update({
           content: "❌ Purchase cancelled.",
+          embeds: [],
+          files: [],
           components: []
         });
       }
 
       if (interaction.customId === "frame_confirm") {
+        await interaction.deferUpdate();
+
         const frame = frames[index];
 
         const balanceDoc =
@@ -221,10 +216,12 @@ module.exports = {
 
         if (frame.currency === "coins") {
           if (coins < frame.price) {
-            return interaction.update({
+            return interaction.editReply({
               content:
                 `❌ You need ${getCurrencyEmoji("coins")} **${formatNumber(frame.price)} coins**.\n` +
                 `You only have **${formatNumber(coins)}**.`,
+              embeds: [],
+              files: [],
               components: []
             });
           }
@@ -238,10 +235,12 @@ module.exports = {
 
         if (frame.currency === "chips") {
           if (chips < frame.price) {
-            return interaction.update({
+            return interaction.editReply({
               content:
                 `❌ You need ${getCurrencyEmoji("chips")} **${formatNumber(frame.price)} chips**.\n` +
                 `You only have **${formatNumber(chips)}**.`,
+              embeds: [],
+              files: [],
               components: []
             });
           }
@@ -264,21 +263,21 @@ module.exports = {
           purchasedAt: Date.now()
         });
 
-        return interaction.update({
+        return interaction.editReply({
           content:
             `✅ You bought **${frame.name}**!\n\n` +
             `Your frame code: \`${uniqueCode}\`\n` +
             `Use it with:\n` +
             `\`!putframe cardcode ${uniqueCode}\``,
+          embeds: [],
+          files: [],
           components: []
         });
       }
     });
 
     collector.on("end", async () => {
-      await msg.edit({
-        components: []
-      }).catch(() => {});
+      await msg.edit({ components: [] }).catch(() => {});
     });
   }
 };
