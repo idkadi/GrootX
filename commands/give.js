@@ -45,7 +45,6 @@ async function runGive({ message, interaction, target, code }) {
   }
 
   const db = await connectDB();
-
   const collectionsCol = db.collection("collections");
 
   const giverId = author.id;
@@ -156,6 +155,7 @@ async function runGive({ message, interaction, target, code }) {
     }
 
     if (btn.customId === "give_confirm") {
+      await btn.deferUpdate();
       collector.stop("confirmed");
 
       const freshCard = await collectionsCol.findOne({
@@ -165,7 +165,7 @@ async function runGive({ message, interaction, target, code }) {
       });
 
       if (!freshCard) {
-        return btn.update({
+        return confirmMsg.edit({
           content: "❌ This card is no longer available.",
           embeds: [],
           files: [],
@@ -202,7 +202,7 @@ async function runGive({ message, interaction, target, code }) {
         .setImage("attachment://given-card.png")
         .setTimestamp();
 
-      return btn.update({
+      return confirmMsg.edit({
         content: "",
         embeds: [successEmbed],
         files: [finalFile],
