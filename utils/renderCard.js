@@ -28,23 +28,51 @@ async function renderCard(card, serial = "000000", ownedCard = null) {
 
   const img = await loadImage(imagePath);
 
-  // ✅ IF CARD HAS FRAME: raw image + frame only
-  if (ownedCard?.frameId) {
-    ctx.drawImage(img, 0, 0, W, H);
+// ✅ IF CARD HAS FRAME: raw image + frame + name text
+if (ownedCard?.frameId) {
+  ctx.drawImage(img, 0, 0, W, H);
 
-    const frameData = frames.find(
-      f => Number(f.id) === Number(ownedCard.frameId)
-    );
+  const frameData = frames.find(
+    f => Number(f.id) === Number(ownedCard.frameId)
+  );
 
-    if (frameData) {
-      const framePath = path.join(__dirname, "..", frameData.image);
-      const frameImg = await loadImage(framePath);
+  if (frameData) {
+    const framePath = path.join(__dirname, "..", frameData.image);
+    const frameImg = await loadImage(framePath);
 
-      ctx.drawImage(frameImg, 0, 0, W, H);
-    }
+    ctx.drawImage(frameImg, 0, 0, W, H);
 
-    return canvas.toBuffer("image/png");
+    // ✅ Name text settings from frames.js
+    const text = frameData.text || {};
+    const cardName = String(card.name || "UNKNOWN").toUpperCase();
+
+    ctx.save();
+
+    ctx.font = `700 ${text.size || 66}px Oswald`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    const nameX = text.x || W / 2;
+    const nameY = text.y || 1350;
+
+    // glow
+    ctx.shadowColor = text.glow || "#ffffff";
+    ctx.shadowBlur = 20;
+
+    // stroke / outline
+    ctx.strokeStyle = text.stroke || "#000000";
+    ctx.lineWidth = text.strokeWidth || 8;
+    ctx.strokeText(cardName, nameX, nameY);
+
+    // fill text
+    ctx.fillStyle = text.color || "#ffffff";
+    ctx.fillText(cardName, nameX, nameY);
+
+    ctx.restore();
   }
+
+  return canvas.toBuffer("image/png");
+}
 
   // ✅ IF NO FRAME: old normal render
   const tier = (card.tier || "common").toLowerCase();

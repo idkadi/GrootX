@@ -44,6 +44,9 @@ module.exports = {
   },
 
   async slashExecute(interaction) {
+    const latency =
+      Date.now() - interaction.createdTimestamp;
+
     const apiLatency =
       Math.round(interaction.client.ws.ping);
 
@@ -51,6 +54,11 @@ module.exports = {
       .setColor(0x00ff99)
       .setTitle("🏓 Pong!")
       .addFields(
+        {
+          name: "📡 Bot Latency",
+          value: `${latency}ms`,
+          inline: true
+        },
         {
           name: "🌐 API Latency",
           value: `${apiLatency}ms`,
