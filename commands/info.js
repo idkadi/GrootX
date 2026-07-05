@@ -1,6 +1,6 @@
 const cards = require("../data/cards");
 const { AttachmentBuilder, EmbedBuilder } = require("discord.js");
-const renderInfo = require("../utils/renderInfo");
+const renderInfo = require("../utils/Inforender");
 
 
 
