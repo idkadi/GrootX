@@ -2,11 +2,7 @@ require("dotenv").config();
 
 const fs = require("fs");
 const path = require("path");
-
-const {
-  REST,
-  Routes
-} = require("discord.js");
+const { REST, Routes } = require("discord.js");
 
 const commands = [];
 
@@ -22,26 +18,20 @@ for (const file of commandFiles) {
   }
 }
 
-const rest = new REST({
-  version: "10"
-}).setToken(process.env.TOKEN);
+const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
 
 (async () => {
   try {
-    console.log(`Started refreshing ${commands.length} slash commands.`);
+    console.log(`Started refreshing ${commands.length} global slash commands.`);
 
     await rest.put(
-      Routes.applicationGuildCommands(
-  process.env.CLIENT_ID,
-  process.env.GUILD_ID
-),
-      
+      Routes.applicationCommands(process.env.CLIENT_ID),
       {
         body: commands
       }
     );
 
-    console.log("✅ Slash commands deployed.");
+    console.log("✅ Global slash commands deployed successfully.");
   } catch (error) {
     console.error(error);
   }

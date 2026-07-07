@@ -1,102 +1,62 @@
-const { EmbedBuilder } = require("discord.js");
+const {
+  EmbedBuilder,
+  SlashCommandBuilder
+} = require("discord.js");
+
 const connectDB = require("../database");
 
-module.exports = {
-  name: "cooldown",
-  aliases: ["cd"],
+async function runCooldown(user, replyTarget) {
+  const db = await connectDB();
+  const cooldownsCol = db.collection("cooldowns");
 
-  async execute(message) {
-    const db = await connectDB();
-    const cooldownsCol = db.collection("cooldowns");
+  const userId = user.id;
+  const now = Date.now();
 
-    const userId = message.author.id;
-    const now = Date.now();
+  function getDiscordTimestamp(timestamp, cooldownTime) {
+    const endTime = Math.floor((timestamp + cooldownTime) / 1000);
+    return `<t:${endTime}:R>`;
+  }
 
-    function getDiscordTimestamp(timestamp, cooldownTime) {
-      const endTime = Math.floor(
-        (timestamp + cooldownTime) / 1000
-      );
+  async function getCooldownText(type, cooldownTime) {
+    const doc = await cooldownsCol.findOne({
+      type,
+      userId
+    });
 
-      return `<t:${endTime}:R>`;
+    const timestamp = doc?.timestamp;
+
+    if (timestamp && now - timestamp < cooldownTime) {
+      return getDiscordTimestamp(timestamp, cooldownTime);
     }
 
-    async function getCooldownText(type, cooldownTime) {
-      const doc = await cooldownsCol.findOne({
-        type,
-        userId
-      });
+    return "✅ Ready";
+  }
 
-      const timestamp = doc?.timestamp;
+  async function getDailyCooldownText() {
+    const dailyDoc = await db.collection("daily").findOne({
+      userId
+    });
 
-      if (
-        timestamp &&
-        now - timestamp < cooldownTime
-      ) {
-        return getDiscordTimestamp(
-          timestamp,
-          cooldownTime
-        );
-      }
+    const timestamp = dailyDoc?.timestamp;
+    const cooldownTime = 24 * 60 * 60 * 1000;
 
-      return "✅ Ready";
+    if (timestamp && now - timestamp < cooldownTime) {
+      return getDiscordTimestamp(timestamp, cooldownTime);
     }
 
-    async function getDailyCooldownText() {
-      const dailyDoc =
-        await db.collection("daily").findOne({
-          userId
-        });
+    return "✅ Ready";
+  }
 
-      const timestamp =
-        dailyDoc?.timestamp;
+  const dropText = await getCooldownText("drop", 8 * 60 * 1000);
+  const pickupText = await getCooldownText("pickup", 4 * 60 * 1000);
+  const dailyText = await getDailyCooldownText();
+  const weeklyText = await getCooldownText("weekly", 7 * 24 * 60 * 60 * 1000);
+  const voteText = await getCooldownText("vote", 12 * 60 * 60 * 1000);
 
-      const cooldownTime =
-        24 * 60 * 60 * 1000;
-
-      if (
-        timestamp &&
-        now - timestamp < cooldownTime
-      ) {
-        return getDiscordTimestamp(
-          timestamp,
-          cooldownTime
-        );
-      }
-
-      return "✅ Ready";
-    }
-
-    const dropText =
-      await getCooldownText(
-        "drop",
-        8 * 60 * 1000
-      );
-
-    const pickupText =
-      await getCooldownText(
-        "pickup",
-        4 * 60 * 1000
-      );
-
-    const dailyText =
-      await getDailyCooldownText();
-
-    const weeklyText =
-      await getCooldownText(
-        "weekly",
-        7 * 24 * 60 * 60 * 1000
-      );
-
-    const voteText =
-      await getCooldownText(
-        "vote",
-        12 * 60 * 60 * 1000
-      );
-
-    const embed = new EmbedBuilder()
-      .setColor("#00D4FF")
-      .setTitle("⌛ COOLDOWNS")
-      .setDescription(
+  const embed = new EmbedBuilder()
+    .setColor("#00D4FF")
+    .setTitle("⌛ COOLDOWNS")
+    .setDescription(
 `🎴 **Drop:** ${dropText}
 
 🎯 **Claim:** ${pickupText}
@@ -106,15 +66,31 @@ module.exports = {
 📦 **Weekly:** ${weeklyText}
 
 🗳️ **Vote:** ${voteText}`
-      )
-      .setThumbnail(
-        message.author.displayAvatarURL({
-          dynamic: true
-        })
-      );
+    )
+    .setThumbnail(
+      user.displayAvatarURL({
+        dynamic: true
+      })
+    );
 
-    await message.reply({
-      embeds: [embed]
-    });
+  await replyTarget.reply({
+    embeds: [embed]
+  });
+}
+
+module.exports = {
+  name: "cooldown",
+  aliases: ["cd"],
+
+  data: new SlashCommandBuilder()
+    .setName("cooldown")
+    .setDescription("View your command cooldowns"),
+
+  async execute(message) {
+    return runCooldown(message.author, message);
+  },
+
+  async slashExecute(interaction) {
+    return runCooldown(interaction.user, interaction);
   }
 };
