@@ -7065,6 +7065,343 @@ module.exports = [
     rawImage: "raw/silversurferf4ss.png"
   },
 
+    {
+    id: 700,
+    name: "Black Panther",
+    aka: [],
+    appearance: "Eyes of Wakanda",
+    tier: "legendary",
+    image: "raw/blackpanthereyes.png",
+    rawImage: "raw/blackpanthereyes.png"
+  },
+
+    {
+    id: 701,
+    name: "Noni",
+    aka: [],
+    appearance: "Eyes of Wakanda",
+    tier: "epic",
+    image: "raw/nonieyes.png",
+    rawImage: "raw/nonieyes.png"
+  },
+
+   {
+    id: 702,
+    name: "Iron Fist",
+    aka: ["Jorani"],
+    appearance: "Eyes of Wakanda",
+    tier: "epic",
+    image: "raw/ironfisteyes.png",
+    rawImage: "raw/ironfisteyes.png"
+  },
+
+   {
+    id: 703,
+    name: "The Lion",
+    aka: [],
+    appearance: "Eyes of Wakanda",
+    tier: "rare",
+    image: "raw/thelioneyes.png",
+    rawImage: "raw/thelioneyes.png"
+  },
+
+   {
+    id: 704,
+    name: "Memnon",
+    aka: ["B'kai"],
+    appearance: "Eyes of Wakanda",
+    tier: "rare",
+    image: "raw/bkaieyes.png",
+    rawImage: "raw/bkaieyes.png"
+  },
+
+   {
+    id: 705,
+    name: "Tafari",
+    aka: [],
+    appearance: "Eyes of Wakanda",
+    tier: "rare",
+    image: "raw/tafarieyes.png",
+    rawImage: "raw/tafarieyes.png"
+  },
+
+  
+   {
+    id: 706,
+    name: "Basha",
+    aka: [],
+    appearance: "Eyes of Wakanda",
+    tier: "rare",
+    image: "raw/basha.png",
+    rawImage: "raw/basha.png"
+  },
+
+   {
+    id: 707,
+    name: "Kuda",
+    aka: [],
+    appearance: "Eyes of Wakanda",
+    tier: "rare",
+    image: "raw/kuda.png",
+    rawImage: "raw/kuda.png"
+  },
+
+   {
+    id: 708,
+    name: "Achilles",
+    aka: [],
+    appearance: "Eyes of Wakanda",
+    tier: "uncommon",
+    image: "raw/arch.png",
+    rawImage: "raw/arch.png"
+  },
+
+   {
+    id: 709,
+    name: "Akeya",
+    aka: [],
+    appearance: "Eyes of Wakanda",
+    tier: "uncommon",
+    image: "raw/akeya.png",
+    rawImage: "raw/akeya.png"
+  },
+
+  {
+    id: 710,
+    name: "Ebo",
+    aka: [],
+    appearance: "Eyes of Wakanda",
+    tier: "uncommon",
+    image: "raw/ebo.png",
+    rawImage: "raw/ebo.png"
+  },
+
+   {
+    id: 711,
+    name: "Rakim",
+    aka: [],
+    appearance: "Eyes of Wakanda",
+    tier: "uncommon",
+    image: "raw/rakim.png",
+    rawImage: "raw/rakim.png"
+  },
+
+   {
+    id: 712,
+    name: "Odysseus",
+    aka: [],
+    appearance: "Eyes of Wakanda",
+    tier: "common",
+    image: "raw/odys.png",
+    rawImage: "raw/odys.png"
+  },
+
+  {
+    id: 713,
+    name: "Helen",
+    aka: [],
+    appearance: "Eyes of Wakanda",
+    tier: "common",
+    image: "raw/helen.png",
+    rawImage: "raw/helen.png"
+  },
+
+    {
+    id: 714,
+    name: "Ferro",
+    aka: [],
+    appearance: "Eyes of Wakanda",
+    tier: "common",
+    image: "raw/ferro.png",
+    rawImage: "raw/ferro.png"
+  },
+
+   {
+    id: 715,
+    name: "Venom Frog",
+    aka: [],
+    appearance: "Venom : The last dance",
+    tier: "common",
+    image: "raw/venomfrog.png",
+    rawImage: "raw/venomfrog.png"
+  },
+
+    {
+    id: 716,
+    name: "Time-keepers",
+    aka: [],
+    appearance: "Venom : The last dance",
+    tier: "common",
+    image: "raw/timekeepers.png",
+    rawImage: "raw/timekeepers.png"
+  },
+
+  {
+    id: 717,
+    name: "Wolverine",
+    aka: ["Logan"],
+    appearance: "X-men (2000)",
+    tier: "legendary",
+    image: "raw/wolverinex.png",
+    rawImage: "raw/wolverinex.png"
+  },
+
+   {
+    id: 718,
+    name: "Magneto",
+    aka: ["Erik Magnus Lehnsherr"],
+    appearance: "X-men (2000)",
+    tier: "legendary",
+    image: "raw/magnetox.png",
+    rawImage: "raw/magnetox.png"
+  },
+
+   {
+    id: 719,
+    name: "Professor-X",
+    aka: ["Charles Xavier"],
+    appearance: "X-men (2000)",
+    tier: "epic",
+    image: "raw/charlesx.png",
+    rawImage: "raw/charlesx.png"
+  },
+
+   {
+    id: 720,
+    name: "Mystique",
+    aka: [],
+    appearance: "X-men (2000)",
+    tier: "epic",
+    image: "raw/mystiquex.png",
+    rawImage: "raw/mystiquex.png"
+  },
+
+  {
+    id: 721,
+    name: "Rogue",
+    aka: [],
+    appearance: "X-men (2000)",
+    tier: "epic",
+    image: "raw/roguex.png",
+    rawImage: "raw/roguex.png"
+  },
+
+   {
+    id: 722,
+    name: "Jean Grey",
+    aka: [],
+    appearance: "X-men (2000)",
+    tier: "rare",
+    image: "raw/jeanx.png",
+    rawImage: "raw/jeanx.png"
+  },
+
+  
+   {
+    id: 723,
+    name: "Cyclops",
+    aka: [],
+    appearance: "X-men (2000)",
+    tier: "rare",
+    image: "raw/cyclopsx.png",
+    rawImage: "raw/cyclopsx.png"
+  },
+
+   {
+    id: 724,
+    name: "Storm",
+    aka: [],
+    appearance: "X-men (2000)",
+    tier: "rare",
+    image: "raw/stormx.png",
+    rawImage: "raw/stormx.png"
+  },
+
+   {
+    id: 725,
+    name: "Sabertooth",
+    aka: [],
+    appearance: "X-men (2000)",
+    tier: "uncommon",
+    image: "raw/sabertoothx.png",
+    rawImage: "raw/sabertoothx.png"
+  },
+
+   {
+    id: 726,
+    name: "Toad",
+    aka: [],
+    appearance: "X-men (2000)",
+    tier: "uncommon",
+    image: "raw/toadx.png",
+    rawImage: "raw/toadx.png"
+  },
+
+   {
+    id: 727,
+    name: "Bobby Drake",
+    aka: ["Ice man"],
+    appearance: "X-men (2000)",
+    tier: "common",
+    image: "raw/bobbyx.png",
+    rawImage: "raw/bobbyx.png"
+  },
+
+   {
+    id: 728,
+    name: "Robert Kelly",
+    aka: [],
+    appearance: "X-men (2000)",
+    tier: "common",
+    image: "raw/kellyx.png",
+    rawImage: "raw/kellyx.png"
+  },
+
+  {
+    id: 729,
+    name: "Jubilee",
+    aka: [],
+    appearance: "X-men (2000)",
+    tier: "common",
+    image: "raw/jubilee.png",
+    rawImage: "raw/jubilee.png"
+  },
+
+  
+  {
+    id: 730,
+    name: "Kitty Pryde",
+    aka: [],
+    appearance: "X-men (2000)",
+    tier: "common",
+    image: "raw/kittyx.png",
+    rawImage: "raw/kittyx.png"
+  },
+
+  
+  {
+    id: 731,
+    name: "David",
+    aka: [],
+    appearance: "X-men (2000)",
+    tier: "common",
+    image: "raw/davidx.png",
+    rawImage: "raw/davidx.png"
+  },
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
 
 
 
