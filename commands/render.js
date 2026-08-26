@@ -1,4 +1,4 @@
-const cards = require("../data/cards");
+const cards = require("../data/season1");
 const { AttachmentBuilder } = require("discord.js");
 const renderCard = require("../utils/renderCard");
 
