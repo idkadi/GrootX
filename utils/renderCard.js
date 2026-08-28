@@ -8,15 +8,8 @@ const path = require("path");
 const frames = require("../data/frames");
 
 registerFont(
-  path.join(
-    __dirname,
-    "..",
-    "fonts",
-    "Oswald-Bold.ttf"
-  ),
-  {
-    family: "Oswald"
-  }
+  path.join(__dirname, "..", "fonts", "Oswald-Bold.ttf"),
+  { family: "Oswald" }
 );
 
 async function renderCard(
@@ -29,7 +22,7 @@ async function renderCard(
   );
 
   // =====================================================
-  // SEASON 0 — ORIGINAL CARD FORMAT
+  // SEASON 0 — RAW IMAGE + OLD COLOURED FORMAT
   // =====================================================
 
   if (season === 0) {
@@ -51,30 +44,27 @@ async function renderCard(
     const tierColor =
       tierColors[tier] || tierColors.common;
 
-    if (!card.image) {
+    if (!card.rawImage) {
       throw new Error(
-        `Season 0 card ${card.id} is missing image.`
+        `Season 0 card ${card.id} is missing rawImage.`
       );
     }
 
-    const oldImagePath = path.join(
+    const imagePath = path.join(
       __dirname,
       "..",
       "images",
-      card.image
+      card.rawImage
     );
 
-    const oldImage = await loadImage(oldImagePath);
+    const rawImage = await loadImage(imagePath);
 
-    const oldCanvas = createCanvas(W, H);
-    const oldCtx = oldCanvas.getContext("2d");
+    const canvas = createCanvas(W, H);
+    const ctx = canvas.getContext("2d");
 
-    // ===================================================
-    // TIER-COLOURED OUTER BORDER
-    // ===================================================
-
-    oldCtx.fillStyle = tierColor;
-    oldCtx.fillRect(0, 0, W, H);
+    // Tier-coloured outer border
+    ctx.fillStyle = tierColor;
+    ctx.fillRect(0, 0, W, H);
 
     const innerX = 36;
     const innerY = 36;
@@ -82,83 +72,77 @@ async function renderCard(
     const innerH = 1420;
     const radius = 18;
 
-    // ===================================================
-    // ROUNDED INNER CARD
-    // ===================================================
+    // Rounded inner card clipping
+    ctx.save();
+    ctx.beginPath();
 
-    oldCtx.save();
-    oldCtx.beginPath();
-
-    oldCtx.moveTo(
+    ctx.moveTo(
       innerX + radius,
       innerY
     );
 
-    oldCtx.lineTo(
+    ctx.lineTo(
       innerX + innerW - radius,
       innerY
     );
 
-    oldCtx.quadraticCurveTo(
+    ctx.quadraticCurveTo(
       innerX + innerW,
       innerY,
       innerX + innerW,
       innerY + radius
     );
 
-    oldCtx.lineTo(
+    ctx.lineTo(
       innerX + innerW,
       innerY + innerH - radius
     );
 
-    oldCtx.quadraticCurveTo(
+    ctx.quadraticCurveTo(
       innerX + innerW,
       innerY + innerH,
       innerX + innerW - radius,
       innerY + innerH
     );
 
-    oldCtx.lineTo(
+    ctx.lineTo(
       innerX + radius,
       innerY + innerH
     );
 
-    oldCtx.quadraticCurveTo(
+    ctx.quadraticCurveTo(
       innerX,
       innerY + innerH,
       innerX,
       innerY + innerH - radius
     );
 
-    oldCtx.lineTo(
+    ctx.lineTo(
       innerX,
       innerY + radius
     );
 
-    oldCtx.quadraticCurveTo(
+    ctx.quadraticCurveTo(
       innerX,
       innerY,
       innerX + radius,
       innerY
     );
 
-    oldCtx.closePath();
-    oldCtx.clip();
+    ctx.closePath();
+    ctx.clip();
 
-    // ===================================================
-    // DRAW ORIGINAL CARD IMAGE
-    // ===================================================
-
+    // Cover inner card with raw image
     const imageScale = Math.max(
-      innerW / oldImage.width,
-      innerH / oldImage.height
+      innerW / rawImage.width,
+      innerH / rawImage.height
     );
 
     const imageW =
-      oldImage.width * imageScale;
+      rawImage.width * imageScale;
 
     const imageH =
-      oldImage.height * imageScale;
+      rawImage.height * imageScale;
 
     const imageX =
       innerX + (innerW - imageW) / 2;
@@ -166,109 +150,103 @@ async function renderCard(
     const imageY =
       innerY + (innerH - imageH) / 2;
 
-    oldCtx.drawImage(
-      oldImage,
+    ctx.drawImage(
+      rawImage,
       imageX,
       imageY,
       imageW,
       imageH
     );
 
-    // ===================================================
-    // TRANSLUCENT LOWER INFORMATION PANEL
-    // ===================================================
+    // Translucent information panel
+    ctx.globalAlpha = 0.88;
+    ctx.fillStyle = tierColor;
 
-    oldCtx.globalAlpha = 0.88;
-    oldCtx.fillStyle = tierColor;
-
-    oldCtx.fillRect(
+    ctx.fillRect(
       innerX,
       1210,
       innerW,
       246
     );
 
-    oldCtx.globalAlpha = 1;
-    oldCtx.restore();
+    ctx.globalAlpha = 1;
+    ctx.restore();
 
-    // ===================================================
-    // SEASON 0 TEXT
-    // ===================================================
+    // Text
+    ctx.save();
 
-    oldCtx.save();
+    ctx.fillStyle = "#FFFFFF";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
 
-    oldCtx.fillStyle = "#FFFFFF";
-    oldCtx.textAlign = "left";
-    oldCtx.textBaseline = "alphabetic";
+    // Serial
+    ctx.font = "700 40px Oswald";
 
-    // Serial number
-    oldCtx.font = "700 40px Oswald";
-
-    oldCtx.fillText(
+    ctx.fillText(
       `#${serial ?? "?"}`,
       70,
       1285
     );
 
     // Character name
-    const oldCardName = String(
+    const cardName = String(
       card.name || "UNKNOWN"
     ).toUpperCase();
 
-    let oldNameSize = 66;
+    let nameFontSize = 66;
 
     do {
-      oldCtx.font =
-        `700 ${oldNameSize}px Oswald`;
+      ctx.font =
+        `700 ${nameFontSize}px Oswald`;
 
       if (
-        oldCtx.measureText(oldCardName).width <= 900
+        ctx.measureText(cardName).width <= 900
       ) {
         break;
       }
 
-      oldNameSize -= 2;
-    } while (oldNameSize > 42);
+      nameFontSize -= 2;
+    } while (nameFontSize > 42);
 
-    oldCtx.fillText(
-      oldCardName,
+    ctx.fillText(
+      cardName,
       70,
       1368
     );
 
-    // Movie / appearance
-    const oldAppearance = String(
+    // Appearance
+    const appearance = String(
       card.appearance || card.show || ""
     ).toUpperCase();
 
-    let oldAppearanceSize = 40;
+    let appearanceFontSize = 40;
 
     do {
-      oldCtx.font =
-        `700 ${oldAppearanceSize}px Oswald`;
+      ctx.font =
+        `700 ${appearanceFontSize}px Oswald`;
 
       if (
-        oldCtx.measureText(oldAppearance).width <= 900
+        ctx.measureText(appearance).width <= 900
       ) {
         break;
       }
 
-      oldAppearanceSize -= 1;
-    } while (oldAppearanceSize > 26);
+      appearanceFontSize -= 1;
+    } while (appearanceFontSize > 26);
 
-    oldCtx.fillText(
-      oldAppearance,
+    ctx.fillText(
+      appearance,
       70,
       1428
     );
 
-    oldCtx.restore();
+    ctx.restore();
 
-    return oldCanvas.toBuffer("image/png");
+    return canvas.toBuffer("image/png");
   }
 
   // =====================================================
-  // SEASON 1 — NEW FRAME FORMAT
+  // SEASON 1 — RAW IMAGE + SEPARATE FRAME
   // =====================================================
 
   const W = 1054;
@@ -276,10 +254,6 @@ async function renderCard(
 
   const canvas = createCanvas(W, H);
   const ctx = canvas.getContext("2d");
-
-  // =====================================================
-  // LOAD RAW IMAGE
-  // =====================================================
 
   if (!card.rawImage) {
     throw new Error(
@@ -294,31 +268,35 @@ async function renderCard(
     card.rawImage
   );
 
-  const img = await loadImage(imagePath);
+  const rawImage = await loadImage(imagePath);
 
+  // Draw raw image over entire canvas
   const scale = Math.max(
-    W / img.width,
-    H / img.height
+    W / rawImage.width,
+    H / rawImage.height
   );
 
-  const drawW = img.width * scale;
-  const drawH = img.height * scale;
+  const drawW =
+    rawImage.width * scale;
 
-  const drawX = (W - drawW) / 2;
-  const drawY = (H - drawH) / 2;
+  const drawH =
+    rawImage.height * scale;
+
+  const drawX =
+    (W - drawW) / 2;
+
+  const drawY =
+    (H - drawH) / 2;
 
   ctx.drawImage(
-    img,
+    rawImage,
     drawX,
     drawY,
     drawW,
     drawH
   );
 
-  // =====================================================
-  // CHOOSE SEASON 1 FRAME
-  // =====================================================
-
+  // Choose Season 1 frame
   let framePath;
 
   if (ownedCard?.frameId) {
@@ -337,6 +315,7 @@ async function renderCard(
     }
   }
 
+  // Default tier frame
   if (!framePath) {
     const tier = String(
       card.tier || "common"
@@ -351,20 +330,19 @@ async function renderCard(
     );
   }
 
-  const frameImg = await loadImage(framePath);
+  // Draw frame over raw image
+  const frameImage =
+    await loadImage(framePath);
 
   ctx.drawImage(
-    frameImg,
+    frameImage,
     0,
     0,
     W,
     H
   );
 
-  // =====================================================
-  // SEASON 1 CHARACTER NAME
-  // =====================================================
-
+  // Character name
   const cardName = String(
     card.name || "UNKNOWN"
   ).toUpperCase();
@@ -373,6 +351,7 @@ async function renderCard(
 
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
+  ctx.fillStyle = "#FFFFFF";
 
   const nameX = W / 2;
   const nameY = 1175;
@@ -394,17 +373,6 @@ async function renderCard(
     nameFontSize -= 2;
   } while (nameFontSize > 42);
 
-  ctx.strokeStyle = "#000000";
-  ctx.lineWidth = 6;
-
-  ctx.strokeText(
-    cardName,
-    nameX,
-    nameY
-  );
-
-  ctx.fillStyle = "#FFFFFF";
-
   ctx.fillText(
     cardName,
     nameX,
@@ -413,18 +381,16 @@ async function renderCard(
 
   ctx.restore();
 
-  // =====================================================
-  // SEASON 1 MOVIE / APPEARANCE
-  // =====================================================
-
+  // Appearance
   const appearance = String(
-    card.appearance || ""
+    card.appearance || card.show || ""
   ).toUpperCase();
 
   ctx.save();
 
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
+  ctx.fillStyle = "#FFFFFF";
 
   const appearanceX = W / 2;
   const appearanceY = 1255;
@@ -445,17 +411,6 @@ async function renderCard(
 
     appearanceFontSize -= 1;
   } while (appearanceFontSize > 25);
-
-  ctx.strokeStyle = "#000000";
-  ctx.lineWidth = 4;
-
-  ctx.strokeText(
-    appearance,
-    appearanceX,
-    appearanceY
-  );
-
-  ctx.fillStyle = "#FFFFFF";
 
   ctx.fillText(
     appearance,

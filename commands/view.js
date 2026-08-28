@@ -1,4 +1,5 @@
-const cards = require("../data/cards");
+const season0Cards = require("../data/cards");
+const season1Cards = require("../data/season1");
 
 const {
   AttachmentBuilder,
@@ -10,23 +11,45 @@ const renderCard = require("../utils/renderCard");
 
 function getTierEmoji(tier) {
   switch (tier.toLowerCase()) {
-    case "common": return "<:common:1504510702956839033>";
-    case "uncommon": return "<:uncommon:1504510929210052698>";
-    case "rare": return "<:rare:1504510606718275764>";
-    case "epic": return "<:epic:1504510771214680175>";
-    case "legendary": return "<:legendary:1504511435974377552>";
-    default: return "❓";
+    case "common":
+      return "<:common:1504510702956839033>";
+
+    case "uncommon":
+      return "<:uncommon:1504510929210052698>";
+
+    case "rare":
+      return "<:rare:1504510606718275764>";
+
+    case "epic":
+      return "<:epic:1504510771214680175>";
+
+    case "legendary":
+      return "<:legendary:1504511435974377552>";
+
+    default:
+      return "❓";
   }
 }
 
 function getColor(tier) {
   switch (tier.toLowerCase()) {
-    case "common": return 0xcd7f32;
-    case "uncommon": return 0xc0c0c0;
-    case "rare": return 0xffd700;
-    case "epic": return 0x8000ff;
-    case "legendary": return 0xff0000;
-    default: return 0xffffff;
+    case "common":
+      return 0xcd7f32;
+
+    case "uncommon":
+      return 0xc0c0c0;
+
+    case "rare":
+      return 0xffd700;
+
+    case "epic":
+      return 0x8000ff;
+
+    case "legendary":
+      return 0xe53935;
+
+    default:
+      return 0xffffff;
   }
 }
 
@@ -37,106 +60,179 @@ module.exports = {
   async execute(message, args) {
     const db = await connectDB();
 
-    const collectionsCol = db.collection("collections");
-    const cardTagsCol = db.collection("cardtags");
+    const collectionsCol =
+      db.collection("collections");
+
+    const cardTagsCol =
+      db.collection("cardtags");
 
     let searchCode;
 
+    // If no code is provided, view the user's latest card
     if (!args[0]) {
       const latestCard = await collectionsCol
-        .find({ userId: message.author.id })
-        .sort({ _id: -1 })
+        .find({
+          userId: message.author.id
+        })
+        .sort({
+          _id: -1
+        })
         .limit(1)
         .next();
 
       if (!latestCard) {
-        return message.reply("❌ Your collection is empty.");
+        return message.reply(
+          "❌ Your collection is empty."
+        );
       }
 
       searchCode = latestCard.code;
     } else {
-      searchCode = args[0].toLowerCase();
+      searchCode =
+        args[0].toLowerCase();
     }
 
-    const foundCard = await collectionsCol.findOne({
-      code: searchCode
-    });
+    const foundCard =
+      await collectionsCol.findOne({
+        code: searchCode
+      });
 
     if (!foundCard) {
-      return message.reply("❌ Card not found.");
+      return message.reply(
+        "❌ Card not found."
+      );
     }
 
-    const ownerId = foundCard.userId;
+    const ownerId =
+      foundCard.userId;
 
-    const card = cards.find(
-      c => Number(c.id) === Number(foundCard.cardId)
+    // Old cards without a season automatically count as S0
+    const season = Number(
+      foundCard.season ?? 0
     );
 
+    // Choose the correct season database
+    const activeCardDatabase =
+      season === 1
+        ? season1Cards
+        : season0Cards;
+
+    const card =
+      activeCardDatabase.find(
+        currentCard =>
+          Number(currentCard.id) ===
+          Number(foundCard.cardId)
+      );
+
     if (!card) {
-      return message.reply("❌ Card data not found.");
+      return message.reply(
+        `❌ Season ${season} card data not found.`
+      );
     }
 
-    let ownerName = "Unknown User";
+    let ownerName =
+      "Unknown User";
 
     try {
-      const user = await message.client.users.fetch(ownerId);
+      const user =
+        await message.client.users.fetch(
+          ownerId
+        );
+
       ownerName = user.username;
-    } catch (err) {}
+    } catch (error) {
+      // Keep Unknown User if fetching fails
+    }
 
-    const tagDoc = await cardTagsCol.findOne({
-      userId: ownerId,
-      code: foundCard.code
-    });
+    const tagDoc =
+      await cardTagsCol.findOne({
+        userId: ownerId,
+        code: foundCard.code
+      });
 
-    const tagDisplay = tagDoc?.emoji || "No Tag";
+    const tagDisplay =
+      tagDoc?.emoji || "No Tag";
 
- const serial = foundCard.serial || "?";
+    const serial =
+      foundCard.serial || "?";
 
-   const buffer = await renderCard(card, serial, foundCard);
+    // Pass the season into renderCard
+    const buffer = await renderCard(
+      {
+        ...card,
+        season
+      },
+      serial,
+      {
+        ...foundCard,
+        season
+      }
+    );
 
-    const attachment = new AttachmentBuilder(buffer, {
-      name: "view-card.png"
-    });
+    const attachment =
+      new AttachmentBuilder(buffer, {
+        name: "view-card.png"
+      });
 
-    const embed = new EmbedBuilder()
-      .setColor(getColor(card.tier))
-      .setTitle(`${getTierEmoji(card.tier)} ${card.name}`)
-      .addFields(
-        {
-          name: "🆔 Code",
-          value: `\`${foundCard.code}\``,
-          inline: true
-        },
-        {
-          name: "🎴 Serial",
-          value: `#${serial}`,
-          inline: true
-        },
-        {
-          name: "🏷️ Tag",
-          value: tagDisplay,
-          inline: true
-        },
-        {
-          name: "⭐ Favorite",
-          value: foundCard.favorite ? "Yes" : "No",
-          inline: true
-        },
-        {
-          name: "👤 Claimed By",
-          value: ownerName,
-          inline: true
-        },
-        {
-          name: "🎬 Appearance",
-          value: card.show || card.appearance || "Unknown"
-        }
-      )
-      .setImage("attachment://view-card.png")
-      .setFooter({
-        text: `Card ID: ${card.id}`
-      })
-      .setTimestamp();
+    const embed =
+      new EmbedBuilder()
+        .setColor(
+          getColor(card.tier)
+        )
+        .setTitle(
+          `${getTierEmoji(card.tier)} ${card.name}`
+        )
+        .addFields(
+          {
+            name: "🆔 Code",
+            value:
+              `\`${foundCard.code}\``,
+            inline: true
+          },
+          {
+            name: "🎴 Serial",
+            value: `#${serial}`,
+            inline: true
+          },
+          {
+            name: "🗓️ Season",
+            value: `Season ${season}`,
+            inline: true
+          },
+          {
+            name: "🏷️ Tag",
+            value: tagDisplay,
+            inline: true
+          },
+          {
+            name: "⭐ Favorite",
+            value:
+              foundCard.favorite
+                ? "Yes"
+                : "No",
+            inline: true
+          },
+          {
+            name: "👤 Claimed By",
+            value: ownerName,
+            inline: true
+          },
+          {
+            name: "🎬 Appearance",
+            value:
+              card.show ||
+              card.appearance ||
+              "Unknown"
+          }
+        )
+        .setImage(
+          "attachment://view-card.png"
+        )
+        .setFooter({
+          text:
+            `Season ${season} • Card ID: ${card.id}`
+        })
+        .setTimestamp();
 
     await message.reply({
       embeds: [embed],

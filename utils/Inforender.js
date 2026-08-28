@@ -8,15 +8,8 @@ const path = require("path");
 const renderCard = require("./renderCard");
 
 registerFont(
-  path.join(
-    __dirname,
-    "..",
-    "fonts",
-    "Oswald-Bold.ttf"
-  ),
-  {
-    family: "Oswald"
-  }
+  path.join(__dirname, "..", "fonts", "Oswald-Bold.ttf"),
+  { family: "Oswald" }
 );
 
 const COLORS = {
@@ -36,7 +29,7 @@ async function renderInfo(
   );
 
   // =====================================================
-  // SEASON 1 — RAW IMAGE + NEW FRAME
+  // SEASON 1 — RAW IMAGE + SEPARATE FRAME
   // =====================================================
 
   if (season === 1) {
@@ -53,7 +46,7 @@ async function renderInfo(
   }
 
   // =====================================================
-  // SEASON 0 — ORIGINAL COLOURED FORMAT
+  // SEASON 0 — RAW IMAGE + OLD COLOURED FORMAT
   // =====================================================
 
   const W = 1054;
@@ -69,9 +62,9 @@ async function renderInfo(
   const color =
     COLORS[tier] || COLORS.common;
 
-  if (!card.image) {
+  if (!card.rawImage) {
     throw new Error(
-      `Season 0 card ${card.id} is missing image.`
+      `Season 0 card ${card.id} is missing rawImage.`
     );
   }
 
@@ -79,84 +72,77 @@ async function renderInfo(
     __dirname,
     "..",
     "images",
-    card.image
+    card.rawImage
   );
 
-  const img = await loadImage(imagePath);
+  const rawImage =
+    await loadImage(imagePath);
 
-  // =====================================================
-  // TIER-COLOURED BACKGROUND
-  // =====================================================
-
+  // Tier-coloured background
   ctx.fillStyle = color;
   ctx.fillRect(0, 0, W, H);
 
   const margin = 36;
   const radius = 18;
 
-  const imgX = margin;
-  const imgY = margin;
+  const imageX = margin;
+  const imageY = margin;
 
-  const imgW =
+  const imageWidth =
     W - margin * 2;
 
-  const imgH =
+  const imageHeight =
     H - margin * 2;
 
-  // =====================================================
-  // DRAW ORIGINAL SEASON 0 IMAGE
-  // =====================================================
-
   const scale = Math.max(
-    imgW / img.width,
-    imgH / img.height
+    imageWidth / rawImage.width,
+    imageHeight / rawImage.height
   );
 
-  const drawW =
-    img.width * scale;
+  const drawWidth =
+    rawImage.width * scale;
 
-  const drawH =
-    img.height * scale;
+  const drawHeight =
+    rawImage.height * scale;
 
   const drawX =
-    imgX + (imgW - drawW) / 2;
+    imageX +
+    (imageWidth - drawWidth) / 2;
 
   const drawY =
-    imgY + (imgH - drawH) / 2;
+    imageY +
+    (imageHeight - drawHeight) / 2;
 
   roundedClip(
     ctx,
-    imgX,
-    imgY,
-    imgW,
-    imgH,
+    imageX,
+    imageY,
+    imageWidth,
+    imageHeight,
     radius
   );
 
   ctx.drawImage(
-    img,
+    rawImage,
     drawX,
     drawY,
-    drawW,
-    drawH
+    drawWidth,
+    drawHeight
   );
 
   ctx.restore();
 
-  // =====================================================
-  // LOWER TIER-COLOURED PANEL
-  // =====================================================
-
+  // Lower coloured panel
   const panelY = 1210;
 
-  const panelH =
+  const panelHeight =
     H - panelY - margin;
 
   const gradient =
     ctx.createLinearGradient(
-      imgX,
+      imageX,
       panelY,
-      imgX + imgW,
+      imageX + imageWidth,
       panelY
     );
 
@@ -173,16 +159,13 @@ async function renderInfo(
   ctx.fillStyle = gradient;
 
   ctx.fillRect(
-    imgX,
+    imageX,
     panelY,
-    imgW,
-    panelH
+    imageWidth,
+    panelHeight
   );
 
-  // =====================================================
-  // SEASON 0 INFORMATION TEXT
-  // =====================================================
-
+  // Text
   ctx.fillStyle = "#FFFFFF";
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
@@ -224,7 +207,7 @@ async function renderInfo(
     1365
   );
 
-  // Movie / appearance
+  // Appearance
   const appearance = String(
     card.appearance || card.show || ""
   ).toUpperCase();
@@ -347,17 +330,10 @@ function hexToRgba(hex, alpha) {
     16
   );
 
-  const red =
-    (value >> 16) & 255;
-
-  const green =
-    (value >> 8) & 255;
-
-  const blue =
-    value & 255;
-
   return (
-    `rgba(${red}, ${green}, ${blue}, ${alpha})`
+    `rgba(${(value >> 16) & 255}, ` +
+    `${(value >> 8) & 255}, ` +
+    `${value & 255}, ${alpha})`
   );
 }
 
