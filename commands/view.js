@@ -10,7 +10,7 @@ const connectDB = require("../database");
 const renderCard = require("../utils/renderCard");
 
 function getTierEmoji(tier) {
-  switch (tier.toLowerCase()) {
+  switch (String(tier || "").toLowerCase()) {
     case "common":
       return "<:common:1504510702956839033>";
 
@@ -32,7 +32,7 @@ function getTierEmoji(tier) {
 }
 
 function getColor(tier) {
-  switch (tier.toLowerCase()) {
+  switch (String(tier || "").toLowerCase()) {
     case "common":
       return 0xcd7f32;
 
@@ -53,6 +53,18 @@ function getColor(tier) {
   }
 }
 
+function getSeasonEmoji(season) {
+  return Number(season) === 1
+    ? "1️⃣"
+    : "0️⃣";
+}
+
+function getSeasonDatabase(season) {
+  return Number(season) === 1
+    ? season1Cards
+    : season0Cards;
+}
+
 module.exports = {
   name: "view",
   aliases: ["v"],
@@ -68,7 +80,12 @@ module.exports = {
 
     let searchCode;
 
-    // If no code is provided, view the user's latest card
+    // ==========================================
+    // FIND CARD
+    // ==========================================
+
+    // If no code is provided,
+    // view the user's latest claimed card.
     if (!args[0]) {
       const latestCard = await collectionsCol
         .find({
@@ -86,10 +103,13 @@ module.exports = {
         );
       }
 
-      searchCode = latestCard.code;
+      searchCode = String(
+        latestCard.code
+      ).toLowerCase();
     } else {
-      searchCode =
-        args[0].toLowerCase();
+      searchCode = String(
+        args[0]
+      ).toLowerCase();
     }
 
     const foundCard =
@@ -103,20 +123,33 @@ module.exports = {
       );
     }
 
-    const ownerId =
-      foundCard.userId;
+    // ==========================================
+    // SEASON
+    // ==========================================
 
-    // Old cards without a season automatically count as S0
+    /*
+     * Existing cards created before the season
+     * system may not have a season field.
+     *
+     * They automatically count as Season 0.
+     */
     const season = Number(
       foundCard.season ?? 0
     );
 
-    // Choose the correct season database
-    const activeCardDatabase =
-      season === 1
-        ? season1Cards
-        : season0Cards;
+    const seasonEmoji =
+      getSeasonEmoji(season);
 
+    /*
+     * S0 -> data/cards.js
+     * S1 -> data/season1.js
+     */
+    const activeCardDatabase =
+      getSeasonDatabase(season);
+
+    // IMPORTANT:
+    // We only search inside the database belonging
+    // to this owned card's season.
     const card =
       activeCardDatabase.find(
         currentCard =>
@@ -126,9 +159,16 @@ module.exports = {
 
     if (!card) {
       return message.reply(
-        `❌ Season ${season} card data not found.`
+        `❌ ${seasonEmoji} Season ${season} card data not found.`
       );
     }
+
+    // ==========================================
+    // OWNER
+    // ==========================================
+
+    const ownerId =
+      foundCard.userId;
 
     let ownerName =
       "Unknown User";
@@ -139,10 +179,15 @@ module.exports = {
           ownerId
         );
 
-      ownerName = user.username;
+      ownerName =
+        user.username;
     } catch (error) {
-      // Keep Unknown User if fetching fails
+      // Keep Unknown User
     }
+
+    // ==========================================
+    // TAG
+    // ==========================================
 
     const tagDoc =
       await cardTagsCol.findOne({
@@ -153,35 +198,96 @@ module.exports = {
     const tagDisplay =
       tagDoc?.emoji || "No Tag";
 
-    const serial =
-      foundCard.serial || "?";
+    // ==========================================
+    // SERIAL
+    // ==========================================
 
-    // Pass the season into renderCard
-    const buffer = await renderCard(
-      {
-        ...card,
-        season
-      },
-      serial,
-      {
-        ...foundCard,
-        season
-      }
-    );
+    const serial =
+      foundCard.serial ?? "?";
+
+    // ==========================================
+    // RENDER CARD
+    // ==========================================
+
+    /*
+     * This is important.
+     *
+     * We pass:
+     *
+     * card:
+     *   Correct S0/S1 card database entry
+     *
+     * season:
+     *   Tells renderCard which season style
+     *   should be used
+     *
+     * foundCard:
+     *   Contains ownership information,
+     *   including frameId.
+     *
+     * Therefore:
+     *
+     * S0 -> S0 image/render
+     * S1 -> S1 image/render
+     * frameId -> custom framed render
+     */
+
+    let buffer;
+
+    try {
+      buffer = await renderCard(
+        {
+          ...card,
+          season
+        },
+        serial,
+        {
+          ...foundCard,
+          season
+        }
+      );
+    } catch (error) {
+      console.error(
+        `Failed to render card ${foundCard.code}:`,
+        error
+      );
+
+      return message.reply(
+        "❌ Failed to render this card."
+      );
+    }
+
+    const imageName =
+      `view-${foundCard.code}-s${season}.png`;
 
     const attachment =
       new AttachmentBuilder(buffer, {
-        name: "view-card.png"
+        name: imageName
       });
+
+    // ==========================================
+    // FRAME DISPLAY
+    // ==========================================
+
+    const frameDisplay =
+      foundCard.frameId
+        ? `Frame #${foundCard.frameId}`
+        : "Default";
+
+    // ==========================================
+    // EMBED
+    // ==========================================
 
     const embed =
       new EmbedBuilder()
         .setColor(
           getColor(card.tier)
         )
+
         .setTitle(
-          `${getTierEmoji(card.tier)} ${card.name}`
+          `${seasonEmoji} ${getTierEmoji(card.tier)} ${card.name}`
         )
+
         .addFields(
           {
             name: "🆔 Code",
@@ -189,21 +295,28 @@ module.exports = {
               `\`${foundCard.code}\``,
             inline: true
           },
+
           {
             name: "🎴 Serial",
-            value: `#${serial}`,
+            value:
+              `#${serial}`,
             inline: true
           },
+
           {
             name: "🗓️ Season",
-            value: `Season ${season}`,
+            value:
+              `${seasonEmoji} Season ${season}`,
             inline: true
           },
+
           {
             name: "🏷️ Tag",
-            value: tagDisplay,
+            value:
+              tagDisplay,
             inline: true
           },
+
           {
             name: "⭐ Favorite",
             value:
@@ -212,26 +325,40 @@ module.exports = {
                 : "No",
             inline: true
           },
+
           {
-            name: "👤 Claimed By",
-            value: ownerName,
+            name: "🖼️ Frame",
+            value:
+              frameDisplay,
             inline: true
           },
+
+          {
+            name: "👤 Claimed By",
+            value:
+              ownerName,
+            inline: true
+          },
+
           {
             name: "🎬 Appearance",
             value:
-              card.show ||
               card.appearance ||
+              card.show ||
               "Unknown"
           }
         )
+
         .setImage(
-          "attachment://view-card.png"
+          `attachment://${imageName}`
         )
+
         .setFooter({
           text:
-            `Season ${season} • Card ID: ${card.id}`
+            `${seasonEmoji} Season ${season} • ` +
+            `Card ID: ${card.id}`
         })
+
         .setTimestamp();
 
     await message.reply({

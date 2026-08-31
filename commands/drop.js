@@ -1,540 +1,874 @@
-const cards = require("../data/cards");
-
 const {
+  EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
-  ButtonStyle
+  ButtonStyle,
+  AttachmentBuilder
 } = require("discord.js");
 
-const createDropImage = require("../utils/createDropImage");
+const cards = require("../data/season1");
 const connectDB = require("../database");
+const renderCard = require("../utils/renderCard");
+
+const SEASON = 1;
+
+const rewards = {
+  common: 200,
+  uncommon: 300,
+  rare: 500,
+  epic: 700,
+  legendary: 1500
+};
+
+function clean(text) {
+  return String(text || "")
+    .toLowerCase()
+    .trim();
+}
 
 function getTierEmoji(tier) {
-  switch (tier.toLowerCase()) {
-    case "common": return "<:common:1504510702956839033>";
-    case "uncommon": return "<:uncommon:1504510929210052698>";
-    case "rare": return "<:rare:1504510606718275764>";
-    case "epic": return "<:epic:1504510771214680175>";
-    case "legendary": return "<:legendary:1504511435974377552>";
-    default: return "❓";
+  switch (
+    String(tier || "")
+      .toLowerCase()
+  ) {
+    case "common":
+      return "<:common:1504510702956839033>";
+
+    case "uncommon":
+      return "<:uncommon:1504510929210052698>";
+
+    case "rare":
+      return "<:rare:1504510606718275764>";
+
+    case "epic":
+      return "<:epic:1504510771214680175>";
+
+    case "legendary":
+      return "<:legendary:1504511435974377552>";
+
+    default:
+      return "❓";
   }
-}
-
-function getRandomTier() {
-  const chance = Math.random() * 100;
-
-  if (chance < 60) return "common";
-  if (chance < 87.5) return "uncommon";
-  if (chance < 97.5) return "rare";
-  if (chance < 99.7) return "epic";
-
-  return "legendary";
-}
-
-async function generateUniqueCode(collectionsCol) {
-  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-
-  while (true) {
-    let code = "";
-
-    for (let i = 0; i < 6; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-
-    const exists = await collectionsCol.findOne({ code });
-
-    if (!exists) return code;
-  }
-}
-
-async function getRecentDrops(recentDropsCol) {
-  const docs = await recentDropsCol
-    .find({})
-    .sort({ createdAt: 1 })
-    .toArray();
-
-  return docs.map(doc => doc.cardId);
-}
-
-async function saveRecentDrops(recentDropsCol, recentDrops) {
-  await recentDropsCol.deleteMany({});
-
-  if (recentDrops.length > 0) {
-    await recentDropsCol.insertMany(
-      recentDrops.map((cardId, index) => ({
-        cardId,
-        createdAt: Date.now() + index
-      }))
-    );
-  }
-}
-
-function pickWithoutRecent(rarity, dropCards, usedShows, recentDrops) {
-  let rarityCards = cards.filter(
-    c =>
-      c.tier === rarity &&
-      !recentDrops.includes(c.id) &&
-      !dropCards.some(d => d.id === c.id) &&
-      !usedShows.includes(c.show)
-  );
-
-  if (rarityCards.length === 0) {
-    rarityCards = cards.filter(
-      c =>
-        c.tier === rarity &&
-        !recentDrops.includes(c.id) &&
-        !dropCards.some(d => d.id === c.id)
-    );
-  }
-
-  if (rarityCards.length === 0) {
-    rarityCards = cards.filter(
-      c =>
-        c.tier === rarity &&
-        !dropCards.some(d => d.id === c.id)
-    );
-  }
-
-  if (rarityCards.length === 0) {
-    rarityCards = cards.filter(c => c.tier === rarity);
-  }
-
-  const randomCard =
-    rarityCards[Math.floor(Math.random() * rarityCards.length)];
-
-  recentDrops.push(randomCard.id);
-
-  while (recentDrops.length > 15) {
-    recentDrops.shift();
-  }
-
-  return randomCard;
-}
-
-async function assignDropSerials(serialsCol, dropCards) {
-  const serialMap = {};
-
-  for (const card of dropCards) {
-    await serialsCol.updateOne(
-      { cardId: card.id },
-      { $inc: { serial: 1 } },
-      { upsert: true }
-    );
-
-    const serialDoc = await serialsCol.findOne({
-      cardId: card.id
-    });
-
-    serialMap[card.id] = serialDoc.serial;
-  }
-
-  return serialMap;
-}
-
-async function getWishlistData(db, dropCards) {
-  const wishCol = db.collection("wishlists");
-  const droppedIds = dropCards.map(card => Number(card.id));
-
-  const wishUsers = await wishCol
-    .find({
-      cards: { $in: droppedIds }
-    })
-    .toArray();
-
-  const counts = {};
-  const pingUsers = new Set();
-
-  for (const card of dropCards) {
-    counts[card.id] = 0;
-  }
-
-  for (const wish of wishUsers) {
-    const wishedIds = (wish.cards || []).map(id => Number(id));
-
-    let matched = false;
-
-    for (const droppedId of droppedIds) {
-      if (wishedIds.includes(Number(droppedId))) {
-        counts[droppedId] = (counts[droppedId] || 0) + 1;
-        matched = true;
-      }
-    }
-
-    if (matched) {
-      pingUsers.add(wish.userId);
-    }
-  }
-
-  const pingText = pingUsers.size > 0
-    ? `\n\n💫 Wishlist alert: ${Array.from(pingUsers).map(id => `<@${id}>`).join(" ")}`
-    : "";
-
-  return {
-    counts,
-    pingText
-  };
 }
 
 module.exports = {
-  name: "drop",
-  aliases: ["d"],
+  name: "series",
 
-  async execute(message) {
-    const db = await connectDB();
+  async execute(message, args) {
+    // ==========================================
+    // SERIES SEARCH
+    // ==========================================
 
-    const collectionsCol = db.collection("collections");
-    const serialsCol = db.collection("serials");
-    const cooldownsCol = db.collection("cooldowns");
-    const recentDropsCol = db.collection("recentDrops");
-    const inventoryCol = db.collection("inventory");
-    const stoneEffectsCol = db.collection("stoneeffects");
-
-    const userId = message.author.id;
-    const now = Date.now();
-
-    const stoneEffect = await stoneEffectsCol.findOne({ userId });
-
-    const dropCooldown = await cooldownsCol.findOne({
-      type: "drop",
-      userId
-    });
-
-    let cooldownTime = 8 * 60 * 1000;
-
-    if (stoneEffect?.timeUntil && stoneEffect.timeUntil > now) {
-      cooldownTime = cooldownTime / 2;
+    if (!args.length) {
+      return message.reply(
+        "❌ Use: `!series <series name>`\n" +
+        "Example: `!series Iron Man`"
+      );
     }
 
-    let usedExtraDrop = false;
+    const query =
+      clean(
+        args.join(" ")
+      );
+
+    /*
+     * SERIES NOW USES SEASON 1 ONLY.
+     *
+     * All cards come from:
+     * data/season1.js
+     */
+
+    const seriesCards =
+      cards
+        .filter(card =>
+          clean(
+            card.appearance ||
+            card.show
+          ) === query
+        )
+        .sort(
+          (a, b) =>
+            a.name.localeCompare(
+              b.name
+            )
+        );
 
     if (
-      dropCooldown &&
-      now - dropCooldown.timestamp < cooldownTime
+      seriesCards.length === 0
     ) {
-      const inventoryDoc = await inventoryCol.findOne({ userId });
-      const extraDrops = inventoryDoc?.items?.extra_drop || 0;
+      return message.reply(
+        "❌ Series not found in 1️⃣ **Season 1**. " +
+        "Use the exact series name."
+      );
+    }
 
-      if (extraDrops <= 0) {
-        const remaining = cooldownTime - (now - dropCooldown.timestamp);
-        const minutes = Math.floor(remaining / 60000);
-        const seconds = Math.floor((remaining % 60000) / 1000);
+    const seriesName =
+      seriesCards[0].appearance ||
+      seriesCards[0].show ||
+      "Unknown";
 
-        return message.reply(
-          `❌ You can drop again in ${minutes}m ${seconds}s.`
+    // ==========================================
+    // DATABASE
+    // ==========================================
+
+    const db =
+      await connectDB();
+
+    const collectionsCol =
+      db.collection("collections");
+
+    const balancesCol =
+      db.collection("balances");
+
+    const rewardsCol =
+      db.collection("seriesRewards");
+
+    const userId =
+      message.author.id;
+
+    // ==========================================
+    // OWNED S1 CARDS
+    // ==========================================
+
+    async function getOwnedIds() {
+      /*
+       * IMPORTANT:
+       *
+       * Only Season 1 owned cards count.
+       *
+       * Old cards without season are S0,
+       * therefore they DO NOT count here.
+       */
+
+      const userCards =
+        await collectionsCol
+          .find({
+            userId,
+            season: SEASON
+          })
+          .toArray();
+
+      return new Set(
+        userCards.map(card =>
+          Number(card.cardId)
+        )
+      );
+    }
+
+    let ownedIds =
+      await getOwnedIds();
+
+    // ==========================================
+    // COMPLETION
+    // ==========================================
+
+    function getCompleted() {
+      return seriesCards.every(
+        card =>
+          ownedIds.has(
+            Number(card.id)
+          )
+      );
+    }
+
+    let completed =
+      getCompleted();
+
+    // ==========================================
+    // REWARD CLAIM
+    // ==========================================
+
+    /*
+     * Reward is season-aware.
+     *
+     * This prevents an old S0 series reward
+     * with the same name from blocking S1.
+     */
+
+    let alreadyClaimed =
+      await rewardsCol.findOne({
+        userId,
+        series: seriesName,
+        season: SEASON
+      });
+
+    // ==========================================
+    // REWARD VALUE
+    // ==========================================
+
+    const totalReward =
+      seriesCards.reduce(
+        (total, card) => {
+          const tier =
+            String(
+              card.tier || ""
+            ).toLowerCase();
+
+          return (
+            total +
+            (
+              rewards[tier] ||
+              0
+            )
+          );
+        },
+        0
+      );
+
+    // ==========================================
+    // VIEW STATE
+    // ==========================================
+
+    const perPage = 15;
+
+    let page = 0;
+    let imageIndex = 0;
+
+    let viewMode =
+      "list";
+
+    const totalPages =
+      Math.max(
+        1,
+        Math.ceil(
+          seriesCards.length /
+          perPage
+        )
+      );
+
+    // ==========================================
+    // OWNED COUNT
+    // ==========================================
+
+    function ownedCount() {
+      return seriesCards.filter(
+        card =>
+          ownedIds.has(
+            Number(card.id)
+          )
+      ).length;
+    }
+
+    // ==========================================
+    // LIST VIEW
+    // ==========================================
+
+    function generateListEmbed() {
+      const start =
+        page * perPage;
+
+      const currentCards =
+        seriesCards.slice(
+          start,
+          start + perPage
         );
-      }
 
-      await inventoryCol.updateOne(
-        { userId },
-        {
-          $inc: {
-            "items.extra_drop": -1
+      const list =
+        currentCards
+          .map(
+            (card, index) => {
+              const owned =
+                ownedIds.has(
+                  Number(card.id)
+                );
+
+              return (
+                `${owned ? "✅" : "☐"} ` +
+                `**${start + index + 1}. ${card.name}** ` +
+                `${getTierEmoji(card.tier)}`
+              );
+            }
+          )
+          .join("\n");
+
+      return new EmbedBuilder()
+        .setColor(
+          completed
+            ? 0x00ff99
+            : 0x00aeff
+        )
+
+        .setTitle(
+          `📘 1️⃣ ${seriesName}`
+        )
+
+        .setDescription(
+          list ||
+          "No cards found."
+        )
+
+        .addFields(
+          {
+            name:
+              "🗓️ Season",
+
+            value:
+              "1️⃣ **Season 1**",
+
+            inline:
+              true
+          },
+
+          {
+            name:
+              "🎁 Completion Reward",
+
+            value:
+              `<:grootcoin:1504742213110861834> ` +
+              `**${totalReward} Coins**`,
+
+            inline:
+              true
+          },
+
+          {
+            name:
+              "📊 Progress",
+
+            value:
+              `**${ownedCount()}/${seriesCards.length}**`,
+
+            inline:
+              true
           }
-        }
-      );
+        )
 
-      usedExtraDrop = true;
+        .setFooter({
+          text:
+            `1️⃣ Season 1 • ` +
+            `List View • ` +
+            `Page ${page + 1}/${totalPages} • ` +
+            (
+              alreadyClaimed
+                ? "Reward already claimed."
+                : completed
+                  ? "Completed. Claim your reward!"
+                  : "Collect all S1 cards to claim reward."
+            )
+        })
+
+        .setTimestamp();
     }
 
-    await cooldownsCol.updateOne(
-      {
-        type: "drop",
-        userId
-      },
-      {
-        $set: {
-          timestamp: now,
-          notified: false
-        }
-      },
-      {
-        upsert: true
-      }
-    );
+    // ==========================================
+    // IMAGE VIEW
+    // ==========================================
 
-    let cardsToDrop = 3;
-    let mindStoneUsed = false;
+    async function generateImagePayload() {
+      const card =
+        seriesCards[
+          imageIndex
+        ];
 
-    if ((stoneEffect?.mindDropsRemaining || 0) > 0) {
-      cardsToDrop = 4;
-      mindStoneUsed = true;
+      const owned =
+        ownedIds.has(
+          Number(card.id)
+        );
 
-      await stoneEffectsCol.updateOne(
-        { userId },
-        {
-          $inc: {
-            mindDropsRemaining: -1
+      /*
+       * Series isn't viewing a specific owned
+       * copy, so no serial/frameId is passed.
+       *
+       * renderCard receives season: 1,
+       * therefore it renders the normal S1 card.
+       */
+
+      const buffer =
+        await renderCard(
+          {
+            ...card,
+            season: SEASON
+          },
+          "?",
+          {
+            season: SEASON
           }
-        }
-      );
+        );
+
+      const imageName =
+        `series-${card.id}-s1.png`;
+
+      const attachment =
+        new AttachmentBuilder(
+          buffer,
+          {
+            name:
+              imageName
+          }
+        );
+
+      const embed =
+        new EmbedBuilder()
+
+          .setColor(
+            owned
+              ? 0x00ff99
+              : 0xff5555
+          )
+
+          .setTitle(
+            `${owned ? "✅" : "☐"} ` +
+            `1️⃣ ${card.name}`
+          )
+
+          .setDescription(
+            `${getTierEmoji(card.tier)} ` +
+            `**${card.tier}**\n\n` +
+
+            `Season: **1️⃣ Season 1**\n` +
+
+            `Series: **${seriesName}**\n` +
+
+            `Card: **${imageIndex + 1}/${seriesCards.length}**\n` +
+
+            `Status: **${owned ? "Owned" : "Missing"}**`
+          )
+
+          .addFields(
+            {
+              name:
+                "🎁 Completion Reward",
+
+              value:
+                `<:grootcoin:1504742213110861834> ` +
+                `**${totalReward} Coins**`,
+
+              inline:
+                true
+            },
+
+            {
+              name:
+                "📊 Progress",
+
+              value:
+                `**${ownedCount()}/${seriesCards.length}**`,
+
+              inline:
+                true
+            }
+          )
+
+          .setImage(
+            `attachment://${imageName}`
+          )
+
+          .setFooter({
+            text:
+              `1️⃣ Season 1 • ` +
+              (
+                alreadyClaimed
+                  ? "Reward already claimed."
+                  : completed
+                    ? "Completed. Claim your reward!"
+                    : "Collect all S1 cards to claim reward."
+              )
+          })
+
+          .setTimestamp();
+
+      return {
+        embeds: [
+          embed
+        ],
+
+        files: [
+          attachment
+        ],
+
+        components: [
+          makeNavRow(),
+          makeClaimRow()
+        ]
+      };
     }
 
-    const recentDrops = await getRecentDrops(recentDropsCol);
+    // ==========================================
+    // NAVIGATION
+    // ==========================================
 
-    const dropCards = [];
-    const usedShows = [];
-    const claimedUsers = new Set();
+    function makeNavRow() {
+      return new ActionRowBuilder()
+        .addComponents(
 
-    const claimedCards = Array(cardsToDrop).fill(false);
+          new ButtonBuilder()
+            .setCustomId(
+              "series_prev"
+            )
 
-    const attemptedBy = Array(cardsToDrop)
-      .fill(null)
-      .map(() => new Set());
+            .setLabel(
+              "⬅️"
+            )
 
-    while (dropCards.length < cardsToDrop) {
-      const rarity = getRandomTier();
+            .setStyle(
+              ButtonStyle.Primary
+            )
 
-      const randomCard = pickWithoutRecent(
-        rarity,
-        dropCards,
-        usedShows,
-        recentDrops
-      );
+            .setDisabled(
+              viewMode === "list"
+                ? totalPages <= 1
+                : seriesCards.length <= 1
+            ),
 
-      dropCards.push(randomCard);
+          new ButtonBuilder()
+            .setCustomId(
+              "series_view"
+            )
 
-      if (randomCard.show) {
-        usedShows.push(randomCard.show);
+            .setLabel(
+              viewMode === "list"
+                ? "Image View"
+                : "List View"
+            )
+
+            .setEmoji(
+              "🖼️"
+            )
+
+            .setStyle(
+              ButtonStyle.Secondary
+            ),
+
+          new ButtonBuilder()
+            .setCustomId(
+              "series_next"
+            )
+
+            .setLabel(
+              "➡️"
+            )
+
+            .setStyle(
+              ButtonStyle.Primary
+            )
+
+            .setDisabled(
+              viewMode === "list"
+                ? totalPages <= 1
+                : seriesCards.length <= 1
+            )
+        );
+    }
+
+    // ==========================================
+    // CLAIM BUTTON
+    // ==========================================
+
+    function makeClaimRow() {
+      return new ActionRowBuilder()
+        .addComponents(
+
+          new ButtonBuilder()
+            .setCustomId(
+              "series_claim"
+            )
+
+            .setLabel(
+              alreadyClaimed
+                ? "Claimed"
+                : "Claim Reward"
+            )
+
+            .setEmoji(
+              alreadyClaimed
+                ? "✅"
+                : "🎁"
+            )
+
+            .setStyle(
+              alreadyClaimed
+                ? ButtonStyle.Secondary
+                : ButtonStyle.Success
+            )
+
+            .setDisabled(
+              !completed ||
+              !!alreadyClaimed
+            )
+        );
+    }
+
+    // ==========================================
+    // PAYLOAD
+    // ==========================================
+
+    async function getPayload() {
+      if (
+        viewMode === "image"
+      ) {
+        return generateImagePayload();
       }
+
+      return {
+        embeds: [
+          generateListEmbed()
+        ],
+
+        files: [],
+
+        components: [
+          makeNavRow(),
+          makeClaimRow()
+        ]
+      };
     }
 
-    await saveRecentDrops(recentDropsCol, recentDrops);
+    // ==========================================
+    // SEND
+    // ==========================================
 
-    const dropSerials = await assignDropSerials(serialsCol, dropCards);
-
-    const wishlistData = await getWishlistData(db, dropCards);
-
-    const renderedCards = dropCards.map(card => ({
-  ...card,
-  serial: dropSerials[card.id]
-}));
-
-const dropImage = await createDropImage(renderedCards);
-
-    const powerActive =
-      stoneEffect?.powerUntil && stoneEffect.powerUntil > now;
-
-    const timeActive =
-      stoneEffect?.timeUntil && stoneEffect.timeUntil > now;
-
-    const effectText =
-      (usedExtraDrop ? "🌌 **Extra Drop Used!**\n" : "") +
-      (mindStoneUsed ? "🧠 **Mind Stone Active! (4 Cards)**\n" : "") +
-      (powerActive ? "💪 **Power Stone Active!**\n" : "") +
-      (timeActive ? "⏳ **Time Stone Active!**\n" : "");
-
-    const dropText =
-      "🎴 **A New Drop Has Appeared!**\n" +
-      "\u200B\n" +
-      effectText +
-      "\n" +
-      dropCards.map((card, index) =>
-        `**${index + 1}.** ${getTierEmoji(card.tier)} **${card.name}** #${dropSerials[card.id]}`
-      ).join("\n") +
-      wishlistData.pingText;
-
-    const row = new ActionRowBuilder();
-
-    for (let i = 0; i < cardsToDrop; i++) {
-      const card = dropCards[i];
-      const wishCount = wishlistData.counts[card.id] || 0;
-
-      row.addComponents(
-        new ButtonBuilder()
-          .setCustomId(`claim_${i}`)
-          .setLabel(`💖 ${wishCount}`)
-          .setStyle(ButtonStyle.Primary)
+    const msg =
+      await message.reply(
+        await getPayload()
       );
-    }
 
-    const dropMessage = await message.reply({
-      content: dropText,
-      files: [
-        {
-          attachment: dropImage,
-          name: "drop.png"
-        }
-      ],
-      components: [row]
-    });
-
-    const dropStartedAt = Date.now();
-
-    const collector = dropMessage.createMessageComponentCollector({
-      time: 60000
-    });
-
-    collector.on("collect", async interaction => {
-      const claimerId = interaction.user.id;
-      const claimNow = Date.now();
-
-      const index = parseInt(interaction.customId.split("_")[1]);
-
-      attemptedBy[index].add(claimerId);
-
-      const claimerEffect = await stoneEffectsCol.findOne({
-        userId: claimerId
+    const collector =
+      msg.createMessageComponentCollector({
+        time: 120000
       });
 
-      const dropperPowerActive =
-        stoneEffect?.powerUntil && stoneEffect.powerUntil > claimNow;
+    // ==========================================
+    // INTERACTIONS
+    // ==========================================
 
-      const claimerPowerActive =
-        claimerEffect?.powerUntil && claimerEffect.powerUntil > claimNow;
+    collector.on(
+      "collect",
 
-      const priorityTime = dropperPowerActive
-        ? 6 * 1000
-        : 5 * 1000;
+      async interaction => {
+        collector.resetTimer();
 
-      if (
-        claimNow - dropStartedAt < priorityTime &&
-        claimerId !== userId &&
-        !claimerPowerActive
-      ) {
-        return interaction.deferUpdate().catch(() => {});
-      }
-
-      const pickupCooldown = await cooldownsCol.findOne({
-        type: "pickup",
-        userId: claimerId
-      });
-
-      let pickupTime = 4 * 60 * 1000;
-
-      if (claimerEffect?.timeUntil && claimerEffect.timeUntil > claimNow) {
-        pickupTime = pickupTime / 2;
-      }
-
-      let usedExtraGrab = false;
-
-      if (
-        pickupCooldown &&
-        claimNow - pickupCooldown.timestamp < pickupTime
-      ) {
-        const inventoryDoc = await inventoryCol.findOne({
-          userId: claimerId
-        });
-
-        const extraGrabs = inventoryDoc?.items?.extra_grab || 0;
-
-        if (extraGrabs <= 0) {
-          const remaining = pickupTime - (claimNow - pickupCooldown.timestamp);
-          const minutes = Math.floor(remaining / 60000);
-          const seconds = Math.floor((remaining % 60000) / 1000);
-
+        if (
+          interaction.user.id !==
+          userId
+        ) {
           return interaction.reply({
-            content: `❌ You can claim again in ${minutes}m ${seconds}s.`,
-            ephemeral: true
+            content:
+              "❌ This series menu is not for you.",
+
+            ephemeral:
+              true
           });
         }
 
-        await inventoryCol.updateOne(
-          {
-            userId: claimerId
-          },
-          {
-            $inc: {
-              "items.extra_grab": -1
+        // ======================================
+        // VIEW
+        // ======================================
+
+        if (
+          interaction.customId ===
+          "series_view"
+        ) {
+          viewMode =
+            viewMode === "list"
+              ? "image"
+              : "list";
+
+          page = 0;
+          imageIndex = 0;
+
+          return interaction.update(
+            await getPayload()
+          );
+        }
+
+        // ======================================
+        // NEXT
+        // ======================================
+
+        if (
+          interaction.customId ===
+          "series_next"
+        ) {
+          if (
+            viewMode === "list"
+          ) {
+            page++;
+
+            if (
+              page >=
+              totalPages
+            ) {
+              page = 0;
+            }
+          } else {
+            imageIndex++;
+
+            if (
+              imageIndex >=
+              seriesCards.length
+            ) {
+              imageIndex = 0;
             }
           }
-        );
 
-        usedExtraGrab = true;
-      }
-
-      if (claimedUsers.has(claimerId)) {
-        return interaction.reply({
-          content: "❌ You already claimed a card from this drop.",
-          ephemeral: true
-        });
-      }
-
-      if (claimedCards[index]) {
-        return interaction.reply({
-          content: "❌ This card was already claimed.",
-          ephemeral: true
-        });
-      }
-
-      claimedUsers.add(claimerId);
-      claimedCards[index] = true;
-
-      const claimedCard = dropCards[index];
-      const cardId = claimedCard.id;
-      const serial = dropSerials[cardId];
-
-      const code = await generateUniqueCode(collectionsCol);
-
-      await collectionsCol.insertOne({
-        userId: claimerId,
-        cardId,
-        serial,
-        code,
-        tag: null,
-        favorite: false
-      });
-
-      await cooldownsCol.updateOne(
-        {
-          type: "pickup",
-          userId: claimerId
-        },
-        {
-          $set: {
-            timestamp: claimNow,
-            notified: false
-          }
-        },
-        {
-          upsert: true
+          return interaction.update(
+            await getPayload()
+          );
         }
-      );
 
-      row.components[index]
-        .setDisabled(true)
-        .setStyle(ButtonStyle.Secondary);
+        // ======================================
+        // PREVIOUS
+        // ======================================
 
-      await interaction.update({
-        components: [row]
-      });
+        if (
+          interaction.customId ===
+          "series_prev"
+        ) {
+          if (
+            viewMode === "list"
+          ) {
+            page--;
 
-      const challengers = attemptedBy[index].size - 1;
+            if (
+              page < 0
+            ) {
+              page =
+                totalPages - 1;
+            }
+          } else {
+            imageIndex--;
 
-      let claimText;
+            if (
+              imageIndex < 0
+            ) {
+              imageIndex =
+                seriesCards.length - 1;
+            }
+          }
 
-      if (
-        challengers > 0 &&
-        claimerId === userId &&
-        claimNow - dropStartedAt < priorityTime
-      ) {
-        claimText =
-          `⚔️ ${interaction.user} fought off ` +
-          `${challengers} challenger${challengers === 1 ? "" : "s"} ` +
-          `and took ${getTierEmoji(claimedCard.tier)} ` +
-          `**${claimedCard.name}** #${serial} • ${code}!`;
-      } else if (
-        claimerPowerActive &&
-        claimerId !== userId &&
-        claimNow - dropStartedAt < priorityTime
-      ) {
-        claimText =
-          `💪 ${interaction.user} used the **Power Stone** and overpowered priority, claiming ` +
-          `${getTierEmoji(claimedCard.tier)} ` +
-          `**${claimedCard.name}** #${serial} • ${code}!`;
-      } else {
-        claimText =
-          `🎉 ${interaction.user} claimed ` +
-          `${getTierEmoji(claimedCard.tier)} ` +
-          `**${claimedCard.name}** #${serial} • ${code}!`;
+          return interaction.update(
+            await getPayload()
+          );
+        }
+
+        // ======================================
+        // CLAIM REWARD
+        // ======================================
+
+        if (
+          interaction.customId ===
+          "series_claim"
+        ) {
+          /*
+           * Check Season 1 reward specifically.
+           */
+
+          alreadyClaimed =
+            await rewardsCol.findOne({
+              userId,
+              series:
+                seriesName,
+              season:
+                SEASON
+            });
+
+          if (
+            alreadyClaimed
+          ) {
+            return interaction.reply({
+              content:
+                "❌ You already claimed the Season 1 reward for this series.",
+
+              ephemeral:
+                true
+            });
+          }
+
+          /*
+           * Re-check the user's collection
+           * before giving the reward.
+           */
+
+          ownedIds =
+            await getOwnedIds();
+
+          completed =
+            getCompleted();
+
+          if (
+            !completed
+          ) {
+            return interaction.reply({
+              content:
+                "❌ You do not complete this Season 1 series anymore.",
+
+              ephemeral:
+                true
+            });
+          }
+
+          // ====================================
+          // GIVE COINS
+          // ====================================
+
+          await balancesCol.updateOne(
+            {
+              userId
+            },
+
+            {
+              $inc: {
+                coins:
+                  totalReward
+              }
+            },
+
+            {
+              upsert:
+                true
+            }
+          );
+
+          // ====================================
+          // SAVE S1 CLAIM
+          // ====================================
+
+          await rewardsCol.insertOne({
+            userId,
+
+            series:
+              seriesName,
+
+            season:
+              SEASON,
+
+            reward:
+              totalReward,
+
+            claimedAt:
+              Date.now()
+          });
+
+          alreadyClaimed =
+            true;
+
+          return interaction.update({
+            content:
+              `🎉 You claimed **${totalReward} Coins** ` +
+              `for completing 1️⃣ **${seriesName} — Season 1**!`,
+
+            ...(
+              await getPayload()
+            )
+          });
+        }
       }
+    );
 
-      if (usedExtraGrab) {
-        claimText += "\n⚡ **Extra Grab Used!**";
+    // ==========================================
+    // COLLECTOR END
+    // ==========================================
+
+    collector.on(
+      "end",
+
+      async () => {
+        await msg
+          .edit({
+            components: []
+          })
+          .catch(() => {});
       }
-
-      await interaction.followUp({
-        content: claimText
-      });
-    });
+    );
   }
 };

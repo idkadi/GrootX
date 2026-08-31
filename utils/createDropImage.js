@@ -3,7 +3,10 @@ const {
   loadImage
 } = require("canvas");
 
-const renderCard = require("./renderCard");
+const renderCard =
+  require("./renderCard");
+
+const SEASON = 1;
 
 async function createDropImage(cards) {
   const spacing = 24;
@@ -26,27 +29,62 @@ async function createDropImage(cards) {
     cardHeight + 50;
 
   const canvas =
-    createCanvas(width, height);
+    createCanvas(
+      width,
+      height
+    );
 
   const ctx =
     canvas.getContext("2d");
 
-  ctx.fillStyle = "#1e1f22";
-  ctx.fillRect(0, 0, width, height);
+  ctx.fillStyle =
+    "#1e1f22";
 
-  for (let i = 0; i < cards.length; i++) {
-    const card = cards[i];
+  ctx.fillRect(
+    0,
+    0,
+    width,
+    height
+  );
 
-    const cardBuffer = await renderCard(
-  card,
-  card.serial
-);
+  for (
+    let i = 0;
+    i < cards.length;
+    i++
+  ) {
+    const card =
+      cards[i];
 
-    const image = await loadImage(cardBuffer);
+    if (!card) {
+      continue;
+    }
+
+    const cardBuffer =
+      await renderCard(
+        {
+          ...card,
+          season: SEASON
+        },
+
+        card.serial ??
+        "?",
+
+        {
+          season: SEASON
+        }
+      );
+
+    const image =
+      await loadImage(
+        cardBuffer
+      );
 
     const x =
       spacing +
-      i * (cardWidth + spacing);
+      i * (
+        cardWidth +
+        spacing
+      );
 
     ctx.drawImage(
       image,
@@ -57,7 +95,10 @@ async function createDropImage(cards) {
     );
   }
 
-  return canvas.toBuffer("image/png");
+  return canvas.toBuffer(
+    "image/png"
+  );
 }
 
-module.exports = createDropImage;
+module.exports =
+  createDropImage;

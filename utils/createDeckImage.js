@@ -2,6 +2,8 @@ const { createCanvas, loadImage } = require("canvas");
 
 const renderCard = require("../utils/renderCard");
 
+const SEASON = 1;
+
 async function createDeckImage(deckCards) {
   const cols = 4;
   const rows = 3;
@@ -10,61 +12,196 @@ async function createDeckImage(deckCards) {
   const cardWidth = 130;
   const cardHeight = 185;
 
-  const width = cols * cardWidth + spacing * (cols + 1);
-  const height = rows * cardHeight + spacing * (rows + 1);
+  const width =
+    cols * cardWidth +
+    spacing * (cols + 1);
 
-  const canvas = createCanvas(width, height);
-  const ctx = canvas.getContext("2d");
+  const height =
+    rows * cardHeight +
+    spacing * (rows + 1);
+
+  const canvas =
+    createCanvas(width, height);
+
+  const ctx =
+    canvas.getContext("2d");
 
   ctx.fillStyle = "#14151a";
-  ctx.fillRect(0, 0, width, height);
+
+  ctx.fillRect(
+    0,
+    0,
+    width,
+    height
+  );
 
   for (let i = 0; i < 12; i++) {
-    const row = Math.floor(i / cols);
-    const col = i % cols;
+    const row =
+      Math.floor(i / cols);
 
-    const x = spacing + col * (cardWidth + spacing);
-    const y = spacing + row * (cardHeight + spacing);
+    const col =
+      i % cols;
 
-    const item = deckCards[i];
+    const x =
+      spacing +
+      col * (
+        cardWidth +
+        spacing
+      );
+
+    const y =
+      spacing +
+      row * (
+        cardHeight +
+        spacing
+      );
+
+    const item =
+      deckCards[i];
 
     if (!item) {
-      drawEmptySlot(ctx, x, y, cardWidth, cardHeight);
+      drawEmptySlot(
+        ctx,
+        x,
+        y,
+        cardWidth,
+        cardHeight
+      );
+
       continue;
     }
 
     try {
-      const cardInfo = item.card;
-      const ownedCard = item.ownedCard || item.collectionCard || item;
+      const cardInfo =
+        item.card;
 
-      const serial = ownedCard.serial || item.serial || "000000";
+      const ownedCard =
+        item.ownedCard ||
+        item.collectionCard ||
+        item;
 
-      const buffer = await renderCard(cardInfo, serial, ownedCard);
-      const renderedCard = await loadImage(buffer);
+      const serial =
+        ownedCard.serial ||
+        item.serial ||
+        "000000";
 
-      ctx.drawImage(renderedCard, x, y, cardWidth, cardHeight);
+      // ======================================
+      // SEASON 1 DECK CARD
+      // ======================================
+
+      /*
+       * Decks use Season 1 cards only.
+       *
+       * Since these are OWNED cards,
+       * ownedCard is passed to renderCard.
+       *
+       * This means:
+       *
+       * No custom frame:
+       * S1 rawImage
+       * + default tier frame
+       *
+       * Custom frame equipped:
+       * S1 rawImage
+       * + user's frameId
+       */
+
+      const buffer =
+        await renderCard(
+          {
+            ...cardInfo,
+            season: SEASON
+          },
+
+          serial,
+
+          {
+            ...ownedCard,
+            season: SEASON
+          }
+        );
+
+      const renderedCard =
+        await loadImage(
+          buffer
+        );
+
+      ctx.drawImage(
+        renderedCard,
+        x,
+        y,
+        cardWidth,
+        cardHeight
+      );
+
     } catch (err) {
-      console.error("Deck image render error:", err);
-      drawEmptySlot(ctx, x, y, cardWidth, cardHeight);
+      console.error(
+        "Deck image render error:",
+        err
+      );
+
+      drawEmptySlot(
+        ctx,
+        x,
+        y,
+        cardWidth,
+        cardHeight
+      );
     }
   }
 
-  return canvas.toBuffer("image/png");
+  return canvas.toBuffer(
+    "image/png"
+  );
 }
 
-function drawEmptySlot(ctx, x, y, cardWidth, cardHeight) {
-  ctx.fillStyle = "#24262d";
-  ctx.fillRect(x, y, cardWidth, cardHeight);
+function drawEmptySlot(
+  ctx,
+  x,
+  y,
+  cardWidth,
+  cardHeight
+) {
+  ctx.fillStyle =
+    "#24262d";
 
-  ctx.strokeStyle = "#555";
+  ctx.fillRect(
+    x,
+    y,
+    cardWidth,
+    cardHeight
+  );
+
+  ctx.strokeStyle =
+    "#555";
+
   ctx.lineWidth = 2;
-  ctx.strokeRect(x, y, cardWidth, cardHeight);
 
-  ctx.fillStyle = "#888";
-  ctx.font = "bold 28px sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText("+", x + cardWidth / 2, y + cardHeight / 2);
+  ctx.strokeRect(
+    x,
+    y,
+    cardWidth,
+    cardHeight
+  );
+
+  ctx.fillStyle =
+    "#888";
+
+  ctx.font =
+    "bold 28px sans-serif";
+
+  ctx.textAlign =
+    "center";
+
+  ctx.textBaseline =
+    "middle";
+
+  ctx.fillText(
+    "+",
+    x + cardWidth / 2,
+    y + cardHeight / 2
+  );
 }
 
-module.exports = createDeckImage;
+module.exports =
+  createDeckImage;

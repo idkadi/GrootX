@@ -31,7 +31,7 @@ module.exports = [
     name: "Mary Jane Watson",
     aka: ["MJ", "Mary Jane"],
     appearance: "Spider-Man (2002)",
-    tier: "common",
+    tier: "uncommon",
      rawImage: "raw/maryjanesp.png"
   },
 
@@ -49,7 +49,7 @@ module.exports = [
     name: "Harry Osborn",
     aka: ["Harry"],
     appearance: "Spider-Man (2002)",
-    tier: "common",
+    tier: "uncommon",
      rawImage: "raw/harryosbornsp.png"
   },
 
@@ -95,7 +95,7 @@ module.exports = [
     name: "Gwen Stacy",
     aka: ["Gwen"],
     appearance: "Spider-Man 3 (2007)",
-    tier: "common",
+    tier: "uncommon",
     rawImage: "raw/gwenstacysp3.png"
   },
 
@@ -123,7 +123,7 @@ module.exports = [
     name: "Doctor Octopus",
     aka: ["Doc opp","Octavius","Otto octavius"],
     appearance: "Spider-Man 2 (2004)",
-    tier: "uncommon",
+    tier: "rare",
      rawImage: "raw/octaviussp2.png"
   },
 
@@ -132,7 +132,7 @@ module.exports = [
     name: "Harry Osborn",
     aka: ["Harry","New Goblin",],
     appearance: "Spider-Man 3 (2007)",
-    tier: "uncommon",
+    tier: "rare",
      rawImage: "raw/harrysp3.png"
 
   },
@@ -142,7 +142,7 @@ module.exports = [
     name: "Sandman",
     aka: ["Sand man","Flint Marko"],
     appearance: "Spider-Man 3 (2007)",
-    tier: "uncommon",
+    tier: "rare",
      rawImage: "raw/sandmansp3.png"
   },
 
@@ -151,7 +151,7 @@ module.exports = [
     name: "Green Goblin",
     aka: ["Noman Osborn", "Goblin"],
     appearance: "Spider-Man (2002)",
-    tier: "rare",
+    tier: "epic",
      rawImage: "raw/greengoblinsp.png"
   },
   {
@@ -268,7 +268,7 @@ module.exports = [
     name: "Lizard",
     aka: ["Curt Connors", "Doctor Connors"],
     appearance: "The Amazing Spider-man",
-    tier: "uncommon",
+    tier: "rare",
     rawImage: "raw/lizardtasm.png"
   },
 
@@ -343,7 +343,7 @@ module.exports = [
     name: "Ned Leeds",
     aka: [],
     appearance: "Spider-man : Homecoming",
-    tier: "common",
+    tier: "uncommon",
     rawImage: "raw/nedhome.png"
   },
 
@@ -439,7 +439,7 @@ module.exports = [
     name: "Vulture",
     aka: ["Adrian Toomes"],
     appearance: "Spider-man : Homecoming",
-    tier: "uncommon",
+    tier: "rare",
      rawImage: "raw/vulturehome.png"
   },
 
@@ -511,7 +511,7 @@ module.exports = [
     name: "Mysterio",
     aka: ["Quentin Beck"],
     appearance: "Spider-man : Far from Home",
-    tier: "rare",
+    tier: "epic",
      rawImage: "raw/mysteriohome.png"
   },
 
@@ -538,7 +538,7 @@ module.exports = [
     name: "Iron Spider",
     aka: ["Peter Parker"],
     appearance: "Spider-man : No way home",
-    tier: "epic",
+    tier: "rare",
      rawImage: "raw/ironspiderhome.png"
   },
 
@@ -693,7 +693,7 @@ module.exports = [
     name: "Stick",
     aka: [],
     appearance: "Daredevil",
-    tier: "common",
+    tier: "uncommon",
     rawImage: "raw/stickdd.png"
   },
 
@@ -711,7 +711,7 @@ module.exports = [
     name: "Foggy Nelson",
     aka: ["Old Foggy"],
     appearance: "Daredevil",
-    tier: "uncommon",
+    tier: "rare",
     rawImage: "raw/foggydd.png"
   },
 
@@ -720,7 +720,7 @@ module.exports = [
     name: "Karen Page",
     aka: [],
     appearance: "Daredevil",
-    tier: "uncommon",
+    tier: "rare",
     rawImage: "raw/karendd.png"
   },
 
@@ -774,7 +774,7 @@ module.exports = [
     name: "Wilson Fisk",
     aka: ["Kingpin"],
     appearance: "Daredevil",
-    tier: "rare",
+    tier: "epic",
      rawImage: "raw/wilsondd.png"
   },
 
@@ -6656,6 +6656,1131 @@ module.exports = [
     tier: "common",
     rawImage: "raw/davidx.png"
   },
+
+   {
+    id: 732,
+    name: "Iron Man",
+    aka: ["Tony Stark"],
+    appearance: "Avengers Assemble",
+    tier: "legendary",
+    rawImage: "raw/ironmanaa.png"
+  },
+
+   {
+    id: 733,
+    name: "Captain America",
+    aka: ["Steve Rogers"],
+    appearance: "Avengers Assemble",
+    tier: "legendary",
+    rawImage: "raw/capaa.png"
+  },
+
+   {
+    id: 734,
+    name: "Thor",
+    aka: [],
+    appearance: "Avengers Assemble",
+    tier: "legendary",
+    rawImage: "raw/thoraa.png"
+  },
+
+   {
+    id: 735,
+    name: "Hulk",
+    aka: ["Bruce Banner"],
+    appearance: "Avengers Assemble",
+    tier: "legendary",
+    rawImage: "raw/hulkaa.png"
+  },
+
+  
+   {
+    id: 736,
+    name: "Black Widow",
+    aka: ["Natasha Romanoff"],
+    appearance: "Avengers Assemble",
+    tier: "epic",
+    rawImage: "raw/blackwidowaa.png"
+  },
+
+  
+   {
+    id: 737,
+    name: "Hawkeye",
+    aka: ["Clint Barton"],
+    appearance: "Avengers Assemble",
+    tier: "epic",
+    rawImage: "raw/hawkeyeaa.png"
+  },
+
+  
+   {
+    id: 738,
+    name: "Falcon",
+    aka: ["Sam wilson"],
+    appearance: "Avengers Assemble",
+    tier: "rare",
+    rawImage: "raw/falconaa.png"
+  },
+
+  
+   {
+    id: 739,
+    name: "Red Skull",
+    aka: [],
+    appearance: "Avengers Assemble",
+    tier: "epic",
+    rawImage: "raw/redskullaa.png"
+  },
+
+
+   {
+    id: 740,
+    name: "Hyperion",
+    aka: [],
+    appearance: "Avengers Assemble",
+    tier: "epic",
+    rawImage: "raw/hyperionaa.png"
+  },
+
+  
+   {
+    id: 741,
+    name: "Dracula",
+    aka: [],
+    appearance: "Avengers Assemble",
+    tier: "rare",
+    rawImage: "raw/draculaaa.png"
+  },
+
+  
+   {
+    id: 742,
+    name: "Doctor Doom",
+    aka: ["Victor Van Doom"],
+    appearance: "Avengers Assemble",
+    tier: "epic",
+    rawImage: "raw/doomaa.png"
+  },
+
+  
+   {
+    id: 743,
+    name: "Thanos",
+    aka: [],
+    appearance: "Avengers Assemble",
+    tier: "rare",
+    rawImage: "raw/thanosaa.png"
+  },
+
+  
+   {
+    id: 744,
+    name: "Loki",
+    aka: [],
+    appearance: "Avengers Assemble",
+    tier: "rare",
+    rawImage: "raw/lokiaa.png"
+  },
+
+  
+   {
+    id: 745,
+    name: "Ultron",
+    aka: [],
+    appearance: "Avengers Assemble",
+    tier: "rare",
+    rawImage: "raw/ultronaa.png"
+  },
+
+  
+   {
+    id: 746,
+    name: "MODOK",
+    aka: [],
+    appearance: "Avengers Assemble",
+    tier: "rare",
+    rawImage: "raw/modokaa.png"
+  },
+
+  
+   {
+    id: 747,
+    name: "Black Panther",
+    aka: [],
+    appearance: "Avengers Assemble",
+    tier: "uncommon",
+    rawImage: "raw/blackpantheraa.png"
+  },
+
+  
+   {
+    id: 748,
+    name: "Captain Marvel",
+    aka: [],
+    appearance: "Avengers Assemble",
+    tier: "uncommon",
+    rawImage: "raw/capmarvelaa.png"
+  },
+
+   {
+    id: 749,
+    name: "Attuma",
+    aka: [],
+    appearance: "Avengers Assemble",
+    tier: "uncommon",
+    rawImage: "raw/attumaaa.png"
+  },
+
+   {
+    id: 750,
+    name: "Justin Hammer",
+    aka: [],
+    appearance: "Avengers Assemble",
+    tier: "common",
+    rawImage: "raw/justinaa.png"
+  },
+
+ {
+    id: 751,
+    name: "Baron Zemo",
+    aka: [],
+    appearance: "Avengers Assemble",
+    tier: "common",
+    rawImage: "raw/zemoaa.png"
+  },
+
+   {
+    id: 752,
+    name: "Ms.Marvel",
+    aka: [],
+    appearance: "Avengers Assemble",
+    tier: "common",
+    rawImage: "raw/msmarvelaa.png"
+  },
+
+   {
+    id: 753,
+    name: "Crossbones",
+    aka: [],
+    appearance: "Avengers Assemble",
+    tier: "common",
+    rawImage: "raw/crossbonesaa.png"
+  },
+
+   {
+    id: 754,
+    name: "Ant Man",
+    aka: [],
+    appearance: "Avengers Assemble",
+    tier: "common",
+    rawImage: "raw/antmanaa.png"
+  },
+
+   {
+    id: 755,
+    name: "Iron Man",
+    aka: ["Tony Stark"],
+    appearance: "Iron Man: Armored Adventures",
+    tier: "epic",
+    rawImage: "raw/ironmanaw.png"
+  },
+
+   {
+    id: 756,
+    name: "The Mandarin",
+    aka: [],
+    appearance: "Iron Man: Armored Adventures",
+    tier: "rare",
+    rawImage: "raw/mandrinaw.png"
+  },
+
+   {
+    id: 757,
+    name: "Obadiah Stane",
+    aka: [],
+    appearance: "Iron Man: Armored Adventures",
+    tier: "rare",
+    rawImage: "raw/obadiahaw.png"
+  },
+
+   {
+    id: 758,
+    name: "Fin Fang Foom",
+    aka: [],
+    appearance: "Iron Man: Armored Adventures",
+    tier: "epic",
+    rawImage: "raw/finfangaw.png"
+  },
+
+   {
+    id: 758,
+    name: "War Machine",
+    aka: ["James Rhodes"],
+    appearance: "Iron Man: Armored Adventures",
+    tier: "rare",
+    rawImage: "raw/jamesaw.png"
+  },
+
+  
+   {
+    id: 759,
+    name: "Doctor Doom",
+    aka: ["Victor Van Doom"],
+    appearance: "Iron Man: Armored Adventures",
+    tier: "rare",
+    rawImage: "raw/doomaw.png"
+  },
+
+  
+   {
+    id: 760,
+    name: "Black Widow",
+    aka: [],
+    appearance: "Iron Man: Armored Adventures",
+    tier: "uncommon",
+    rawImage: "raw/widowaw.png"
+  },
+
+    {
+    id: 761,
+    name: "Madame Masque",
+    aka: [],
+    appearance: "Iron Man: Armored Adventures",
+    tier: "uncommon",
+    rawImage: "raw/madameaw.png"
+  },
+
+   {
+    id: 762,
+    name: "Hawkeye",
+    aka: [],
+    appearance: "Iron Man: Armored Adventures",
+    tier: "common",
+    rawImage: "raw/hawkeyeaw.png"
+  },
+
+   {
+    id: 763,
+    name: "Nick Fury",
+    aka: [],
+    appearance: "Iron Man: Armored Adventures",
+    tier: "common",
+    rawImage: "raw/nickfuryaw.png"
+  },
+
+   {
+    id: 764,
+    name: "Pepper Potts",
+    aka: [],
+    appearance: "Iron Man: Armored Adventures",
+    tier: "common",
+    rawImage: "raw/pepperaw.png"
+  },
+
+   {
+    id: 765,
+    name: "Justin Hammer",
+    aka: [],
+    appearance: "Iron Man: Armored Adventures",
+    tier: "common",
+    rawImage: "raw/justinaw.png"
+  },
+
+  
+   {
+    id: 766,
+    name: "Thor",
+    aka: [],
+    appearance: "Thor : The Dark World",
+    tier: "epic",
+    rawImage: "raw/thordw.png"
+  },
+
+  
+   {
+    id: 767,
+    name: "Malekith",
+    aka: [],
+    appearance: "Thor : The Dark World",
+    tier: "legendary",
+    rawImage: "raw/malekith.png"
+  },
+
+  
+   {
+    id: 768,
+    name: "Loki",
+    aka: [],
+    appearance: "Thor : The Dark World",
+    tier: "epic",
+    rawImage: "raw/justinaw.png"
+  },
+
+  {
+    id: 769,
+    name: "Kurse",
+    aka: [],
+    appearance: "Thor : The Dark World",
+    tier: "epic",
+    rawImage: "raw/kursedw.png"
+  },
+
+  {
+    id: 770,
+    name: "Heimdall",
+    aka: [],
+    appearance: "Thor : The Dark World",
+    tier: "rare",
+    rawImage: "raw/heimdalldw.png"
+  },
+
+  {
+    id: 771,
+    name: "Jane Foster",
+    aka: [],
+    appearance: "Thor : The Dark World",
+    tier: "rare",
+    rawImage: "raw/janedw.png"
+  },
+
+  {
+    id: 772,
+    name: "Odin",
+    aka: [],
+    appearance: "Thor : The Dark World",
+    tier: "rare",
+    rawImage: "raw/odindw.png"
+  },
+
+  {
+    id: 773,
+    name: "Frigga",
+    aka: [],
+    appearance: "Thor : The Dark World",
+    tier: "uncommon",
+    rawImage: "raw/friggadw.png"
+  },
+
+  {
+    id: 774,
+    name: "Sif",
+    aka: [],
+    appearance: "Thor : The Dark World",
+    tier: "uncommon",
+    rawImage: "raw/sifdw.png"
+  },
+
+  
+  {
+    id: 775,
+    name: "Darcy",
+    aka: [],
+    appearance: "Thor : The Dark World",
+    tier: "common",
+    rawImage: "raw/darcydw.png"
+  },
+
+  
+  {
+    id: 776,
+    name: "Richard",
+    aka: [],
+    appearance: "Thor : The Dark World",
+    tier: "common",
+    rawImage: "raw/richarddw.png"
+  },
+
+  
+  {
+    id: 777,
+    name: "Fandral",
+    aka: [],
+    appearance: "Thor : The Dark World",
+    tier: "uncommon",
+    rawImage: "raw/fandraldw.png"
+  },
+
+  
+  {
+    id: 778,
+    name: "Hogun",
+    aka: [],
+    appearance: "Thor : The Dark World",
+    tier: "uncommon",
+    rawImage: "raw/hogundw.png"
+  },
+  
+
+  {
+    id: 779,
+    name: "Volstagg",
+    aka: [],
+    appearance: "Thor : The Dark World",
+    tier: "uncommon",
+    rawImage: "raw/volstaggdw.png"
+  },
+
+   {
+    id: 780,
+    name: "Deadpool",
+    aka: ["Wade Wilson"],
+    appearance: "Deadpool 2",
+    tier: "legendary",
+    rawImage: "raw/deadpool2.png"
+  },
+
+  {
+    id: 781,
+    name: "Cable",
+    aka: [],
+    appearance: "Deadpool 2",
+    tier: "epic",
+    rawImage: "raw/cable2.png"
+  },
+
+  {
+    id: 782,
+    name: "Rusty Collins",
+    aka: [],
+    appearance: "Deadpool 2",
+    tier: "epic",
+    rawImage: "raw/rusty2.png"
+  },
+
+  {
+    id: 783,
+    name: "Colossus",
+    aka: [],
+    appearance: "Deadpool 2",
+    tier: "rare",
+    rawImage: "raw/colossus2.png"
+  },
+
+   {
+    id: 784,
+    name: "Domino",
+    aka: [],
+    appearance: "Deadpool 2",
+    tier: "rare",
+    rawImage: "raw/domino2.png"
+  },
+
+   {
+    id: 785,
+    name: "Vanessa",
+    aka: [],
+    appearance: "Deadpool 2",
+    tier: "rare",
+    rawImage: "raw/vanessa2.png"
+  },
+
+   {
+    id: 786,
+    name: "Juggernaut",
+    aka: [],
+    appearance: "Deadpool 2",
+    tier: "rare",
+    rawImage: "raw/juggernaut.png"
+  },
+
+   {
+    id: 787,
+    name: "Negasonic teenage warhead",
+    aka: [],
+    appearance: "Deadpool 2",
+    tier: "uncommon",
+    rawImage: "raw/negasonic2.png"
+  },
+
+  {
+    id: 788,
+    name: "Yukio",
+    aka: [],
+    appearance: "Deadpool 2",
+    tier: "uncommon",
+    rawImage: "raw/yukio2.png"
+  },
+
+  {
+  id: 789,
+  name: "Sam Wilson",
+  aka: ["Captain America"],
+  appearance: "Captain America: Brave New World",
+  tier: "legendary",
+  rawImage: "raw/samca4.png"
+},
+{
+  id: 790,
+  name: "Red Hulk",
+  aka: ["Thaddeus Ross"],
+  appearance: "Captain America: Brave New World",
+  tier: "epic",
+  rawImage: "raw/redhulk.png"
+},
+{
+  id: 791,
+  name: "Falcon",
+  aka: ["Joaquin Torres"],
+  appearance: "Captain America: Brave New World",
+  tier: "rare",
+  rawImage: "raw/falconca4.png"
+},
+{
+  id: 792,
+  name: "The Leader",
+  aka: ["Samuel Sterns"],
+  appearance: "Captain America: Brave New World",
+  tier: "rare",
+  rawImage: "raw/theleaderca4.png"
+},
+{
+  id: 793,
+  name: "Sabra",
+  aka: ["Ruth Bat-Seraph"],
+  appearance: "Captain America: Brave New World",
+  tier: "rare",
+  rawImage: "raw/ruthbatseraph.png"
+},
+{
+  id: 794,
+  name: "Isaiah Bradley",
+  aka: [],
+  appearance: "Captain America: Brave New World",
+  tier: "uncommon",
+  rawImage: "raw/isaiahbradley.png"
+},
+{
+  id: 795,
+  name: "Seth Voelker",
+  aka: ["Sidewinder"],
+  appearance: "Captain America: Brave New World",
+  tier: "uncommon",
+  rawImage: "raw/sidewinder.png"
+},
+{
+  id: 796,
+  name: "Betty Ross",
+  aka: [],
+  appearance: "Captain America: Brave New World",
+  tier: "common",
+  rawImage: "raw/bettyross.png"
+},
+{
+  id: 797,
+  name: "Leila Taylor",
+  aka: [],
+  appearance: "Captain America: Brave New World",
+  tier: "common",
+  rawImage: "raw/taylorca4.png"
+},
+{
+  id: 798,
+  name: "Dennis Dunphy",
+  aka: [],
+  appearance: "Captain America: Brave New World",
+  tier: "commom",
+  rawImage: "raw/dennisca4.png"
+},
+{
+  id: 799,
+  name: "Modiji",
+  aka: [],
+  appearance: "Captain America: Brave New World",
+  tier: "common",
+  rawImage: "raw/modiji.png"
+},
+
+{
+  id: 800,
+  name: "Wolverine",
+  aka: ["Logan"],
+  appearance: "X2",
+  tier: "legendary",
+  rawImage: "raw/wolvx2.png"
+},
+{
+  id: 801,
+  name: "Professor X",
+  aka: ["Charles Xavier"],
+  appearance: "X2",
+  tier: "rare",
+  rawImage: "raw/charlesx2.png"
+},
+{
+  id: 802,
+  name: "Magneto",
+  aka: ["Erik Lehnsherr"],
+  appearance: "X2",
+  tier: "rare",
+  rawImage: "raw/magnetox2.png"
+},
+{
+  id: 803,
+  name: "Jean Grey",
+  aka: [],
+  appearance: "X2",
+  tier: "epic",
+  rawImage: "raw/jeanx2.png"
+},
+{
+  id: 804,
+  name: "Storm",
+  aka: ["Ororo Munroe"],
+  appearance: "X2",
+  tier: "rare",
+  rawImage: "raw/stormx2.png"
+},
+{
+  id: 805,
+  name: "Cyclops",
+  aka: ["Scott Summers"],
+  appearance: "X2",
+  tier: "epic",
+  rawImage: "raw/scottx2.png"
+},
+{
+  id: 806,
+  name: "Rogue",
+  aka: ["Marie"],
+  appearance: "X2",
+  tier: "rare",
+  rawImage: "raw/roguex2.png"
+},
+{
+  id: 807,
+  name: "Iceman",
+  aka: ["Bobby Drake"],
+  appearance: "X2",
+  tier: "uncommon",
+  rawImage: "raw/icemanx2.png"
+},
+{
+  id: 808,
+  name: "Pyro",
+  aka: ["John Allerdyce"],
+  appearance: "X2",
+  tier: "uncommon",
+  rawImage: "raw/pyrox2.png"
+},
+{
+  id: 809,
+  name: "Mystique",
+  aka: ["Raven Darkhölme"],
+  appearance: "X2",
+  tier: "epic",
+  rawImage: "raw/mystiquex2.png"
+},
+{
+  id: 810,
+  name: "Nightcrawler",
+  aka: ["Kurt Wagner"],
+  appearance: "X2",
+  tier: "uncommon",
+  rawImage: "raw/nightcrawlerx2.png"
+},
+{
+  id: 811,
+  name: "William Stryker",
+  aka: [],
+  appearance: "X2",
+  tier: "rare",
+  rawImage: "raw/strykerx2.png"
+},
+{
+  id: 812,
+  name: "Lady Deathstrike",
+  aka: ["Yuriko Oyama"],
+  appearance: "X2",
+  tier: "rare",
+  rawImage: "raw/ladydeathstrikex2.png"
+},
+{
+  id: 813,
+  name: "Colossus",
+  aka: ["Piotr Rasputin"],
+  appearance: "X2",
+  tier: "common",
+  rawImage: "raw/colossusx2.png"
+},
+
+{
+  id: 814,
+  name: "Shadowcat",
+  aka: ["Kitty Pryde"],
+  appearance: "X2",
+  tier: "common",
+  rawImage: "raw/kittyx2.png"
+},
+{
+  id: 815,
+  name: "Jubilee",
+  aka: ["Jubilation Lee"],
+  appearance: "X2",
+  tier: "common",
+  rawImage: "raw/jubileex2.png"
+},
+{
+  id: 816,
+  name: "Siryn",
+  aka: ["Theresa Cassidy"],
+  appearance: "X2",
+  tier: "common",
+  rawImage: "raw/sirynx2.png"
+},
+{
+  id: 817,
+  name: "Artie",
+  aka: ["Artie Maddicks"],
+  appearance: "X2",
+  tier: "common",
+  rawImage: "raw/artiex2.png"
+},
+{
+  id: 818,
+  name: "Jones",
+  aka: [],
+  appearance: "X2",
+  tier: "common",
+  rawImage: "raw/jonesx2.png"
+},
+{
+  id: 819,
+  name: "Jason Stryker",
+  aka: ["Mutant 143"],
+  appearance: "X2",
+  tier: "common",
+  rawImage: "raw/jasonx2.png"
+},
+
+{
+  id: 820,
+  name: "President McKenna",
+  aka: [],
+  appearance: "X2",
+  tier: "common",
+  rawImage: "raw/presidentx2.png"
+},
+{
+  id: 821,
+  name: "Mrs. Drake",
+  aka: [],
+  appearance: "X2",
+  tier: "common",
+  rawImage: "raw/mrsdrakex2.png"
+},
+{
+  id: 822,
+  name: "Mr. Drake",
+  aka: [],
+  appearance: "X2",
+  tier: "common",
+  rawImage: "raw/mrdrakex2.png"
+},
+{
+  id: 823,
+  name: "Ronny Drake",
+  aka: [],
+  appearance: "X2",
+  tier: "common",
+  rawImage: "raw/ronnyx2.png"
+},
+
+{
+  id: 825,
+  name: "Phil Coulson",
+  aka: [],
+  appearance: "Agents of S.H.I.E.L.D.",
+  tier: "legendary",
+  rawImage: "raw/philcoulson.png"
+},
+{
+  id: 826,
+  name: "Melinda May",
+  aka: ["The Cavalry"],
+  appearance: "Agents of S.H.I.E.L.D.",
+  tier: "legendary",
+  rawImage: "raw/melindamay.png"
+},
+{
+  id: 827,
+  name: "Quake",
+  aka: ["Daisy Johnson", "Skye"],
+  appearance: "Agents of S.H.I.E.L.D.",
+  tier: "legendary",
+  rawImage: "raw/quake.png"
+},
+{
+  id: 828,
+  name: "Mockingbird",
+  aka: ["Bobbi Morse"],
+  appearance: "Agents of S.H.I.E.L.D.",
+  tier: "epic",
+  rawImage: "raw/mockingbird.png"
+},
+{
+  id: 829,
+  name: "Grant Ward",
+  aka: [],
+  appearance: "Agents of S.H.I.E.L.D.",
+  tier: "epic",
+  rawImage: "raw/grantward.png"
+},
+{
+  id: 830,
+  name: "Ghost Rider",
+  aka: ["Robbie Reyes"],
+  appearance: "Agents of S.H.I.E.L.D.",
+  tier: "epic",
+  rawImage: "raw/ghostrideraos.png"
+},
+{
+  id: 831,
+  name: "Jemma Simmons",
+  aka: [],
+  appearance: "Agents of S.H.I.E.L.D.",
+  tier: "epic",
+  rawImage: "raw/jemmasimmons.png"
+},
+{
+  id: 832,
+  name: "Leopold Fitz",
+  aka: ["Leo Fitz"],
+  appearance: "Agents of S.H.I.E.L.D.",
+  tier: "epic",
+  rawImage: "raw/leopoldfitz.png"
+},
+{
+  id: 833,
+  name: "Yo-Yo",
+  aka: ["Elena Rodriguez"],
+  appearance: "Agents of S.H.I.E.L.D.",
+  tier: "epic",
+  rawImage: "raw/yoyo.png"
+},
+{
+  id: 834,
+  name: "Mack",
+  aka: ["Alphonso Mackenzie"],
+  appearance: "Agents of S.H.I.E.L.D.",
+  tier: "rare",
+  rawImage: "raw/mack.png"
+},
+{
+  id: 835,
+  name: "Deathlok",
+  aka: ["Mike Peterson"],
+  appearance: "Agents of S.H.I.E.L.D.",
+  tier: "rare",
+  rawImage: "raw/deathlok.png"
+},
+{
+  id: 836,
+  name: "Deke Shaw",
+  aka: [],
+  appearance: "Agents of S.H.I.E.L.D.",
+  tier: "rare",
+  rawImage: "raw/dekeshaw.png"
+},
+{
+  id: 837,
+  name: "Jiaying",
+  aka: [],
+  appearance: "Agents of S.H.I.E.L.D.",
+  tier: "rare",
+  rawImage: "raw/jiaying.png"
+},
+{
+  id: 838,
+  name: "Lance Hunter",
+  aka: [],
+  appearance: "Agents of S.H.I.E.L.D.",
+  tier: "rare",
+  rawImage: "raw/lancehunter.png"
+},
+{
+  id: 839,
+  name: "Lincoln Campbell",
+  aka: [],
+  appearance: "Agents of S.H.I.E.L.D.",
+  tier: "rare",
+  rawImage: "raw/lincolncampbell.png"
+},
+{
+  id: 840,
+  name: "Raina",
+  aka: ["The Girl in the Flower Dress"],
+  appearance: "Agents of S.H.I.E.L.D.",
+  tier: "rare",
+  rawImage: "raw/raina.png"
+},
+{
+  id: 841,
+  name: "Lady Sif",
+  aka: ["Sif"],
+  appearance: "Agents of S.H.I.E.L.D.",
+  tier: "rare",
+  rawImage: "raw/sif.png"
+},
+{
+  id: 842,
+  name: "Aida",
+  aka: ["Ophelia", "Madame Hydra"],
+  appearance: "Agents of S.H.I.E.L.D.",
+  tier: "uncommon",
+  rawImage: "raw/aida.png"
+},
+{
+  id: 843,
+  name: "Antoine Triplett",
+  aka: ["Trip"],
+  appearance: "Agents of S.H.I.E.L.D.",
+  tier: "uncommon",
+  rawImage: "raw/antoinetriplett.png"
+},
+{
+  id: 844,
+  name: "Daniel Whitehall",
+  aka: ["Werner Reinhardt"],
+  appearance: "Agents of S.H.I.E.L.D.",
+  tier: "uncommon",
+  rawImage: "raw/danielwhitehall.png"
+},
+{
+  id: 845,
+  name: "Enoch",
+  aka: [],
+  appearance: "Agents of S.H.I.E.L.D.",
+  tier: "uncommon",
+  rawImage: "raw/enoch.png"
+},
+{
+  id: 846,
+  name: "Eric Koenig",
+  aka: [],
+  appearance: "Agents of S.H.I.E.L.D.",
+  tier: "uncommon",
+  rawImage: "raw/erickoenig.png"
+},
+{
+  id: 847,
+  name: "Gordon",
+  aka: [],
+  appearance: "Agents of S.H.I.E.L.D.",
+  tier: "uncommon",
+  rawImage: "raw/gordon.png"
+},
+{
+  id: 848,
+  name: "Graviton",
+  aka: ["Glenn Talbot"],
+  appearance: "Agents of S.H.I.E.L.D.",
+  tier: "uncommon",
+  rawImage: "raw/graviton.png"
+},
+{
+  id: 849,
+  name: "Lash",
+  aka: ["Andrew Garner"],
+  appearance: "Agents of S.H.I.E.L.D.",
+  tier: "uncommon",
+  rawImage: "raw/lash.png"
+},
+{
+  id: 850,
+  name: "Maria Hill",
+  aka: [],
+  appearance: "Agents of S.H.I.E.L.D.",
+  tier: "uncommon",
+  rawImage: "raw/mariahillaos.png"
+},
+{
+  id: 851,
+  name: "Ruby Hale",
+  aka: ["Ruby"],
+  appearance: "Agents of S.H.I.E.L.D.",
+  tier: "uncommon",
+  rawImage: "raw/rubyhale.png"
+},
+{
+  id: 852,
+  name: "Sunil Bakshi",
+  aka: ["Bakshi"],
+  appearance: "Agents of S.H.I.E.L.D.",
+  tier: "uncommon",
+  rawImage: "raw/sunilbakshi.png"
+},
+{
+  id: 853,
+  name: "Andrew Garner",
+  aka: [],
+  appearance: "Agents of S.H.I.E.L.D.",
+  tier: "common",
+  rawImage: "raw/andrewgarner.png"
+},
+{
+  id: 854,
+  name: "Agent Davis",
+  aka: ["Davis"],
+  appearance: "Agents of S.H.I.E.L.D.",
+  tier: "common",
+  rawImage: "raw/agentdavis.png"
+},
+{
+  id: 855,
+  name: "Ian Quinn",
+  aka: [],
+  appearance: "Agents of S.H.I.E.L.D.",
+  tier: "common",
+  rawImage: "raw/ianquinn.png"
+},
+{
+  id: 856,
+  name: "John Garrett",
+  aka: ["The Clairvoyant"],
+  appearance: "Agents of S.H.I.E.L.D.",
+  tier: "common",
+  rawImage: "raw/johngarrett.png"
+},
+{
+  id: 857,
+  name: "Piper",
+  aka: ["Agent Piper"],
+  appearance: "Agents of S.H.I.E.L.D.",
+  tier: "common",
+  rawImage: "raw/piper.png"
+},
+{
+  id: 858,
+  name: "Victoria Hand",
+  aka: [],
+  appearance: "Agents of S.H.I.E.L.D.",
+  tier: "common",
+  rawImage: "raw/victoriahand.png"
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
 
 
 

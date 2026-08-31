@@ -8,8 +8,15 @@ const path = require("path");
 const renderCard = require("./renderCard");
 
 registerFont(
-  path.join(__dirname, "..", "fonts", "Oswald-Bold.ttf"),
-  { family: "Oswald" }
+  path.join(
+    __dirname,
+    "..",
+    "fonts",
+    "Oswald-Bold.ttf"
+  ),
+  {
+    family: "Oswald"
+  }
 );
 
 const COLORS = {
@@ -20,47 +27,110 @@ const COLORS = {
   legendary: "#E53935"
 };
 
+// ==========================================
+// INFO RENDERER
+// ==========================================
+
 async function renderInfo(
   card,
   selectedSeason = null
 ) {
+  /*
+   * Priority:
+   *
+   * 1. Season explicitly selected by info command
+   * 2. Season stored on card
+   * 3. Old cards default to Season 0
+   */
+
   const season = Number(
-    selectedSeason ?? card.season ?? 0
+    selectedSeason ??
+    card.season ??
+    0
   );
 
-  // =====================================================
-  // SEASON 1 — RAW IMAGE + SEPARATE FRAME
-  // =====================================================
+  // ========================================
+  // VALIDATE SEASON
+  // ========================================
+
+  if (
+    ![0, 1].includes(season)
+  ) {
+    throw new Error(
+      `Unsupported card season: ${season}`
+    );
+  }
+
+  // ========================================
+  // SEASON 1
+  // RAW IMAGE + SEPARATE TIER FRAME
+  // ========================================
 
   if (season === 1) {
+    /*
+     * IMPORTANT:
+     *
+     * Info is showing the BASE version
+     * of the S1 card.
+     *
+     * We deliberately do not pass an
+     * owned frameId here.
+     *
+     * renderCard will therefore use:
+     *
+     * S1 rawImage
+     *       ↓
+     * default tier frame
+     *       ↓
+     * character name
+     *       ↓
+     * appearance / movie name
+     */
+
     return renderCard(
       {
         ...card,
         season: 1
       },
+
       null,
+
       {
         season: 1
       }
     );
   }
 
-  // =====================================================
-  // SEASON 0 — RAW IMAGE + OLD COLOURED FORMAT
-  // =====================================================
+  // ========================================
+  // SEASON 0
+  // OLD COLOURED CARD DESIGN
+  // ========================================
 
   const W = 1054;
   const H = 1492;
 
-  const canvas = createCanvas(W, H);
-  const ctx = canvas.getContext("2d");
+  const canvas =
+    createCanvas(
+      W,
+      H
+    );
 
-  const tier = String(
-    card.tier || "common"
-  ).toLowerCase();
+  const ctx =
+    canvas.getContext("2d");
+
+  const tier =
+    String(
+      card.tier ||
+      "common"
+    ).toLowerCase();
 
   const color =
-    COLORS[tier] || COLORS.common;
+    COLORS[tier] ||
+    COLORS.common;
+
+  // ========================================
+  // S0 RAW IMAGE
+  // ========================================
 
   if (!card.rawImage) {
     throw new Error(
@@ -68,50 +138,84 @@ async function renderInfo(
     );
   }
 
-  const imagePath = path.join(
-    __dirname,
-    "..",
-    "images",
-    card.rawImage
-  );
+  const imagePath =
+    path.join(
+      __dirname,
+      "..",
+      "images",
+      card.rawImage
+    );
 
   const rawImage =
-    await loadImage(imagePath);
+    await loadImage(
+      imagePath
+    );
 
-  // Tier-coloured background
-  ctx.fillStyle = color;
-  ctx.fillRect(0, 0, W, H);
+  // ========================================
+  // TIER COLOURED BACKGROUND
+  // ========================================
+
+  ctx.fillStyle =
+    color;
+
+  ctx.fillRect(
+    0,
+    0,
+    W,
+    H
+  );
 
   const margin = 36;
   const radius = 18;
 
-  const imageX = margin;
-  const imageY = margin;
+  const imageX =
+    margin;
+
+  const imageY =
+    margin;
 
   const imageWidth =
-    W - margin * 2;
+    W -
+    margin * 2;
 
   const imageHeight =
-    H - margin * 2;
+    H -
+    margin * 2;
 
-  const scale = Math.max(
-    imageWidth / rawImage.width,
-    imageHeight / rawImage.height
-  );
+  // ========================================
+  // IMAGE COVER
+  // ========================================
+
+  const scale =
+    Math.max(
+      imageWidth /
+        rawImage.width,
+
+      imageHeight /
+        rawImage.height
+    );
 
   const drawWidth =
-    rawImage.width * scale;
+    rawImage.width *
+    scale;
 
   const drawHeight =
-    rawImage.height * scale;
+    rawImage.height *
+    scale;
 
   const drawX =
     imageX +
-    (imageWidth - drawWidth) / 2;
+    (
+      imageWidth -
+      drawWidth
+    ) / 2;
 
   const drawY =
     imageY +
-    (imageHeight - drawHeight) / 2;
+    (
+      imageHeight -
+      drawHeight
+    ) / 2;
 
   roundedClip(
     ctx,
@@ -132,31 +236,45 @@ async function renderInfo(
 
   ctx.restore();
 
-  // Lower coloured panel
-  const panelY = 1210;
+  // ========================================
+  // LOWER COLOURED PANEL
+  // ========================================
+
+  const panelY =
+    1210;
 
   const panelHeight =
-    H - panelY - margin;
+    H -
+    panelY -
+    margin;
 
   const gradient =
     ctx.createLinearGradient(
       imageX,
       panelY,
-      imageX + imageWidth,
+      imageX +
+        imageWidth,
       panelY
     );
 
   gradient.addColorStop(
     0,
-    hexToRgba(color, 0.9)
+    hexToRgba(
+      color,
+      0.9
+    )
   );
 
   gradient.addColorStop(
     1,
-    hexToRgba(color, 0.72)
+    hexToRgba(
+      color,
+      0.72
+    )
   );
 
-  ctx.fillStyle = gradient;
+  ctx.fillStyle =
+    gradient;
 
   ctx.fillRect(
     imageX,
@@ -165,41 +283,72 @@ async function renderInfo(
     panelHeight
   );
 
-  // Text
-  ctx.fillStyle = "#FFFFFF";
-  ctx.textAlign = "left";
-  ctx.textBaseline = "alphabetic";
+  // ========================================
+  // TEXT SETTINGS
+  // ========================================
 
-  // Tier instead of serial
-  ctx.font = "700 32px Oswald";
+  ctx.fillStyle =
+    "#FFFFFF";
+
+  ctx.textAlign =
+    "left";
+
+  ctx.textBaseline =
+    "alphabetic";
+
+  // ========================================
+  // TIER
+  // ========================================
+
+  /*
+   * INFO shows tier instead of serial.
+   */
+
+  ctx.font =
+    "700 32px Oswald";
 
   ctx.fillText(
     String(
-      card.tier || "COMMON"
+      card.tier ||
+      "COMMON"
     ).toUpperCase(),
+
     70,
     1285
   );
 
-  // Character name
-  const cardName = String(
-    card.name || "UNKNOWN"
-  ).toUpperCase();
+  // ========================================
+  // CHARACTER NAME
+  // ========================================
 
-  let nameFontSize = 54;
+  const cardName =
+    String(
+      card.name ||
+      "UNKNOWN"
+    ).toUpperCase();
+
+  let nameFontSize =
+    54;
 
   do {
     ctx.font =
       `700 ${nameFontSize}px Oswald`;
 
     if (
-      ctx.measureText(cardName).width <= 900
+      ctx
+        .measureText(
+          cardName
+        )
+        .width <= 900
     ) {
       break;
     }
 
     nameFontSize -= 2;
-  } while (nameFontSize > 38);
+
+  } while (
+    nameFontSize > 38
+  );
 
   ctx.fillText(
     cardName,
@@ -207,25 +356,39 @@ async function renderInfo(
     1365
   );
 
-  // Appearance
-  const appearance = String(
-    card.appearance || card.show || ""
-  ).toUpperCase();
+  // ========================================
+  // APPEARANCE / MOVIE
+  // ========================================
 
-  let appearanceFontSize = 34;
+  const appearance =
+    String(
+      card.appearance ||
+      card.show ||
+      ""
+    ).toUpperCase();
+
+  let appearanceFontSize =
+    34;
 
   do {
     ctx.font =
       `700 ${appearanceFontSize}px Oswald`;
 
     if (
-      ctx.measureText(appearance).width <= 900
+      ctx
+        .measureText(
+          appearance
+        )
+        .width <= 900
     ) {
       break;
     }
 
-    appearanceFontSize -= 1;
-  } while (appearanceFontSize > 24);
+    appearanceFontSize--;
+
+  } while (
+    appearanceFontSize > 24
+  );
 
   ctx.fillText(
     appearance,
@@ -233,8 +396,18 @@ async function renderInfo(
     1425
   );
 
-  return canvas.toBuffer("image/png");
+  // ========================================
+  // OUTPUT
+  // ========================================
+
+  return canvas.toBuffer(
+    "image/png"
+  );
 }
+
+// ==========================================
+// ROUNDED CLIP
+// ==========================================
 
 function roundedClip(
   ctx,
@@ -258,6 +431,10 @@ function roundedClip(
   ctx.clip();
 }
 
+// ==========================================
+// ROUNDED RECTANGLE
+// ==========================================
+
 function roundedRect(
   ctx,
   x,
@@ -274,7 +451,9 @@ function roundedRect(
   );
 
   ctx.lineTo(
-    x + width - radius,
+    x +
+      width -
+      radius,
     y
   );
 
@@ -287,13 +466,17 @@ function roundedRect(
 
   ctx.lineTo(
     x + width,
-    y + height - radius
+    y +
+      height -
+      radius
   );
 
   ctx.quadraticCurveTo(
     x + width,
     y + height,
-    x + width - radius,
+    x +
+      width -
+      radius,
     y + height
   );
 
@@ -306,7 +489,9 @@ function roundedRect(
     x,
     y + height,
     x,
-    y + height - radius
+    y +
+      height -
+      radius
   );
 
   ctx.lineTo(
@@ -324,17 +509,31 @@ function roundedRect(
   ctx.closePath();
 }
 
-function hexToRgba(hex, alpha) {
-  const value = Number.parseInt(
-    hex.replace("#", ""),
-    16
-  );
+// ==========================================
+// HEX → RGBA
+// ==========================================
+
+function hexToRgba(
+  hex,
+  alpha
+) {
+  const value =
+    Number.parseInt(
+      hex.replace(
+        "#",
+        ""
+      ),
+      16
+    );
 
   return (
-    `rgba(${(value >> 16) & 255}, ` +
+    `rgba(` +
+    `${(value >> 16) & 255}, ` +
     `${(value >> 8) & 255}, ` +
-    `${value & 255}, ${alpha})`
+    `${value & 255}, ` +
+    `${alpha})`
   );
 }
 
-module.exports = renderInfo;
+module.exports =
+  renderInfo;

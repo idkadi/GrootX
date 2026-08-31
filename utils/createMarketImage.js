@@ -17,32 +17,81 @@ async function createMarketImage(cards) {
 
   const height = 385;
 
-  const canvas = createCanvas(width, height);
-  const ctx = canvas.getContext("2d");
+  const canvas = createCanvas(
+    width,
+    height
+  );
+
+  const ctx =
+    canvas.getContext("2d");
 
   ctx.fillStyle = "#1e1f22";
-  ctx.fillRect(0, 0, width, height);
+
+  ctx.fillRect(
+    0,
+    0,
+    width,
+    height
+  );
 
   ctx.fillStyle = "#ffffff";
   ctx.font = "bold 34px Arial";
   ctx.textAlign = "center";
-  ctx.fillText("GrootX Daily Market", width / 2, 45);
 
-  for (let i = 0; i < cards.length; i++) {
-    const card = cards[i];
+  ctx.fillText(
+    "GrootX Daily Market • Season 1",
+    width / 2,
+    45
+  );
+
+  for (
+    let i = 0;
+    i < cards.length;
+    i++
+  ) {
+    const card =
+      cards[i];
 
     const x =
       spacing +
-      i * (cardWidth + spacing);
+      i * (
+        cardWidth +
+        spacing
+      );
 
     const y = 75;
 
-    const cardBuffer = await renderCard(
-      card,
-      card.serial ?? card.tier.toUpperCase()
-    );
+    /*
+     * MARKET IS SEASON 1 ONLY.
+     *
+     * This forces renderCard() to use:
+     *
+     * S1 rawImage
+     * +
+     * default tier frame
+     * +
+     * S1 name / appearance layout
+     */
 
-    const image = await loadImage(cardBuffer);
+    const cardBuffer =
+      await renderCard(
+        {
+          ...card,
+          season: 1
+        },
+
+        card.serial ??
+        card.tier.toUpperCase(),
+
+        {
+          season: 1
+        }
+      );
+
+    const image =
+      await loadImage(
+        cardBuffer
+      );
 
     ctx.drawImage(
       image,
@@ -52,9 +101,14 @@ async function createMarketImage(cards) {
       cardHeight
     );
 
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 18px Arial";
-    ctx.textAlign = "center";
+    ctx.fillStyle =
+      "#ffffff";
+
+    ctx.font =
+      "bold 18px Arial";
+
+    ctx.textAlign =
+      "center";
 
     ctx.fillText(
       `${card.price.toLocaleString()} coins`,
@@ -63,7 +117,10 @@ async function createMarketImage(cards) {
     );
   }
 
-  return canvas.toBuffer("image/png");
+  return canvas.toBuffer(
+    "image/png"
+  );
 }
 
-module.exports = createMarketImage;
+module.exports =
+  createMarketImage;

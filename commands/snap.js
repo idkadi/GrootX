@@ -1,7 +1,10 @@
-const path = require("path");
-
 const cards =
-  require("../data/cards");
+  require("../data/season1");
+
+const renderCard =
+  require("../utils/renderCard");
+
+const SEASON = 1;
 
 const {
   EmbedBuilder,
@@ -14,35 +17,29 @@ const connectDB =
   require("../database");
 
 function randomChoice(array) {
-
   return array[
     Math.floor(
       Math.random() * array.length
     )
   ];
-
 }
 
 async function generateUniqueCode(
   collectionsCol
 ) {
-
   const chars =
     "abcdefghijklmnopqrstuvwxyz0123456789";
 
   while (true) {
-
     let code = "";
 
     for (let i = 0; i < 6; i++) {
-
       code += chars.charAt(
         Math.floor(
           Math.random() *
           chars.length
         )
       );
-
     }
 
     const exists =
@@ -50,19 +47,16 @@ async function generateUniqueCode(
         code
       });
 
-    if (!exists)
+    if (!exists) {
       return code;
-
+    }
   }
-
 }
 
 module.exports = {
-
   name: "snap",
 
   async execute(message) {
-
     const db =
       await connectDB();
 
@@ -84,7 +78,6 @@ module.exports = {
       });
 
     if (!inventoryDoc) {
-
       await inventoryCol.insertOne({
         userId,
         items: {}
@@ -94,45 +87,36 @@ module.exports = {
         userId,
         items: {}
       };
-
     }
 
     const items =
       inventoryDoc.items || {};
 
     const stones = [
-
       "space_stone",
       "mind_stone",
       "reality_stone",
       "power_stone",
       "time_stone",
       "soul_stone"
-
     ];
 
     if (
       (items.gauntlet || 0) < 1
     ) {
-
       return message.reply(
         "❌ You need a Gauntlet."
       );
-
     }
 
     for (const stone of stones) {
-
       if (
         (items[stone] || 0) < 1
       ) {
-
         return message.reply(
           `❌ Missing ${stone}.`
         );
-
       }
-
     }
 
     const removeItems = {
@@ -140,37 +124,59 @@ module.exports = {
     };
 
     for (const stone of stones) {
-
       removeItems[
         `items.${stone}`
       ] = -1;
-
     }
 
     await inventoryCol.updateOne(
-
-      { userId },
-
+      {
+        userId
+      },
       {
         $inc: removeItems
       }
-
     );
+
+    // ==========================================
+    // SEASON 1 REWARD POOL
+    // ==========================================
 
     const legendaryCards =
       cards.filter(
-        c =>
-          c.tier === "legendary"
+        card =>
+          String(
+            card.tier || ""
+          ).toLowerCase() ===
+          "legendary"
       );
 
     const epicCards =
       cards.filter(
-        c =>
-          c.tier === "epic"
+        card =>
+          String(
+            card.tier || ""
+          ).toLowerCase() ===
+          "epic"
       );
 
-    const dropCards = [
+    if (
+      legendaryCards.length === 0
+    ) {
+      return message.reply(
+        "❌ No Legendary cards are currently available in Season 1."
+      );
+    }
 
+    if (
+      epicCards.length === 0
+    ) {
+      return message.reply(
+        "❌ No Epic cards are currently available in Season 1."
+      );
+    }
+
+    const dropCards = [
       randomChoice(
         legendaryCards
       ),
@@ -182,28 +188,31 @@ module.exports = {
       randomChoice(
         epicCards
       )
-
     ];
+
+    // ==========================================
+    // SNAP SELECTION
+    // ==========================================
 
     const embed =
       new EmbedBuilder()
 
-        .setColor(0xff9900)
+        .setColor(
+          0xff9900
+        )
 
         .setTitle(
-          "🫰 The Snap Has Been Completed"
+          "🫰 The Snap Has Been Completed • S1"
         )
 
         .setDescription(
-
-          "Choose ONE reward card.\n\n" +
+          "Choose ONE **Season 1** reward card.\n\n" +
 
           `1️⃣ ${dropCards[0].name} (Legendary)\n` +
 
           `2️⃣ ${dropCards[1].name} (Epic)\n` +
 
           `3️⃣ ${dropCards[2].name} (Epic)`
-
         )
 
         .setImage(
@@ -212,159 +221,309 @@ module.exports = {
 
         .setFooter({
           text:
-            "Perfectly balanced... as all things should be."
+            "1️⃣ Season 1 • Perfectly balanced... as all things should be."
         })
 
         .setTimestamp();
 
     const row =
       new ActionRowBuilder()
-
         .addComponents(
+          new ButtonBuilder()
+            .setCustomId(
+              "snap_0"
+            )
+            .setLabel(
+              "1️⃣"
+            )
+            .setStyle(
+              ButtonStyle.Primary
+            ),
 
           new ButtonBuilder()
-            .setCustomId("snap_0")
-            .setLabel("1️⃣")
-            .setStyle(ButtonStyle.Primary),
+            .setCustomId(
+              "snap_1"
+            )
+            .setLabel(
+              "2️⃣"
+            )
+            .setStyle(
+              ButtonStyle.Primary
+            ),
 
           new ButtonBuilder()
-            .setCustomId("snap_1")
-            .setLabel("2️⃣")
-            .setStyle(ButtonStyle.Primary),
-
-          new ButtonBuilder()
-            .setCustomId("snap_2")
-            .setLabel("3️⃣")
-            .setStyle(ButtonStyle.Primary)
-
+            .setCustomId(
+              "snap_2"
+            )
+            .setLabel(
+              "3️⃣"
+            )
+            .setStyle(
+              ButtonStyle.Primary
+            )
         );
 
     const msg =
       await message.reply({
+        embeds: [
+          embed
+        ],
 
-        embeds: [embed],
-
-        components: [row]
-
+        components: [
+          row
+        ]
       });
 
     const collector =
       msg.createMessageComponentCollector({
-
         time: 30000
-
       });
 
     collector.on(
       "collect",
 
       async interaction => {
-
         if (
           interaction.user.id !==
           message.author.id
         ) {
-
           return interaction.reply({
-
             content:
               "❌ This is not your snap.",
 
-            ephemeral: true
-
+            ephemeral:
+              true
           });
-
         }
 
         collector.stop();
 
         const index =
           parseInt(
-
             interaction.customId
               .split("_")[1]
-
           );
 
         const selectedCard =
           dropCards[index];
 
-        await serialsCol.updateOne(
+        if (!selectedCard) {
+          return interaction.reply({
+            content:
+              "❌ Invalid Snap reward.",
 
+            ephemeral:
+              true
+          });
+        }
+
+        // ======================================
+        // SEASON 1 SERIAL
+        // ======================================
+
+        await serialsCol.updateOne(
           {
             cardId:
-              selectedCard.id
+              Number(
+                selectedCard.id
+              ),
+
+            season:
+              SEASON
           },
 
           {
             $inc: {
-              serial: 1
+              serial:
+                1
+            },
+
+            $setOnInsert: {
+              season:
+                SEASON
             }
           },
 
           {
-            upsert: true
+            upsert:
+              true
           }
-
         );
 
         const serialDoc =
           await serialsCol.findOne({
-
             cardId:
-              selectedCard.id
+              Number(
+                selectedCard.id
+              ),
 
+            season:
+              SEASON
           });
+
+        if (!serialDoc) {
+          return interaction.reply({
+            content:
+              "❌ Failed to generate card serial.",
+
+            ephemeral:
+              true
+          });
+        }
 
         const serial =
           serialDoc.serial;
+
+        // ======================================
+        // UNIQUE OWNED CARD CODE
+        // ======================================
 
         const code =
           await generateUniqueCode(
             collectionsCol
           );
 
-        await collectionsCol.insertOne({
+        // ======================================
+        // SAVE AS SEASON 1 OWNED CARD
+        // ======================================
 
+        await collectionsCol.insertOne({
           userId,
 
           cardId:
-            selectedCard.id,
+            Number(
+              selectedCard.id
+            ),
+
+          season:
+            SEASON,
 
           serial,
 
           code,
 
-          tag: null,
+          tag:
+            null,
 
-          favorite: false
-
+          favorite:
+            false
         });
 
-        const imageName =
-          path.basename(
-            selectedCard.image
+        // ======================================
+        // RENDER S1 DESIGN
+        // ======================================
+
+        /*
+         * This goes through renderCard().
+         *
+         * Since season = 1:
+         *
+         * rawImage
+         *   ↓
+         * default S1 tier frame
+         *   ↓
+         * character name
+         *   ↓
+         * appearance / movie
+         *
+         * No custom frame is supplied here,
+         * because this is a newly-created card.
+         */
+
+        let buffer;
+
+        try {
+          buffer =
+            await renderCard(
+              {
+                ...selectedCard,
+
+                season:
+                  SEASON
+              },
+
+              serial,
+
+              {
+                season:
+                  SEASON
+              }
+            );
+        } catch (error) {
+          console.error(
+            "Snap reward render failed:",
+            error
           );
+
+          return interaction.reply({
+            content:
+              "❌ Failed to render the Snap reward.",
+
+            ephemeral:
+              true
+          });
+        }
+
+        const imageName =
+          `snap-${selectedCard.id}-s1-${serial}.png`;
+
+        // ======================================
+        // RESULT
+        // ======================================
 
         const resultEmbed =
           new EmbedBuilder()
 
-            .setColor(0x00ff99)
+            .setColor(
+              0x00ff99
+            )
 
             .setTitle(
               "🌌 Snap Reward Claimed"
             )
 
             .setDescription(
-
               `You claimed:\n\n` +
 
-              `**${selectedCard.name}**\n` +
+              `1️⃣ **${selectedCard.name}**\n` +
 
-              `└ ${code} ` +
+              `└ \`${code}\` ` +
 
-              `• #${serial}`
+              `• **#${serial}**`
+            )
 
+            .addFields(
+              {
+                name:
+                  "🗓️ Season",
+
+                value:
+                  "1️⃣ **Season 1**",
+
+                inline:
+                  true
+              },
+
+              {
+                name:
+                  "🎴 Tier",
+
+                value:
+                  `**${selectedCard.tier}**`,
+
+                inline:
+                  true
+              },
+
+              {
+                name:
+                  "🎬 Appearance",
+
+                value:
+                  selectedCard.appearance ||
+                  selectedCard.show ||
+                  "Unknown"
+              }
             )
 
             .setImage(
@@ -373,48 +532,58 @@ module.exports = {
 
             .setFooter({
               text:
-                "The universe has shifted..."
+                "1️⃣ Season 1 • The universe has shifted..."
             })
 
             .setTimestamp();
 
-        const imagePath =
-          path.join(
-
-            __dirname,
-            "..",
-            "images",
-            selectedCard.image
-
-          );
-
         await interaction.update({
-
           content:
-            "🫰 SNAP COMPLETE",
+            "🫰 **SNAP COMPLETE**",
 
-          embeds: [resultEmbed],
+          embeds: [
+            resultEmbed
+          ],
 
           files: [
-
             {
               attachment:
-                imagePath,
+                buffer,
 
               name:
                 imageName
             }
-
           ],
 
-          components: []
-
+          components:
+            []
         });
-
       }
-
     );
 
-  }
+    // ==========================================
+    // TIMEOUT
+    // ==========================================
 
+    collector.on(
+      "end",
+
+      async (
+        collected
+      ) => {
+        if (
+          collected.size > 0
+        ) {
+          return;
+        }
+
+        await msg
+          .edit({
+            components:
+              []
+          })
+          .catch(() => {});
+      }
+    );
+  }
 };
