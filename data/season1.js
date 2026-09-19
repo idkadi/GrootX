@@ -1850,7 +1850,7 @@ module.exports = [
     aka: [],
     appearance: "Captain America : The First Avenger",
     tier: "common",
-    rawImage: "raw/abrahamca.png"
+    rawImage: "raw/abraham.png"
   },
 
   {
@@ -6892,7 +6892,7 @@ module.exports = [
     aka: [],
     appearance: "Iron Man: Armored Adventures",
     tier: "rare",
-    rawImage: "raw/mandrinaw.png"
+    rawImage: "raw/mandarinaw.png"
   },
 
    {
@@ -6913,16 +6913,6 @@ module.exports = [
     rawImage: "raw/finfangaw.png"
   },
 
-   {
-    id: 758,
-    name: "War Machine",
-    aka: ["James Rhodes"],
-    appearance: "Iron Man: Armored Adventures",
-    tier: "rare",
-    rawImage: "raw/jamesaw.png"
-  },
-
-  
    {
     id: 759,
     name: "Doctor Doom",
@@ -7014,7 +7004,7 @@ module.exports = [
     aka: [],
     appearance: "Thor : The Dark World",
     tier: "epic",
-    rawImage: "raw/justinaw.png"
+    rawImage: "raw/lokidw.png"
   },
 
   {
@@ -7757,7 +7747,16 @@ module.exports = [
   appearance: "Agents of S.H.I.E.L.D.",
   tier: "common",
   rawImage: "raw/victoriahand.png"
-}
+},
+
+ {
+    id: 859,
+    name: "War Machine",
+    aka: ["James Rhodes"],
+    appearance: "Iron Man: Armored Adventures",
+    tier: "rare",
+    rawImage: "raw/jamesaw.png"
+  },
 
 
 

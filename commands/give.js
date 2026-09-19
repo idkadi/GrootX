@@ -7,7 +7,8 @@ const {
   SlashCommandBuilder
 } = require("discord.js");
 
-const cards = require("../data/cards");
+const cards = require("../data/cards");       // Season 0
+const season1 = require("../data/season1");   // Season 1
 const connectDB = require("../database");
 const renderCard = require("../utils/renderCard");
 
@@ -20,6 +21,10 @@ async function runGive({ message, interaction, target, code }) {
 
   const author = isSlash ? interaction.user : message.author;
   const replyTarget = isSlash ? interaction : message;
+
+  // =====================================================
+  // VALIDATION
+  // =====================================================
 
   if (!target) {
     return replyTarget.reply({
@@ -44,12 +49,17 @@ async function runGive({ message, interaction, target, code }) {
     });
   }
 
+  // =====================================================
+  // DATABASE
+  // =====================================================
+
   const db = await connectDB();
   const collectionsCol = db.collection("collections");
 
   const giverId = author.id;
   const receiverId = target.id;
 
+  // Find owned card
   const card = await collectionsCol.findOne({
     userId: giverId,
     code
@@ -62,6 +72,7 @@ async function runGive({ message, interaction, target, code }) {
     });
   }
 
+  // Favorited cards cannot be given
   if (card.favorite) {
     return replyTarget.reply({
       content: "⭐ You cannot give a favorited card.",
@@ -69,29 +80,78 @@ async function runGive({ message, interaction, target, code }) {
     });
   }
 
-  const cardInfo = cards.find(
-    c => Number(c.id) === Number(card.cardId)
-  );
+  // =====================================================
+  // RESOLVE CARD DATA BY SEASON
+  // =====================================================
+
+  // Legacy cards without season are treated as Season 0
+  const season = Number(card.season ?? 0);
+
+  let cardInfo;
+
+  if (season === 1) {
+    // Season 1
+    cardInfo = season1.find(
+      c => Number(c.id) === Number(card.cardId)
+    );
+  } else {
+    // Season 0
+    cardInfo = cards.find(
+      c => Number(c.id) === Number(card.cardId)
+    );
+  }
 
   if (!cardInfo) {
     return replyTarget.reply({
-      content: "❌ Card data not found.",
+      content: `❌ Card data not found for Season ${season}.`,
       ephemeral: isSlash ? true : undefined
     });
   }
 
-  const buffer = await renderCard(cardInfo, card.serial, card);
+  // =====================================================
+  // RENDER CARD
+  // =====================================================
+
+  let buffer;
+
+  try {
+    /*
+      IMPORTANT:
+      Passing the owned card as the third argument lets renderCard()
+      detect season and frameId.
+
+      S0 -> old coloured format
+      S1 -> rawImage + default/custom frame
+    */
+    buffer = await renderCard(
+      cardInfo,
+      card.serial,
+      card
+    );
+  } catch (error) {
+    console.error("[GIVE] Card render failed:", error);
+
+    return replyTarget.reply({
+      content: "❌ Failed to render this card.",
+      ephemeral: isSlash ? true : undefined
+    });
+  }
 
   const file = new AttachmentBuilder(buffer, {
     name: "givecard.png"
   });
+
+  // =====================================================
+  // CONFIRMATION EMBED
+  // =====================================================
 
   const confirmEmbed = new EmbedBuilder()
     .setColor(0x00aeff)
     .setTitle("🎁 Confirm Gift")
     .setDescription(
       `**${cardInfo.name}**\n` +
-      `└ \`${card.code}\` • #${card.serial}\n\n` +
+      `└ \`${card.code}\` • #${card.serial}\n` +
+      `└ Season ${season}\n\n` +
       `Recipient: ${target}`
     )
     .setImage("attachment://givecard.png")
@@ -116,6 +176,10 @@ async function runGive({ message, interaction, target, code }) {
 
   let confirmMsg;
 
+  // =====================================================
+  // SEND CONFIRMATION
+  // =====================================================
+
   if (isSlash) {
     confirmMsg = await interaction.reply({
       embeds: [confirmEmbed],
@@ -131,17 +195,27 @@ async function runGive({ message, interaction, target, code }) {
     });
   }
 
+  // =====================================================
+  // BUTTON COLLECTOR
+  // =====================================================
+
   const collector = confirmMsg.createMessageComponentCollector({
     time: 30000
   });
 
   collector.on("collect", async btn => {
+
+    // Only giver can use buttons
     if (btn.user.id !== giverId) {
       return btn.reply({
         content: "❌ This is not your gift confirmation.",
         ephemeral: true
       });
     }
+
+    // ===================================================
+    // CANCEL
+    // ===================================================
 
     if (btn.customId === "give_cancel") {
       collector.stop("cancelled");
@@ -154,10 +228,21 @@ async function runGive({ message, interaction, target, code }) {
       });
     }
 
+    // ===================================================
+    // CONFIRM
+    // ===================================================
+
     if (btn.customId === "give_confirm") {
       await btn.deferUpdate();
+
       collector.stop("confirmed");
 
+      /*
+        Re-check ownership.
+
+        This prevents duplicate transfers if the card was
+        traded/given/burned while the confirmation was open.
+      */
       const freshCard = await collectionsCol.findOne({
         _id: card._id,
         userId: giverId,
@@ -173,8 +258,37 @@ async function runGive({ message, interaction, target, code }) {
         });
       }
 
-      await collectionsCol.updateOne(
-        { _id: card._id },
+      // Check favorite again in case it changed
+      if (freshCard.favorite) {
+        return confirmMsg.edit({
+          content: "⭐ This card is now favorited and cannot be given.",
+          embeds: [],
+          files: [],
+          components: []
+        });
+      }
+
+      // =================================================
+      // TRANSFER OWNERSHIP
+      // =================================================
+
+      /*
+        Only userId + favorite are changed.
+
+        season
+        cardId
+        serial
+        frameId
+        code
+
+        all remain untouched.
+      */
+
+      const transferResult = await collectionsCol.updateOne(
+        {
+          _id: card._id,
+          userId: giverId
+        },
         {
           $set: {
             userId: receiverId,
@@ -183,13 +297,69 @@ async function runGive({ message, interaction, target, code }) {
         }
       );
 
-      await removeCardFromAlbums(db, giverId, code);
+      // Extra protection against race conditions
+      if (transferResult.modifiedCount !== 1) {
+        return confirmMsg.edit({
+          content: "❌ Card transfer failed because the card is no longer available.",
+          embeds: [],
+          files: [],
+          components: []
+        });
+      }
 
-      const finalBuffer = await renderCard(cardInfo, freshCard.serial, freshCard);
+      // Remove from giver's albums
+      await removeCardFromAlbums(
+        db,
+        giverId,
+        code
+      );
+
+      // =================================================
+      // FINAL CARD RENDER
+      // =================================================
+
+      let finalBuffer;
+
+      try {
+        /*
+          freshCard still contains:
+          season
+          frameId
+          serial
+
+          so renderCard knows exactly how to render it.
+        */
+        finalBuffer = await renderCard(
+          cardInfo,
+          freshCard.serial,
+          freshCard
+        );
+      } catch (error) {
+        console.error("[GIVE] Final card render failed:", error);
+
+        /*
+          Transfer already happened, so don't tell the user
+          that the transfer itself failed.
+        */
+        return confirmMsg.edit({
+          content:
+            `✅ ${author} gave **${cardInfo.name}** to ${target}\n\n` +
+            `Code: \`${freshCard.code}\`\n` +
+            `Serial: **#${freshCard.serial}**\n` +
+            `Season: **${season}**`,
+          embeds: [],
+          files: [],
+          components: []
+        });
+      }
 
       const finalFile = new AttachmentBuilder(finalBuffer, {
         name: "given-card.png"
       });
+
+      // =================================================
+      // SUCCESS EMBED
+      // =================================================
 
       const successEmbed = new EmbedBuilder()
         .setColor(0x2ecc71)
@@ -197,7 +367,8 @@ async function runGive({ message, interaction, target, code }) {
         .setDescription(
           `${author} gave **${cardInfo.name}** to ${target}\n\n` +
           `Code: \`${freshCard.code}\`\n` +
-          `Serial: **#${freshCard.serial}**`
+          `Serial: **#${freshCard.serial}**\n` +
+          `Season: **${season}**`
         )
         .setImage("attachment://given-card.png")
         .setTimestamp();
@@ -211,6 +382,10 @@ async function runGive({ message, interaction, target, code }) {
     }
   });
 
+  // =====================================================
+  // CONFIRMATION TIMEOUT
+  // =====================================================
+
   collector.on("end", async (_, reason) => {
     if (reason === "time") {
       await confirmMsg.edit({
@@ -223,19 +398,29 @@ async function runGive({ message, interaction, target, code }) {
   });
 }
 
+// =======================================================
+// COMMAND EXPORT
+// =======================================================
+
 module.exports = {
   name: "give",
   aliases: ["gift"],
 
+  // =====================================================
+  // SLASH COMMAND
+  // =====================================================
+
   data: new SlashCommandBuilder()
     .setName("give")
     .setDescription("Give a card to another user")
+
     .addUserOption(option =>
       option
         .setName("user")
         .setDescription("User to give the card to")
         .setRequired(true)
     )
+
     .addStringOption(option =>
       option
         .setName("code")
@@ -243,9 +428,22 @@ module.exports = {
         .setRequired(true)
     ),
 
+  // =====================================================
+  // PREFIX COMMAND
+  // =====================================================
+
   async execute(message, args) {
     const target = message.mentions.users.first();
-    const code = args.find(arg => !arg.startsWith("<@"));
+
+    /*
+      Example:
+      !give @Spidey abc123
+
+      Find argument that isn't the mention.
+    */
+    const code = args.find(
+      arg => !arg.startsWith("<@")
+    );
 
     return runGive({
       message,
@@ -254,9 +452,16 @@ module.exports = {
     });
   },
 
+  // =====================================================
+  // SLASH EXECUTION
+  // =====================================================
+
   async slashExecute(interaction) {
-    const target = interaction.options.getUser("user");
-    const code = interaction.options.getString("code");
+    const target =
+      interaction.options.getUser("user");
+
+    const code =
+      interaction.options.getString("code");
 
     return runGive({
       interaction,

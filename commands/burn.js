@@ -1,4 +1,5 @@
-const cards = require("../data/cards");
+const cards = require("../data/cards");       // Season 0
+const season1 = require("../data/season1");   // Season 1
 
 const {
   EmbedBuilder,
@@ -15,11 +16,21 @@ const {
 
 const pendingBurns = new Map();
 
+
+// ==========================================
+// RANDOM NUMBER
+// ==========================================
+
 function random(min, max) {
   return Math.floor(
     Math.random() * (max - min + 1)
   ) + min;
 }
+
+
+// ==========================================
+// RANDOM SHARD
+// ==========================================
 
 function getRandomShard() {
   const shards = [
@@ -36,254 +47,730 @@ function getRandomShard() {
   ];
 }
 
+
+// ==========================================
+// FORMAT ITEM NAME
+// ==========================================
+
 function formatItemName(item) {
   return item
     .split("_")
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .map(
+      word =>
+        word.charAt(0).toUpperCase() +
+        word.slice(1)
+    )
     .join(" ");
 }
 
+
+// ==========================================
+// ITEM EMOJI
+// ==========================================
+
 function getItemEmoji(item) {
   switch (item) {
-    case "space_shard": return "<:spaceshards:1504767068480995429>";
-    case "mind_shard": return "<:mindsshards:1504767348517638195>";
-    case "reality_shard": return "<:realityshards:1504767197883531386>";
-    case "power_shard": return "<:powershards:1504767126462926949>";
-    case "time_shard": return "<:timeshards:1504766994074046525>";
-    case "soul_shard": return "<:soulshards:1504767256775757845>";
-    default: return "✨";
+
+    case "space_shard":
+      return "<:spaceshards:1504767068480995429>";
+
+    case "mind_shard":
+      return "<:mindsshards:1504767348517638195>";
+
+    case "reality_shard":
+      return "<:realityshards:1504767197883531386>";
+
+    case "power_shard":
+      return "<:powershards:1504767126462926949>";
+
+    case "time_shard":
+      return "<:timeshards:1504766994074046525>";
+
+    case "soul_shard":
+      return "<:soulshards:1504767256775757845>";
+
+    default:
+      return "✨";
   }
 }
 
+
+// ==========================================
+// COMMAND
+// ==========================================
+
 module.exports = {
+
   name: "burn",
 
   async execute(message, args) {
+
     const db = await connectDB();
 
-    const collectionsCol = db.collection("collections");
-    const balancesCol = db.collection("balances");
-    const inventoryCol = db.collection("inventory");
+    const collectionsCol =
+      db.collection("collections");
 
-    const userId = message.author.id;
+    const balancesCol =
+      db.collection("balances");
+
+    const inventoryCol =
+      db.collection("inventory");
+
+    const userId =
+      message.author.id;
+
+
+    // ======================================
+    // CHECK PENDING BURN
+    // ======================================
 
     if (pendingBurns.has(userId)) {
+
       return message.reply(
         "⚠️ You already have a burn confirmation pending. Confirm or cancel it first."
       );
+
     }
+
+
+    // ======================================
+    // FIND OWNED CARD
+    // ======================================
 
     let burnedEntry;
 
+    // No code = burn latest card
     if (!args[0]) {
-      burnedEntry = await collectionsCol
-        .find({ userId })
-        .sort({ _id: -1 })
-        .limit(1)
-        .next();
+
+      burnedEntry =
+        await collectionsCol
+          .find({ userId })
+          .sort({ _id: -1 })
+          .limit(1)
+          .next();
+
     } else {
-      burnedEntry = await collectionsCol.findOne({
-        userId,
-        code: args[0].toLowerCase()
-      });
+
+      burnedEntry =
+        await collectionsCol.findOne({
+          userId,
+          code: args[0].toLowerCase()
+        });
+
     }
+
 
     if (!burnedEntry) {
-      return message.reply("❌ Card not found.");
+
+      return message.reply(
+        "❌ Card not found."
+      );
+
     }
+
+
+    // ======================================
+    // FAVORITE PROTECTION
+    // ======================================
 
     if (burnedEntry.favorite) {
-      return message.reply("⭐ You cannot burn a favorited card.");
+
+      return message.reply(
+        "⭐ You cannot burn a favorited card."
+      );
+
     }
 
-    const card = cards.find(
-      c => Number(c.id) === Number(burnedEntry.cardId)
-    );
+
+    // ======================================
+    // DETECT SEASON
+    // ======================================
+
+    /*
+      Old cards may not contain a season field.
+
+      No season = Season 0
+      season: 0 = Season 0
+      season: 1 = Season 1
+    */
+
+    const season =
+      Number(burnedEntry.season ?? 0);
+
+
+    // ======================================
+    // FIND CARD DATA
+    // ======================================
+
+    let card;
+
+    if (season === 1) {
+
+      // Season 1
+      card = season1.find(
+        c =>
+          Number(c.id) ===
+          Number(burnedEntry.cardId)
+      );
+
+    } else {
+
+      // Season 0 / legacy
+      card = cards.find(
+        c =>
+          Number(c.id) ===
+          Number(burnedEntry.cardId)
+      );
+
+    }
+
+
+    // ======================================
+    // CARD DATA SAFETY
+    // ======================================
 
     if (!card) {
-      return message.reply("❌ Card data not found.");
+
+      console.error(
+        `[BURN] Card data not found | ` +
+        `cardId=${burnedEntry.cardId} | ` +
+        `season=${season} | ` +
+        `code=${burnedEntry.code} | ` +
+        `user=${userId}`
+      );
+
+      return message.reply(
+        `❌ Card data not found for Season ${season}.`
+      );
+
     }
 
-    pendingBurns.set(userId, burnedEntry.code);
 
-    const confirmEmbed = new EmbedBuilder()
-      .setColor(0xff0000)
-      .setTitle("⚠️ Confirm Burn")
-      .setDescription(
-        `**${card.name}**\n` +
-        `└ ${burnedEntry.code} • #${burnedEntry.serial}\n\n` +
-        `This action is irreversible.`
-      )
-      .setFooter({
-        text: "Burning permanently destroys the card."
-      });
+    // ======================================
+    // SET PENDING BURN
+    // ======================================
 
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId("confirm")
-        .setLabel("🔥 Confirm")
-        .setStyle(ButtonStyle.Danger),
-
-      new ButtonBuilder()
-        .setCustomId("cancel")
-        .setLabel("❌ Cancel")
-        .setStyle(ButtonStyle.Secondary)
+    pendingBurns.set(
+      userId,
+      burnedEntry.code
     );
 
-    const confirmMessage = await message.reply({
-      embeds: [confirmEmbed],
-      components: [row]
-    });
 
-    const collector = confirmMessage.createMessageComponentCollector({
-      time: 30000
-    });
+    // ======================================
+    // CONFIRM EMBED
+    // ======================================
 
-    collector.on("collect", async interaction => {
-      if (interaction.user.id !== userId) {
-        return interaction.reply({
-          content: "❌ This is not your burn confirmation.",
-          ephemeral: true
-        });
-      }
+    const confirmEmbed =
+      new EmbedBuilder()
 
-      if (interaction.customId === "cancel") {
-        pendingBurns.delete(userId);
-        collector.stop("cancelled");
+        .setColor(0xff0000)
 
-        return interaction.update({
-          content: "❌ Burn canceled.",
-          embeds: [],
-          components: []
-        });
-      }
+        .setTitle(
+          "⚠️ Confirm Burn"
+        )
 
-      if (interaction.customId === "confirm") {
-        collector.stop("confirmed");
+        .setDescription(
+          `**${card.name}**\n` +
+          `└ ${burnedEntry.code} • #${burnedEntry.serial}\n` +
+          `└ Season ${season}\n\n` +
+          `This action is irreversible.`
+        )
 
-        const deleteResult = await collectionsCol.deleteOne({
-          _id: burnedEntry._id,
-          userId,
-          code: burnedEntry.code
+        .setFooter({
+          text:
+            "Burning permanently destroys the card."
         });
 
-        if (deleteResult.deletedCount === 0) {
-          pendingBurns.delete(userId);
+
+    // ======================================
+    // BUTTONS
+    // ======================================
+
+    const row =
+      new ActionRowBuilder()
+        .addComponents(
+
+          new ButtonBuilder()
+            .setCustomId("confirm")
+            .setLabel("🔥 Confirm")
+            .setStyle(
+              ButtonStyle.Danger
+            ),
+
+          new ButtonBuilder()
+            .setCustomId("cancel")
+            .setLabel("❌ Cancel")
+            .setStyle(
+              ButtonStyle.Secondary
+            )
+
+        );
+
+
+    // ======================================
+    // SEND CONFIRMATION
+    // ======================================
+
+    const confirmMessage =
+      await message.reply({
+        embeds: [confirmEmbed],
+        components: [row]
+      });
+
+
+    // ======================================
+    // COLLECTOR
+    // ======================================
+
+    const collector =
+      confirmMessage
+        .createMessageComponentCollector({
+          time: 30000
+        });
+
+
+    // ======================================
+    // BUTTON INTERACTION
+    // ======================================
+
+    collector.on(
+      "collect",
+
+      async interaction => {
+
+        // Only card owner can confirm
+        if (
+          interaction.user.id !==
+          userId
+        ) {
+
+          return interaction.reply({
+            content:
+              "❌ This is not your burn confirmation.",
+
+            ephemeral:
+              true
+          });
+
+        }
+
+
+        // ==================================
+        // CANCEL
+        // ==================================
+
+        if (
+          interaction.customId ===
+          "cancel"
+        ) {
+
+          pendingBurns.delete(
+            userId
+          );
+
+          collector.stop(
+            "cancelled"
+          );
 
           return interaction.update({
-            content: "❌ This card was already burned, traded, or removed.",
-            embeds: [],
-            components: []
+            content:
+              "❌ Burn canceled.",
+
+            embeds:
+              [],
+
+            components:
+              []
           });
+
         }
 
-        let coins = 0;
-        let shards = 0;
 
-        switch (card.tier) {
-          case "common":
-            coins = random(25, 50);
-            shards = random(3, 5);
-            break;
+        // ==================================
+        // CONFIRM
+        // ==================================
 
-          case "uncommon":
-            coins = random(50, 100);
-            shards = random(5, 8);
-            break;
+        if (
+          interaction.customId ===
+          "confirm"
+        ) {
 
-          case "rare":
-            coins = random(100, 200);
-            shards = random(10, 15);
-            break;
+          collector.stop(
+            "confirmed"
+          );
 
-          case "epic":
-            coins = random(250, 500);
-            shards = random(15, 25);
-            break;
 
-          case "legendary":
-            coins = random(1000, 1500);
-            shards = random(50, 100);
-            break;
-        }
+          // ================================
+          // RE-CHECK CARD
+          // ================================
 
-        const shardType = getRandomShard();
+          const freshEntry =
+            await collectionsCol.findOne({
+              _id:
+                burnedEntry._id,
 
-        await removeCardFromAlbums(
-          db,
-          userId,
-          burnedEntry.code
-        );
+              userId,
 
-        await balancesCol.updateOne(
-          { userId },
-          {
-            $inc: {
-              coins
-            }
-          },
-          {
-            upsert: true
+              code:
+                burnedEntry.code
+            });
+
+
+          if (!freshEntry) {
+
+            pendingBurns.delete(
+              userId
+            );
+
+            return interaction.update({
+              content:
+                "❌ This card was already burned, traded, or removed.",
+
+              embeds:
+                [],
+
+              components:
+                []
+            });
+
           }
-        );
 
-        await inventoryCol.updateOne(
-          { userId },
-          {
-            $inc: {
-              [`items.${shardType}`]: shards
-            }
-          },
-          {
-            upsert: true
+
+          // Favorite could have changed
+          if (freshEntry.favorite) {
+
+            pendingBurns.delete(
+              userId
+            );
+
+            return interaction.update({
+              content:
+                "⭐ This card is now favorited and cannot be burned.",
+
+              embeds:
+                [],
+
+              components:
+                []
+            });
+
           }
-        );
 
-        const resultEmbed = new EmbedBuilder()
-          .setColor(0xff5500)
-          .setTitle("🔥 Card Burned")
-          .setDescription(
-            `Burned **${card.name}**\n` +
-            `└ ${burnedEntry.code}`
-          )
-          .addFields(
+
+          // ================================
+          // DELETE CARD
+          // ================================
+
+          const deleteResult =
+            await collectionsCol.deleteOne({
+              _id:
+                burnedEntry._id,
+
+              userId,
+
+              code:
+                burnedEntry.code
+            });
+
+
+          if (
+            deleteResult.deletedCount ===
+            0
+          ) {
+
+            pendingBurns.delete(
+              userId
+            );
+
+            return interaction.update({
+              content:
+                "❌ This card was already burned, traded, or removed.",
+
+              embeds:
+                [],
+
+              components:
+                []
+            });
+
+          }
+
+
+          // ================================
+          // BURN REWARDS
+          // ================================
+
+          let coins = 0;
+          let shards = 0;
+
+          const tier =
+            String(
+              card.tier || ""
+            ).toLowerCase();
+
+
+          switch (tier) {
+
+            case "common":
+
+              coins =
+                random(25, 50);
+
+              shards =
+                random(3, 5);
+
+              break;
+
+
+            case "uncommon":
+
+              coins =
+                random(50, 100);
+
+              shards =
+                random(5, 8);
+
+              break;
+
+
+            case "rare":
+
+              coins =
+                random(100, 200);
+
+              shards =
+                random(10, 15);
+
+              break;
+
+
+            case "epic":
+
+              coins =
+                random(250, 500);
+
+              shards =
+                random(15, 25);
+
+              break;
+
+
+            case "legendary":
+
+              coins =
+                random(1000, 1500);
+
+              shards =
+                random(50, 100);
+
+              break;
+
+
+            default:
+
+              console.error(
+                `[BURN] Unknown tier "${card.tier}" ` +
+                `for card ${card.id}`
+              );
+
+              break;
+          }
+
+
+          const shardType =
+            getRandomShard();
+
+
+          // ================================
+          // REMOVE FROM ALBUMS
+          // ================================
+
+          await removeCardFromAlbums(
+            db,
+            userId,
+            burnedEntry.code
+          );
+
+
+          // ================================
+          // GIVE COINS
+          // ================================
+
+          await balancesCol.updateOne(
+
             {
-              name: "<:grootcoin:1504742213110861834> Coins Earned",
-              value: `${coins} Coins`,
-              inline: true
+              userId
             },
+
             {
-              name: "✨ Shards Earned",
-              value:
-                `${getItemEmoji(shardType)} ` +
-                `${formatItemName(shardType)} x${shards}`,
-              inline: true
+              $inc: {
+                coins
+              }
+            },
+
+            {
+              upsert:
+                true
             }
-          )
-          .setFooter({
-            text: "The card has been permanently destroyed."
-          })
-          .setTimestamp();
 
-        pendingBurns.delete(userId);
+          );
 
-        return interaction.update({
-          embeds: [resultEmbed],
-          components: []
-        });
+
+          // ================================
+          // GIVE SHARDS
+          // ================================
+
+          await inventoryCol.updateOne(
+
+            {
+              userId
+            },
+
+            {
+              $inc: {
+                [`items.${shardType}`]:
+                  shards
+              }
+            },
+
+            {
+              upsert:
+                true
+            }
+
+          );
+
+
+          // ================================
+          // SUCCESS EMBED
+          // ================================
+
+          const resultEmbed =
+            new EmbedBuilder()
+
+              .setColor(
+                0xff5500
+              )
+
+              .setTitle(
+                "🔥 Card Burned"
+              )
+
+              .setDescription(
+                `Burned **${card.name}**\n` +
+                `└ ${burnedEntry.code}\n` +
+                `└ Season ${season}`
+              )
+
+              .addFields(
+
+                {
+                  name:
+                    "<:grootcoin:1504742213110861834> Coins Earned",
+
+                  value:
+                    `${coins} Coins`,
+
+                  inline:
+                    true
+                },
+
+                {
+                  name:
+                    "✨ Shards Earned",
+
+                  value:
+                    `${getItemEmoji(shardType)} ` +
+                    `${formatItemName(shardType)} x${shards}`,
+
+                  inline:
+                    true
+                }
+
+              )
+
+              .setFooter({
+                text:
+                  "The card has been permanently destroyed."
+              })
+
+              .setTimestamp();
+
+
+          // ================================
+          // CLEANUP
+          // ================================
+
+          pendingBurns.delete(
+            userId
+          );
+
+
+          return interaction.update({
+            embeds:
+              [resultEmbed],
+
+            components:
+              []
+          });
+
+        }
+
       }
-    });
+    );
 
-    collector.on("end", async reason => {
-      pendingBurns.delete(userId);
 
-      if (reason === "confirmed" || reason === "cancelled") return;
+    // ======================================
+    // COLLECTOR END / TIMEOUT
+    // ======================================
 
-      try {
-        await confirmMessage.edit({
-          components: []
-        });
-      } catch (err) {}
-    });
+    collector.on(
+      "end",
+
+      async (
+        collected,
+        reason
+      ) => {
+
+        pendingBurns.delete(
+          userId
+        );
+
+
+        // Confirmed or cancelled normally
+        if (
+          reason === "confirmed" ||
+          reason === "cancelled"
+        ) {
+
+          return;
+
+        }
+
+
+        // Confirmation timed out
+        try {
+
+          await confirmMessage.edit({
+            content:
+              "⌛ Burn confirmation expired.",
+
+            components:
+              []
+          });
+
+        } catch (err) {
+
+          console.error(
+            "[BURN] Failed to disable expired burn buttons:",
+            err
+          );
+
+        }
+
+      }
+    );
+
   }
+
 };
