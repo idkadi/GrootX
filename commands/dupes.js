@@ -1,5 +1,25 @@
 const cards = require("../data/cards");
+const season1 = require("../data/season1");
 const path = require("path");
+
+const allCards = [...cards, ...season1];
+
+function getCard(entry) {
+  const season = String(entry.season ?? entry.cardSeason ?? "").toLowerCase();
+  const pool = season === "1" || season === "s1" ? season1
+    : season === "0" || season === "s0" ? cards : allCards;
+
+  return pool.find(c => String(c.id) === String(entry.cardId));
+}
+
+function countKey(entry) {
+  return `${String(entry.season ?? entry.cardSeason ?? "").toLowerCase()}:${entry.cardId}`;
+}
+
+function getImage(entry) {
+  const card = getCard(entry);
+  return card?.rawImage || card?.image;
+}
 
 const {
   EmbedBuilder,
@@ -32,7 +52,6 @@ module.exports = {
 
     const collectionsCol = db.collection("collections");
     const cardTagsCol = db.collection("cardtags");
-
     const userId = message.author.id;
 
     const userCards = await collectionsCol
@@ -47,11 +66,12 @@ module.exports = {
     const cardCounts = {};
 
     for (const entry of userCards) {
-      cardCounts[entry.cardId] = (cardCounts[entry.cardId] || 0) + 1;
+      const key = countKey(entry);
+      cardCounts[key] = (cardCounts[key] || 0) + 1;
     }
 
     let filteredCards = userCards.filter(
-      entry => cardCounts[entry.cardId] > 1
+      entry => cardCounts[countKey(entry)] > 1
     );
 
     const validTiers = [
@@ -67,11 +87,8 @@ module.exports = {
 
       if (validTiers.includes(tier)) {
         filteredCards = filteredCards.filter(entry => {
-          const card = cards.find(
-            c => Number(c.id) === Number(entry.cardId)
-          );
-
-          return card && card.tier === tier;
+          const card = getCard(entry);
+          return card && String(card.tier).toLowerCase() === tier;
         });
       }
     }
@@ -108,13 +125,8 @@ module.exports = {
 
         case "name":
           filteredCards.sort((a, b) => {
-            const cardA = cards.find(
-              c => Number(c.id) === Number(a.cardId)
-            );
-
-            const cardB = cards.find(
-              c => Number(c.id) === Number(b.cardId)
-            );
+            const cardA = getCard(a);
+            const cardB = getCard(b);
 
             return (cardA?.name || "").localeCompare(cardB?.name || "");
           });
@@ -130,7 +142,7 @@ module.exports = {
 
         case "copies":
           filteredCards.sort((a, b) =>
-            cardCounts[b.cardId] - cardCounts[a.cardId]
+            cardCounts[countKey(b)] - cardCounts[countKey(a)]
           );
           break;
 
@@ -155,17 +167,13 @@ module.exports = {
     }
 
     function getCardFromEntry(entry) {
-      return cards.find(
-        c => Number(c.id) === Number(entry.cardId)
-      );
+      return getCard(entry);
     }
 
     function generateListEmbed() {
       const totalPages = getTotalPages();
-
       const start = page * perPage;
       const end = start + perPage;
-
       const currentCards = filteredCards.slice(start, end);
 
       const description = currentCards.map(entry => {
@@ -180,7 +188,7 @@ module.exports = {
           ? `${savedTag} • `
           : "";
 
-        const ownedCount = cardCounts[entry.cardId] || 1;
+        const ownedCount = cardCounts[countKey(entry)] || 1;
 
         return (
           `🔹 ${tagText}` +
@@ -213,10 +221,9 @@ module.exports = {
       const savedTag =
         userTags[String(entry.code).toLowerCase()];
 
-      const imageName =
-        card.image.split("/").pop();
-
-      const ownedCount = cardCounts[entry.cardId] || 1;
+      const image = getImage(entry);
+      const imageName = image ? path.basename(image) : null;
+      const ownedCount = cardCounts[countKey(entry)] || 1;
 
       return new EmbedBuilder()
         .setColor(0xffcc00)
@@ -230,7 +237,7 @@ module.exports = {
           `Tag: ${savedTag || "None"}\n` +
           `Card: **${imageIndex + 1}/${filteredCards.length}**`
         )
-        .setImage(`attachment://${imageName}`)
+        .setImage(imageName ? `attachment://${imageName}` : null)
         .setFooter({
           text:
             `Image View • Duplicate Cards: ${filteredCards.length} • ` +
@@ -241,18 +248,17 @@ module.exports = {
 
     function getImageFile() {
       const entry = filteredCards[imageIndex];
-      const card = getCardFromEntry(entry);
+      const image = getImage(entry);
 
-      const imageName =
-        card.image.split("/").pop();
+      if (!image) return null;
 
-      const imagePath =
-        path.join(
-          __dirname,
-          "..",
-          "images",
-          card.image
-        );
+      const imageName = path.basename(image);
+      const imagePath = path.join(
+        __dirname,
+        "..",
+        "images",
+        image
+      );
 
       return new AttachmentBuilder(imagePath, {
         name: imageName
@@ -340,7 +346,7 @@ module.exports = {
       if (viewMode === "image") {
         return {
           embeds: [generateImageEmbed()],
-          files: [getImageFile()],
+          files: [getImageFile()].filter(Boolean),
           components: [
             makeSelectRow(),
             makeButtonRow()

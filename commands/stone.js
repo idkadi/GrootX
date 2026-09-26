@@ -1,4 +1,5 @@
 const cards = require("../data/cards");
+const season1Cards = require("../data/season1");
 const path = require("path");
 
 const {
@@ -12,10 +13,13 @@ function getStoneKey(stone) {
   return `items.${stone}_stone`;
 }
 
-function getRandomSameTierCard(oldCard) {
-  const sameTierCards = cards.filter(c =>
-    c.tier === oldCard.tier &&
-    Number(c.id) !== Number(oldCard.id)
+function getRandomSameTierCard(oldCard, season) {
+  const pool = season === 1 ? season1Cards : cards;
+
+  const sameTierCards = pool.filter(c =>
+    String(c.tier).toLowerCase() ===
+      String(oldCard.tier).toLowerCase() &&
+    String(c.id) !== String(oldCard.id)
   );
 
   if (!sameTierCards.length) return null;
@@ -164,15 +168,21 @@ module.exports = {
         );
       }
 
-      const oldCard = cards.find(
-        c => Number(c.id) === Number(ownedCard.cardId)
+      const season = [1, "1", "s1", "S1"].includes(ownedCard.season)
+        ? 1
+        : 0;
+
+      const pool = season === 1 ? season1Cards : cards;
+
+      const oldCard = pool.find(
+        c => String(c.id) === String(ownedCard.cardId)
       );
 
       if (!oldCard) {
         return message.reply("❌ Card data not found.");
       }
 
-      const newCard = getRandomSameTierCard(oldCard);
+      const newCard = getRandomSameTierCard(oldCard, season);
 
       if (!newCard) {
         return message.reply(
@@ -180,16 +190,17 @@ module.exports = {
         );
       }
 
+      const serialQuery = season === 1
+        ? { cardId: newCard.id, season: 1 }
+        : { cardId: newCard.id, season: { $ne: 1 } };
+
       await serialsCol.updateOne(
-        { cardId: newCard.id },
+        serialQuery,
         { $inc: { serial: 1 } },
         { upsert: true }
       );
 
-      const serialDoc = await serialsCol.findOne({
-        cardId: newCard.id
-      });
-
+      const serialDoc = await serialsCol.findOne(serialQuery);
       const newSerial = serialDoc.serial;
 
       await inventoryCol.updateOne(
@@ -202,40 +213,48 @@ module.exports = {
         {
           $set: {
             cardId: newCard.id,
-            serial: newSerial
+            serial: newSerial,
+            season
           }
         }
       );
 
-      const oldImageName =
-        `old_${oldCard.image.split("/").pop()}`;
+      const oldImage = oldCard.rawImage || oldCard.image;
+      const newImage = newCard.rawImage || newCard.image;
 
-      const newImageName =
-        `new_${newCard.image.split("/").pop()}`;
+      const oldImageName = oldImage
+        ? `old_${path.basename(oldImage)}`
+        : null;
+
+      const newImageName = newImage
+        ? `new_${path.basename(newImage)}`
+        : null;
 
       const oldImagePath = path.join(
         __dirname,
         "..",
         "images",
-        oldCard.image
+        oldImage || ""
       );
 
       const newImagePath = path.join(
         __dirname,
         "..",
         "images",
-        newCard.image
+        newImage || ""
       );
 
-      const oldAttachment =
-        new AttachmentBuilder(oldImagePath, {
-          name: oldImageName
-        });
+      const oldAttachment = oldImage
+        ? new AttachmentBuilder(oldImagePath, {
+            name: oldImageName
+          })
+        : null;
 
-      const newAttachment =
-        new AttachmentBuilder(newImagePath, {
-          name: newImageName
-        });
+      const newAttachment = newImage
+        ? new AttachmentBuilder(newImagePath, {
+            name: newImageName
+          })
+        : null;
 
       const embed = new EmbedBuilder()
         .setColor(0x8a2be2)
@@ -244,22 +263,26 @@ module.exports = {
           `Reality has rewritten card \`${code}\`.\n\n` +
           `**Before:** ${oldCard.name} #${ownedCard.serial}\n` +
           `**After:** ${newCard.name} #${newSerial}\n\n` +
-          `Tier stayed: **${oldCard.tier}**`
+          `Tier stayed: **${oldCard.tier}** • Season ${season}`
         )
-        .setThumbnail(`attachment://${oldImageName}`)
-        .setImage(`attachment://${newImageName}`)
+        .setThumbnail(
+          oldImageName
+            ? `attachment://${oldImageName}`
+            : null
+        )
+        .setImage(
+          newImageName
+            ? `attachment://${newImageName}`
+            : null
+        )
         .setFooter({
-          text:
-            "Thumbnail = old card • Main image = new card"
+          text: "Thumbnail = old card • Main image = new card"
         })
         .setTimestamp();
 
       return message.reply({
         embeds: [embed],
-        files: [
-          oldAttachment,
-          newAttachment
-        ]
+        files: [oldAttachment, newAttachment].filter(Boolean)
       });
     }
   }

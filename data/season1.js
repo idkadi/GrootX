@@ -6514,7 +6514,7 @@ module.exports = [
     id: 716,
     name: "Time-keepers",
     aka: [],
-    appearance: "Venom : The last dance",
+    appearance: "Loki",
     tier: "common",
     rawImage: "raw/timekeepers.png"
   },
@@ -7180,7 +7180,7 @@ module.exports = [
     aka: [],
     appearance: "Deadpool 2",
     tier: "uncommon",
-    rawImage: "raw/negasonic2.png"
+    rawImage: "raw/negasonicdp.png"
   },
 
   {
@@ -7226,11 +7226,11 @@ module.exports = [
 },
 {
   id: 793,
-  name: "Sabra",
+  name: "Ruth",
   aka: ["Ruth Bat-Seraph"],
   appearance: "Captain America: Brave New World",
   tier: "rare",
-  rawImage: "raw/ruthbatseraph.png"
+  rawImage: "raw/sabra.png"
 },
 {
   id: 794,
@@ -7254,7 +7254,7 @@ module.exports = [
   aka: [],
   appearance: "Captain America: Brave New World",
   tier: "common",
-  rawImage: "raw/bettyross.png"
+  rawImage: "raw/bettyca4.png"
 },
 {
   id: 797,
@@ -7269,7 +7269,7 @@ module.exports = [
   name: "Dennis Dunphy",
   aka: [],
   appearance: "Captain America: Brave New World",
-  tier: "commom",
+  tier: "common",
   rawImage: "raw/dennisca4.png"
 },
 {
