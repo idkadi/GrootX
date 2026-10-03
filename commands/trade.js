@@ -1,196 +1,149 @@
-const { EmbedBuilder, SlashCommandBuilder } = require("discord.js");
 const connectDB = require("../database");
 
-const SEASON_EMOJIS = [
-  "<:Season0:1555956910560256082>",
-  "<:Season1:1555956879576793130>"
-];
-
 module.exports = {
-  name: "tag",
+  name: "trade",
 
-  data: new SlashCommandBuilder()
-    .setName("tag")
-    .setDescription("Tag an owned card, or your latest card if code is omitted.")
-    .addStringOption(option =>
-      option.setName("name")
-        .setDescription("An existing tag name, or remove to clear the tag")
-        .setRequired(true)
-    )
-    .addStringOption(option =>
-      option.setName("code")
-        .setDescription("Owned card code; leave empty for your latest card")
-    ),
+  async execute(message) {
+    const target =
+      message.mentions.users.first();
 
-  async execute(message, args = []) {
-    const slash = typeof message.isChatInputCommand === "function" &&
-      message.isChatInputCommand();
-
-    const userId = (slash ? message.user : message.author).id;
-
-    const reply = payload => {
-      if (typeof payload === "string") payload = { content: payload };
-      payload.allowedMentions = { parse: [], repliedUser: false };
-
-      if (!slash) return message.reply(payload);
-      if (message.deferred) return message.editReply(payload);
-      if (message.replied) return message.followUp(payload);
-      return message.reply(payload);
-    };
-
-    try {
-      if (slash && !message.deferred && !message.replied) {
-        await message.deferReply();
-      }
-
-      const explicitCode = slash
-        ? message.options.getString("code")
-        : args.length > 1 ? args[0] : null;
-
-      const tagName = String(
-        slash
-          ? message.options.getString("name", true)
-          : args.length > 1 ? args[1] : args[0] || ""
-      ).trim().toLowerCase();
-
-      const requestedCode = String(explicitCode || "")
-        .trim()
-        .toLowerCase();
-
-      if (!tagName || (!slash && args.length > 2)) {
-        return await reply(
-          "❌ Use `!tag tagname` for your latest card or `!tag code tagname`.\n" +
-          "Slash: `/tag name:tagname code:cardcode` (code is optional).\n" +
-          "Use `remove` as the tag name to clear a tag."
-        );
-      }
-
-      const db = await connectDB();
-      const collectionsCol = db.collection("collections");
-      const createdTagsCol = db.collection("createdtags");
-      const cardTagsCol = db.collection("cardtags");
-
-      // Supports owned S0, S1, and event cards without catalog checks.
-      const card = requestedCode
-        ? await collectionsCol.findOne({
-            userId,
-            code: requestedCode
-          })
-        : await collectionsCol.findOne(
-            { userId },
-            {
-              sort: {
-                obtainedAt: -1,
-                claimedAt: -1,
-                createdAt: -1,
-                _id: -1
-              }
-            }
-          );
-
-      if (!card) {
-        return await reply(
-          requestedCode
-            ? "❌ Card not found in your collection."
-            : "❌ You have no collected cards."
-        );
-      }
-
-      if (!card.code) {
-        return await reply(
-          "❌ This card has no code. Please report it to the bot owner."
-        );
-      }
-
-      const code = card.code;
-      let createdTag;
-
-      if (tagName === "remove") {
-        const result = await cardTagsCol.deleteMany({
-          userId,
-          code
-        });
-
-        if (!result.deletedCount) {
-          return await reply("ℹ️ This card has no tag to remove.");
-        }
-      } else {
-        createdTag = await createdTagsCol.findOne({
-          userId,
-          name: tagName
-        });
-
-        if (!createdTag) {
-          return await reply(
-            "❌ That tag does not exist. Create it first, then apply it."
-          );
-        }
-
-        await cardTagsCol.updateOne(
-          { userId, code },
-          {
-            $set: {
-              tagName,
-              emoji: createdTag.emoji || "🏷️",
-              updatedAt: new Date()
-            }
-          },
-          { upsert: true }
-        );
-      }
-
-      const seasonValue = String(
-        card.season ?? card.cardSeason ?? 0
-      ).toLowerCase();
-
-      const season =
-        seasonValue === "s1" || seasonValue === "1" ? 1 : 0;
-
-      const eventText = card.event
-        ? `\nEvent: **${
-            String(card.event).toLowerCase() === "halloween2026"
-              ? "🎃 Halloween 2026"
-              : String(card.event).slice(0, 100)
-          }**`
-        : "";
-
-      const tagDisplay = tagName === "remove"
-        ? ""
-        : `\nTag: ${createdTag.emoji || "🏷️"} **${tagName.slice(0, 100)}**`;
-
-      const embed = new EmbedBuilder()
-        .setColor(tagName === "remove" ? 0xff5555 : 0x57f287)
-        .setTitle(
-          tagName === "remove" ? "🏷️ Tag Removed" : "🏷️ Card Tagged"
-        )
-        .setDescription(
-          `└ \`${code}\`\n${SEASON_EMOJIS[season]} **Season ${season}**` +
-          eventText +
-          tagDisplay
-        )
-        .setFooter({
-          text: requestedCode
-            ? "Your collection"
-            : "Applied to your latest collected card"
-        })
-        .setTimestamp();
-
-      return await reply({ embeds: [embed] });
-    } catch (error) {
-      console.error("[TAG]", error);
-
-      try {
-        return await reply(
-          "❌ Could not update the card's tag. Please try again."
-        );
-      } catch (replyError) {
-        console.error("[TAG] Reply failed:", replyError);
-      }
+    if (!target) {
+      return message.reply(
+        "❌ Mention a user to trade with."
+      );
     }
-  }
-};
 
-module.exports.executeSlash = module.exports.execute;
-module.exports.slashExecute = module.exports.execute;
-module.exports.slash = module.exports.execute;
-module.exports.run = module.exports.execute;
+    if (
+      target.id === message.author.id
+    ) {
+      return message.reply(
+        "❌ You cannot trade with yourself."
+      );
+    }
+
+    const db =
+      await connectDB();
+
+    const tradesCol =
+      db.collection("trades");
+
+    const tradePassesCol =
+      db.collection("tradePasses");
+
+    const authorPass =
+      await tradePassesCol.findOne({
+        userId: message.author.id
+      });
+
+    const targetPass =
+      await tradePassesCol.findOne({
+        userId: target.id
+      });
+
+    if (
+      !authorPass ||
+      authorPass.expiresAt <= Date.now()
+    ) {
+
+      return message.reply(
+        "❌ You need an active Trade Voucher."
+      );
+
+    }
+
+    if (
+      !targetPass ||
+      targetPass.expiresAt <= Date.now()
+    ) {
+
+      return message.reply(
+        "❌ That user does not have an active Trade Voucher."
+      );
+
+    }
+
+    const alreadyTrading =
+      await tradesCol.findOne({
+
+        users: {
+          $in: [
+            message.author.id,
+            target.id
+          ]
+        }
+
+      });
+
+    if (alreadyTrading) {
+
+      return message.reply(
+
+        "❌ One of the users is already in a trade."
+
+      );
+
+    }
+
+    const tradeId =
+      `${message.author.id}_${target.id}`;
+
+    await tradesCol.insertOne({
+
+      tradeId,
+
+      users: [
+        message.author.id,
+        target.id
+      ],
+
+      offers: {
+
+        [message.author.id]: {
+
+          cards: [],
+          coins: 0,
+          items: {}
+
+        },
+
+        [target.id]: {
+
+          cards: [],
+          coins: 0,
+          items: {}
+
+        }
+
+      },
+
+      confirmed: {
+
+        [message.author.id]:
+          false,
+
+        [target.id]:
+          false
+
+      }
+
+    });
+
+    message.reply(
+
+      `🤝 Trade started between ` +
+
+      `${message.author} and ${target}.\n\n` +
+
+      `Use:\n` +
+
+     "`!addcard code`\n" +
+"`!addcoins amount`\n" +
+"`!additem item amount`\n" +
+"`!confirmtrade`\n" +
+"`!canceltrade`"
+
+    );
+
+  }
+
+};
