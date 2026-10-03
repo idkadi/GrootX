@@ -52,10 +52,7 @@ function calendar(now) {
 
   return {
     sunday: day === 0,
-
-    nextSunday:
-      midnight + (day === 0 ? 7 : 7 - day) * DAY,
-
+    nextSunday: midnight + (day === 0 ? 7 : 7 - day) * DAY,
     boundary:
       day === 0
         ? midnight + DAY
@@ -64,7 +61,6 @@ function calendar(now) {
 }
 
 function eligible(card, tier) {
-  // Keep event cards separate from ordinary market cards.
   return (
     !card.event &&
     !/halloween/i.test(
@@ -184,7 +180,6 @@ async function getMarket(db, now = Date.now()) {
   );
 }
 
-// Uses renderCard for proper S1 raw images and tier frames.
 async function marketImage(market, resolved) {
   if (imageCache.has(market.revision)) {
     return imageCache.get(market.revision);
@@ -198,8 +193,7 @@ async function marketImage(market, resolved) {
     const cardWidth =
       (width - margin * 2 - gap * 4) / 5;
 
-    const cardHeight =
-      cardWidth * 1492 / 1054;
+    const cardHeight = cardWidth * 1492 / 1054;
 
     const canvas = createCanvas(
       width,
@@ -370,37 +364,48 @@ async function purchase(db, market, index, userId) {
     }
 
     const collection = db.collection('collections');
-    let code;
 
-    for (let attempt = 0; attempt < 20; attempt++) {
-      const candidate =
-        randomBytes(5).toString('hex');
+    await collection.createIndex(
+      { code: 1 },
+      { unique: true }
+    );
 
-      const existing = await collection.findOne({
-        code: candidate
-      });
+    for (let attempt = 0; attempt < 100; attempt++) {
+      // Three random bytes produce exactly six hex characters.
+      const candidate = randomBytes(3).toString('hex');
 
-      if (!existing) {
-        code = candidate;
+      if (await collection.findOne({ code: candidate })) {
+        continue;
+      }
+
+      const copy = {
+        userId,
+        cardId: item.cardId,
+        season: SEASON,
+        serial: serialDoc.serial,
+        code: candidate,
+        tag: null,
+        favorite: false
+      };
+
+      try {
+        await collection.insertOne(copy);
+        owned = copy;
         break;
+      } catch (error) {
+        // The unique index also protects concurrent purchases.
+        if (
+          error.code !== 11000 ||
+          !(await collection.findOne({ code: candidate }))
+        ) {
+          throw error;
+        }
       }
     }
 
-    if (!code) {
+    if (!owned) {
       throw new Error('Code allocation failed');
     }
-
-    owned = {
-      userId,
-      cardId: item.cardId,
-      season: SEASON,
-      serial: serialDoc.serial,
-      code,
-      tag: null,
-      favorite: false
-    };
-
-    await collection.insertOne(owned);
   } catch (error) {
     console.error(
       '[market] Purchase failed:',
@@ -434,7 +439,6 @@ async function run(source) {
     typeof source.isChatInputCommand === 'function' &&
     source.isChatInputCommand();
 
-  // Acknowledge slash commands before DB/image work.
   if (
     slash &&
     !source.deferred &&
@@ -668,7 +672,6 @@ async function handleButton(
     confirmation =
       await reply.awaitMessageComponent({
         time: 30000,
-
         filter: component =>
           component.user.id === interaction.user.id &&
           [confirmId, cancelId].includes(
@@ -740,10 +743,8 @@ module.exports = {
   name: 'market',
   aliases: ['shop'],
   description: 'Browse the card market.',
-
   data,
   slashData: data,
-
   execute: run,
   executeSlash: run,
   slashExecute: run
