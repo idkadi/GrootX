@@ -1,25 +1,25 @@
-const cards = require("../data/season1");
-
-const SEASON = 1;
-
-const connectDB = require("../database");
-const createMarketImage = require("../utils/createMarketImage");
+const cards = require('../data/season1');
+const connectDB = require('../database');
+const renderCard = require('../utils/renderCard');
+const { createCanvas, loadImage } = require('canvas');
+const { randomBytes } = require('crypto');
 
 const {
+  SlashCommandBuilder,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
   AttachmentBuilder
-} = require("discord.js");
+} = require('discord.js');
 
-const MARKET_REFRESH =
-  20 * 60 * 60 * 1000;
+const SEASON = 1;
+const S1 = '**S1**';
+const COIN = '<:grootcoin:1504742213110861834>';
 
-const LEGENDARY_REFRESH =
-  7 * 24 * 60 * 60 * 1000;
-
-const COIN =
-  "<:grootcoin:1504742213110861834>";
+const REFRESH = 20 * 60 * 60 * 1000;
+const IST = 330 * 60 * 1000;
+const DAY = 86400000;
+const VERSION = 2;
 
 const PRICES = {
   common: 1000,
@@ -29,1037 +29,722 @@ const PRICES = {
   legendary: 20000
 };
 
-const NORMAL_TIERS = [
-  "common",
-  "uncommon",
-  "rare",
-  "epic",
-  "epic"
-];
+const EMOJIS = {
+  common: '<:common:1504510702956839033>',
+  uncommon: '<:uncommon:1504510929210052698>',
+  rare: '<:rare:1504510606718275764>',
+  epic: '<:epic:1504510771214680175>',
+  legendary: '<:legendary:1504511435974377552>'
+};
 
-const LEGENDARY_TIERS = [
-  "common",
-  "uncommon",
-  "rare",
-  "epic",
-  "legendary"
-];
+const imageCache = new Map();
 
-// ==========================================
-// RANDOM CARD
-// ==========================================
+// Sunday follows India time, regardless of the VPS timezone.
+function calendar(now) {
+  const local = new Date(now + IST);
+  const day = local.getUTCDay();
 
-function pickRandomCard(tier) {
-  const pool =
-    cards.filter(
-      card =>
-        String(
-          card.tier || ""
-        ).toLowerCase() === tier
-    );
+  const midnight = Date.UTC(
+    local.getUTCFullYear(),
+    local.getUTCMonth(),
+    local.getUTCDate()
+  ) - IST;
 
-  if (!pool.length) {
-    return null;
-  }
+  return {
+    sunday: day === 0,
 
-  return pool[
-    Math.floor(
-      Math.random() *
-      pool.length
-    )
-  ];
+    nextSunday:
+      midnight + (day === 0 ? 7 : 7 - day) * DAY,
+
+    boundary:
+      day === 0
+        ? midnight + DAY
+        : midnight + (7 - day) * DAY
+  };
 }
 
-// ==========================================
-// TIER EMOJI
-// ==========================================
-
-function getTierEmoji(tier) {
-  switch (
-    String(
-      tier || ""
-    ).toLowerCase()
-  ) {
-    case "common":
-      return "<:common:1504510702956839033>";
-
-    case "uncommon":
-      return "<:uncommon:1504510929210052698>";
-
-    case "rare":
-      return "<:rare:1504510606718275764>";
-
-    case "epic":
-      return "<:epic:1504510771214680175>";
-
-    case "legendary":
-      return "<:legendary:1504511435974377552>";
-
-    default:
-      return "❓";
-  }
+function eligible(card, tier) {
+  // Keep event cards separate from ordinary market cards.
+  return (
+    !card.event &&
+    !/halloween/i.test(
+      String(card.appearance || card.series || '')
+    ) &&
+    String(card.tier || '').toLowerCase() === tier &&
+    Number.isFinite(Number(card.id)) &&
+    !!card.rawImage
+  );
 }
 
-// ==========================================
-// UNIQUE CODE
-// ==========================================
+async function getMarket(db, now = Date.now()) {
+  const col = db.collection('market');
 
-async function generateUniqueCode(
-  collectionsCol
-) {
-  const chars =
-    "abcdefghijklmnopqrstuvwxyz0123456789";
-
-  while (true) {
-    let code = "";
-
-    for (
-      let i = 0;
-      i < 6;
-      i++
-    ) {
-      code +=
-        chars[
-          Math.floor(
-            Math.random() *
-            chars.length
-          )
-        ];
-    }
-
-    const exists =
-      await collectionsCol.findOne({
-        code
-      });
-
-    if (!exists) {
-      return code;
-    }
-  }
-}
-
-// ==========================================
-// WEEKLY LEGENDARY
-// ==========================================
-
-async function shouldShowWeeklyLegendary(
-  marketCol,
-  now
-) {
-  let weeklyDoc =
-    await marketCol.findOne({
-      _id: "weekly_legendary"
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const previous = await col.findOne({
+      _id: 'daily_market'
     });
 
-  if (!weeklyDoc) {
-    weeklyDoc = {
-      _id:
-        "weekly_legendary",
-
-      updatedAt:
-        now,
-
-      nextAt:
-        now +
-        LEGENDARY_REFRESH
-    };
-
-    await marketCol.updateOne(
-      {
-        _id:
-          "weekly_legendary"
-      },
-
-      {
-        $set:
-          weeklyDoc
-      },
-
-      {
-        upsert:
-          true
-      }
-    );
-
-    return false;
-  }
-
-  if (
-    now >=
-    weeklyDoc.nextAt
-  ) {
-    await marketCol.updateOne(
-      {
-        _id:
-          "weekly_legendary"
-      },
-
-      {
-        $set: {
-          updatedAt:
-            now,
-
-          nextAt:
-            now +
-            LEGENDARY_REFRESH
-        }
-      },
-
-      {
-        upsert:
-          true
-      }
-    );
-
-    return true;
-  }
-
-  return false;
-}
-
-// ==========================================
-// GET / GENERATE MARKET
-// ==========================================
-
-async function getMarket(db) {
-  const marketCol =
-    db.collection("market");
-
-  const now =
-    Date.now();
-
-  let market =
-    await marketCol.findOne({
-      _id:
-        "daily_market"
-    });
-
-  /*
-   * Existing market documents created
-   * before the season system count as S0.
-   *
-   * If we find one, regenerate the market
-   * immediately using Season 1.
-   */
-
-  const wrongSeason =
-    !market ||
-    Number(
-      market.season ?? 0
-    ) !== SEASON;
-
-  if (
-    wrongSeason ||
-    now -
-      market.updatedAt >=
-      MARKET_REFRESH
-  ) {
-    const showLegendary =
-      await shouldShowWeeklyLegendary(
-        marketCol,
-        now
-      );
-
-    const tiers =
-      showLegendary
-        ? LEGENDARY_TIERS
-        : NORMAL_TIERS;
-
-    const marketCards =
-      tiers
-        .map(tier => {
-          const card =
-            pickRandomCard(
-              tier
-            );
-
-          /*
-           * Safety:
-           * If S1 currently doesn't contain
-           * a card for this rarity, skip it
-           * instead of crashing.
-           */
-
-          if (!card) {
-            return null;
-          }
-
-          return {
-            tier,
-
-            cardId:
-              Number(
-                card.id
-              ),
-
-            season:
-              SEASON,
-
-            price:
-              PRICES[tier],
-
-            type:
-              tier ===
-              "legendary"
-                ? "weekly"
-                : "daily"
-          };
-        })
-        .filter(Boolean);
-
-    market = {
-      _id:
-        "daily_market",
-
-      season:
-        SEASON,
-
-      updatedAt:
-        now,
-
-      cards:
-        marketCards
-    };
-
-    await marketCol.updateOne(
-      {
-        _id:
-          "daily_market"
-      },
-
-      {
-        $set:
-          market
-      },
-
-      {
-        upsert:
-          true
-      }
-    );
-  }
-
-  return market;
-}
-
-// ==========================================
-// COMMAND
-// ==========================================
-
-module.exports = {
-  name: "market",
-
-  aliases: [
-    "shop"
-  ],
-
-  async execute(message) {
-    const db =
-      await connectDB();
-
-    const balancesCol =
-      db.collection(
-        "balances"
-      );
-
-    const collectionsCol =
-      db.collection(
-        "collections"
-      );
-
-    const serialsCol =
-      db.collection(
-        "serials"
-      );
-
-    const marketCol =
-      db.collection(
-        "market"
-      );
-
-    // ========================================
-    // MARKET
-    // ========================================
-
-    const market =
-      await getMarket(
-        db
-      );
-
-    /*
-     * Resolve every market entry against
-     * the Season 1 database only.
-     */
-
-    const marketCards =
-      market.cards
-        .map(item => {
-          const card =
-            cards.find(
-              card =>
-                String(
-                  card.id
-                ) ===
-                String(
-                  item.cardId
-                )
-            );
-
-          if (!card) {
-            return null;
-          }
-
-          return {
-            ...card,
-
-            season:
-              SEASON,
-
-            tier:
-              item.tier,
-
-            price:
-              item.price,
-
-            type:
-              item.type ||
-              "daily"
-          };
-        })
-        .filter(Boolean);
-
-    // ========================================
-    // REFRESH TIMES
-    // ========================================
-
-    const nextUpdate =
-      Math.floor(
-        (
-          market.updatedAt +
-          MARKET_REFRESH
-        ) / 1000
-      );
-
-    const weeklyDoc =
-      await marketCol.findOne({
-        _id:
-          "weekly_legendary"
-      });
-
-    let weeklyUpdateText =
-      "";
+    const time = calendar(now);
 
     if (
-      weeklyDoc?.nextAt
+      previous &&
+      previous.version === VERSION &&
+      previous.season === SEASON &&
+      previous.sunday === time.sunday &&
+      now < previous.expiresAt
     ) {
-      weeklyUpdateText =
-        `👑 Legendary appears ` +
-        `<t:${Math.floor(
-          weeklyDoc.nextAt /
-          1000
-        )}:R>\n`;
+      return previous;
     }
 
-    // ========================================
-    // S1 MARKET IMAGE
-    // ========================================
+    const tiers = [
+      'common',
+      'uncommon',
+      'rare',
+      'epic',
+      time.sunday ? 'legendary' : 'epic'
+    ];
 
-    /*
-     * createMarketImage was patched
-     * to render every card through:
-     *
-     * renderCard({
-     *   ...card,
-     *   season: 1
-     * })
-     *
-     * Therefore the market uses:
-     *
-     * S1 raw image
-     * +
-     * default tier frame
-     * +
-     * S1 name/appearance design
-     */
+    const used = new Set();
 
-    const image =
-      await createMarketImage(
-        marketCards
+    const entries = tiers.map(tier => {
+      let pool = cards.filter(
+        card =>
+          eligible(card, tier) &&
+          !used.has(String(card.id))
       );
 
-    const attachment =
-      new AttachmentBuilder(
-        image,
-        {
-          name:
-            "market-s1.png"
-        }
-      );
+      if (!pool.length) {
+        pool = cards.filter(card => eligible(card, tier));
+      }
 
-    // ========================================
-    // BUY BUTTONS
-    // ========================================
-
-    const rows = [];
-
-    let row =
-      new ActionRowBuilder();
-
-    for (
-      let i = 0;
-      i <
-      marketCards.length;
-      i++
-    ) {
-      if (
-        row.components.length ===
-        5
-      ) {
-        rows.push(
-          row
+      if (!pool.length) {
+        throw new Error(
+          `No ordinary S1 ${tier} cards with rawImage are available.`
         );
-
-        row =
-          new ActionRowBuilder();
       }
 
-      row.addComponents(
+      const card =
+        pool[Math.floor(Math.random() * pool.length)];
 
-        new ButtonBuilder()
+      used.add(String(card.id));
 
-          .setCustomId(
-            `market_buy_${i}`
-          )
+      return {
+        cardId: Number(card.id),
+        tier,
+        season: SEASON,
+        price: PRICES[tier],
+        type: tier === 'legendary' ? 'weekly' : 'daily'
+      };
+    });
 
-          .setLabel(
-            marketCards[i]
-              .name
-              .slice(
-                0,
-                30
-              )
-          )
+    const market = {
+      version: VERSION,
+      season: SEASON,
+      sunday: time.sunday,
+      revision: randomBytes(12).toString('hex'),
+      updatedAt: now,
+      expiresAt: Math.min(now + REFRESH, time.boundary),
+      cards: entries
+    };
 
-          .setStyle(
-            marketCards[i]
-              .type ===
-              "weekly"
+    if (!previous) {
+      try {
+        await col.insertOne({
+          _id: 'daily_market',
+          ...market
+        });
+      } catch (error) {
+        if (error.code === 11000) continue;
+        throw error;
+      }
+    } else {
+      const result = await col.updateOne(
+        {
+          _id: previous._id,
+          updatedAt: previous.updatedAt,
+          revision:
+            previous.revision ?? { $exists: false }
+        },
+        {
+          $set: market
+        }
+      );
 
-              ? ButtonStyle.Success
+      if (!result.matchedCount) continue;
+    }
 
-              : ButtonStyle.Primary
-          )
+    return {
+      _id: 'daily_market',
+      ...market
+    };
+  }
+
+  throw new Error(
+    'Market is refreshing. Please try again.'
+  );
+}
+
+// Uses renderCard for proper S1 raw images and tier frames.
+async function marketImage(market, resolved) {
+  if (imageCache.has(market.revision)) {
+    return imageCache.get(market.revision);
+  }
+
+  const pending = (async () => {
+    const width = 1440;
+    const margin = 24;
+    const gap = 16;
+
+    const cardWidth =
+      (width - margin * 2 - gap * 4) / 5;
+
+    const cardHeight =
+      cardWidth * 1492 / 1054;
+
+    const canvas = createCanvas(
+      width,
+      Math.ceil(cardHeight + 156)
+    );
+
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = '#111827';
+    ctx.fillRect(
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 30px sans-serif';
+
+    ctx.fillText(
+      market.sunday
+        ? 'GROOTX MARKET • SUNDAY LEGENDARY'
+        : 'GROOTX MARKET • SEASON 1',
+      margin,
+      44
+    );
+
+    // Render sequentially to reduce peak memory usage.
+    for (let i = 0; i < resolved.length; i++) {
+      const card = resolved[i];
+
+      const rendered = await renderCard(
+        {
+          ...card,
+          season: SEASON
+        },
+        'MARKET'
+      );
+
+      const image = await loadImage(rendered);
+      const x = margin + i * (cardWidth + gap);
+
+      ctx.drawImage(
+        image,
+        x,
+        68,
+        cardWidth,
+        cardHeight
+      );
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 18px sans-serif';
+
+      ctx.fillText(
+        `${i + 1}. ${card.tier.toUpperCase()}`,
+        x,
+        94 + cardHeight,
+        cardWidth
+      );
+
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = '18px sans-serif';
+
+      ctx.fillText(
+        `${card.price.toLocaleString()} coins`,
+        x,
+        122 + cardHeight,
+        cardWidth
       );
     }
 
-    if (
-      row.components.length
-    ) {
-      rows.push(
-        row
+    return canvas.toBuffer('image/png');
+  })();
+
+  imageCache.set(market.revision, pending);
+
+  while (imageCache.size > 2) {
+    imageCache.delete(
+      imageCache.keys().next().value
+    );
+  }
+
+  try {
+    return await pending;
+  } catch (error) {
+    imageCache.delete(market.revision);
+    throw error;
+  }
+}
+
+async function purchase(db, market, index, userId) {
+  const fresh = await getMarket(db);
+
+  if (fresh.revision !== market.revision) {
+    return {
+      error:
+        'The market refreshed. Open market again before purchasing.'
+    };
+  }
+
+  const item = fresh.cards[index];
+
+  const card = cards.find(
+    card =>
+      String(card.id) === String(item?.cardId)
+  );
+
+  if (!card || !item) {
+    return {
+      error:
+        'Card data is unavailable. No coins were charged.'
+    };
+  }
+
+  const balances = db.collection('balances');
+
+  // Conditional debit prevents concurrent purchases
+  // from spending more coins than the user owns.
+  const debit = await balances.updateOne(
+    {
+      userId,
+      coins: {
+        $gte: item.price
+      }
+    },
+    {
+      $inc: {
+        coins: -item.price
+      }
+    }
+  );
+
+  if (!debit.modifiedCount) {
+    return {
+      error:
+        `Not enough coins. You need ${COIN} ` +
+        `**${item.price.toLocaleString()}**.`
+    };
+  }
+
+  let owned;
+
+  try {
+    const result = await db
+      .collection('serials')
+      .findOneAndUpdate(
+        {
+          cardId: item.cardId,
+          season: SEASON
+        },
+        {
+          $inc: {
+            serial: 1
+          }
+        },
+        {
+          upsert: true,
+          returnDocument: 'after'
+        }
       );
+
+    // Supports MongoDB drivers returning either
+    // the document directly or { value: document }.
+    const serialDoc = result?.value ?? result;
+
+    if (!Number.isFinite(serialDoc?.serial)) {
+      throw new Error('Serial allocation failed');
     }
 
-    // ========================================
-    // MARKET MESSAGE
-    // ========================================
+    const collection = db.collection('collections');
+    let code;
 
-    const marketMsg =
-      await message.reply({
-        content:
-          `🛒 **Daily Market • Season 1**\n` +
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const candidate =
+        randomBytes(5).toString('hex');
 
-          `1️⃣ **Season 1 Cards Only**\n` +
-
-          `⏳ Market refreshes ` +
-          `<t:${nextUpdate}:R>\n` +
-
-          weeklyUpdateText +
-
-          `\n` +
-
-          marketCards
-            .map(card => {
-              const weeklyText =
-                card.type ===
-                "weekly"
-
-                  ? " 👑 Weekly"
-
-                  : "";
-
-              return (
-                `1️⃣ ` +
-
-                `${getTierEmoji(
-                  card.tier
-                )} ` +
-
-                `**${card.name}**` +
-
-                `${weeklyText} — ` +
-
-                `${COIN} ` +
-
-                `${card.price.toLocaleString()}`
-              );
-            })
-            .join("\n"),
-
-        files: [
-          attachment
-        ],
-
-        components:
-          rows
+      const existing = await collection.findOne({
+        code: candidate
       });
 
-    // ========================================
-    // COLLECTOR
-    // ========================================
+      if (!existing) {
+        code = candidate;
+        break;
+      }
+    }
+
+    if (!code) {
+      throw new Error('Code allocation failed');
+    }
+
+    owned = {
+      userId,
+      cardId: item.cardId,
+      season: SEASON,
+      serial: serialDoc.serial,
+      code,
+      tag: null,
+      favorite: false
+    };
+
+    await collection.insertOne(owned);
+  } catch (error) {
+    console.error(
+      '[market] Purchase failed:',
+      error
+    );
+
+    await balances.updateOne(
+      { userId },
+      {
+        $inc: {
+          coins: item.price
+        }
+      }
+    );
+
+    return {
+      error:
+        'Purchase failed. Your coins were refunded.'
+    };
+  }
+
+  return {
+    card,
+    item,
+    owned
+  };
+}
+
+async function run(source) {
+  const slash =
+    typeof source.isChatInputCommand === 'function' &&
+    source.isChatInputCommand();
+
+  // Acknowledge slash commands before DB/image work.
+  if (
+    slash &&
+    !source.deferred &&
+    !source.replied
+  ) {
+    await source.deferReply();
+  }
+
+  const send = payload =>
+    slash
+      ? source.editReply(payload)
+      : source.reply(payload);
+
+  try {
+    const db = await connectDB();
+    const market = await getMarket(db);
+
+    const resolved = market.cards.map(item => {
+      const card = cards.find(
+        card =>
+          String(card.id) === String(item.cardId)
+      );
+
+      if (!card) {
+        throw new Error(
+          `Missing S1 card ${item.cardId}`
+        );
+      }
+
+      return {
+        ...card,
+        ...item,
+        season: SEASON
+      };
+    });
+
+    let attachment;
+
+    try {
+      attachment = new AttachmentBuilder(
+        await marketImage(market, resolved),
+        {
+          name: 'market-s1.png'
+        }
+      );
+    } catch (error) {
+      console.error(
+        '[market] Image rendering failed:',
+        error
+      );
+    }
+
+    const row = new ActionRowBuilder()
+      .addComponents(
+        resolved.map((card, i) =>
+          new ButtonBuilder()
+            .setCustomId(`market_buy_${i}`)
+            .setLabel(
+              `${i + 1}. ${card.name || 'Card'}`
+                .slice(0, 80)
+            )
+            .setStyle(
+              card.tier === 'legendary'
+                ? ButtonStyle.Success
+                : ButtonStyle.Primary
+            )
+        )
+      );
+
+    const content =
+      `🛒 **GrootX Market • S1**\n` +
+      `⏳ Refreshes ` +
+      `<t:${Math.floor(market.expiresAt / 1000)}:R>\n` +
+      (
+        market.sunday
+          ? '👑 **Sunday special: one Epic slot is now Legendary!**\n'
+          : `👑 Next Sunday special ` +
+            `<t:${Math.floor(
+              calendar(Date.now()).nextSunday / 1000
+            )}:R>\n`
+      ) +
+      '\n' +
+      resolved.map((card, i) =>
+        `${i + 1}. ${S1} ${EMOJIS[card.tier]} ` +
+        `**${card.name}** — ${COIN} ` +
+        `**${card.price.toLocaleString()}**`
+      ).join('\n') +
+      (
+        !attachment
+          ? '\n\n⚠️ Image unavailable; purchases still work. Check the raw images and tier frames.'
+          : ''
+      );
+
+    const sent = await send({
+      content,
+      files: attachment ? [attachment] : [],
+      components: [row],
+      allowedMentions: {
+        parse: []
+      }
+    });
+
+    const message =
+      sent?.createMessageComponentCollector
+        ? sent
+        : await source.fetchReply();
 
     const collector =
-      marketMsg
-        .createMessageComponentCollector({
-          time:
-            120000
-        });
+      message.createMessageComponentCollector({
+        time: 120000
+      });
 
-    collector.on(
-      "collect",
+    collector.on('collect', interaction => {
+      handleButton(
+        interaction,
+        db,
+        market,
+        resolved
+      ).catch(async error => {
+        console.error(
+          '[market] Button error:',
+          error
+        );
 
-      async interaction => {
-        if (
-          !interaction
-            .customId
-            .startsWith(
-              "market_buy_"
-            )
-        ) {
-          return;
-        }
-
-        const index =
-          Number(
-            interaction
-              .customId
-              .replace(
-                "market_buy_",
-                ""
-              )
-          );
-
-        const selected =
-          marketCards[
-            index
-          ];
-
-        if (!selected) {
-          return interaction.reply({
-            content:
-              "❌ This market item was not found.",
-
-            ephemeral:
-              true
-          });
-        }
-
-        // ====================================
-        // CONFIRMATION
-        // ====================================
-
-        const confirmRow =
-          new ActionRowBuilder()
-            .addComponents(
-
-              new ButtonBuilder()
-
-                .setCustomId(
-                  "market_confirm"
-                )
-
-                .setLabel(
-                  "Confirm"
-                )
-
-                .setStyle(
-                  ButtonStyle.Success
-                ),
-
-              new ButtonBuilder()
-
-                .setCustomId(
-                  "market_cancel"
-                )
-
-                .setLabel(
-                  "Cancel"
-                )
-
-                .setStyle(
-                  ButtonStyle.Danger
-                )
-            );
-
-        const confirmMsg =
-          await interaction.reply({
-            content:
-              `🛒 **Confirm Purchase • Season 1**\n\n` +
-
-              `1️⃣ ` +
-
-              `${getTierEmoji(
-                selected.tier
-              )} ` +
-
-              `**${selected.name}**\n` +
-
-              `Price: ${COIN} ` +
-
-              `**${selected.price.toLocaleString()}**`,
-
-            components: [
-              confirmRow
-            ],
-
-            ephemeral:
-              true,
-
-            fetchReply:
-              true
-          });
+        const payload = {
+          content:
+            'Could not complete this request. Please try again.',
+          components: []
+        };
 
         try {
-          const confirmInteraction =
-            await confirmMsg
-              .awaitMessageComponent({
-                time:
-                  30000,
-
-                filter:
-                  i =>
-                    i.user.id ===
-                    interaction.user.id
-              });
-
-          // ==================================
-          // CANCEL
-          // ==================================
-
           if (
-            confirmInteraction
-              .customId ===
-            "market_cancel"
+            interaction.deferred ||
+            interaction.replied
           ) {
-            return confirmInteraction.update({
-              content:
-                "❌ Purchase cancelled.",
-
-              components:
-                []
+            await interaction.editReply(payload);
+          } else {
+            await interaction.reply({
+              ...payload,
+              ephemeral: true
             });
           }
-
-          await confirmInteraction
-            .deferUpdate();
-
-          // ==================================
-          // RECHECK MARKET
-          // ==================================
-
-          /*
-           * Don't trust the old selected object.
-           *
-           * The market may have refreshed while
-           * the confirmation menu was open.
-           */
-
-          const freshMarket =
-            await getMarket(
-              db
-            );
-
-          const freshItem =
-            freshMarket.cards[
-              index
-            ];
-
-          if (
-            !freshItem ||
-            Number(
-              freshItem.season ??
-              SEASON
-            ) !== SEASON
-          ) {
-            return interaction.editReply({
-              content:
-                "❌ This market item no longer exists.",
-
-              components:
-                []
-            });
-          }
-
-          const cardToBuy =
-            cards.find(
-              card =>
-                String(
-                  card.id
-                ) ===
-                String(
-                  freshItem.cardId
-                )
-            );
-
-          if (!cardToBuy) {
-            return interaction.editReply({
-              content:
-                "❌ Season 1 card data not found.",
-
-              components:
-                []
-            });
-          }
-
-          const price =
-            freshItem.price;
-
-          const userId =
-            interaction.user.id;
-
-          // ==================================
-          // BALANCE
-          // ==================================
-
-          const balanceDoc =
-            await balancesCol
-              .findOne({
-                userId
-              });
-
-          const coins =
-            balanceDoc?.coins ||
-            0;
-
-          if (
-            coins <
-            price
-          ) {
-            return interaction.editReply({
-              content:
-                `❌ Not enough coins.\n\n` +
-
-                `Needed: ${COIN} ` +
-
-                `**${price.toLocaleString()}**\n` +
-
-                `You have: ${COIN} ` +
-
-                `**${coins.toLocaleString()}**`,
-
-              components:
-                []
-            });
-          }
-
-          // ==================================
-          // REMOVE COINS
-          // ==================================
-
-          await balancesCol.updateOne(
-            {
-              userId
-            },
-
-            {
-              $inc: {
-                coins:
-                  -price
-              }
-            },
-
-            {
-              upsert:
-                true
-            }
+        } catch (replyError) {
+          console.error(
+            '[market] Error reply failed:',
+            replyError
           );
-
-          // ==================================
-          // S1 SERIAL
-          // ==================================
-
-          /*
-           * S0 and S1 serials are separate.
-           *
-           * Example:
-           *
-           * { cardId: 5, season: 0 }
-           * { cardId: 5, season: 1 }
-           */
-
-          await serialsCol.updateOne(
-            {
-              cardId:
-                Number(
-                  cardToBuy.id
-                ),
-
-              season:
-                SEASON
-            },
-
-            {
-              $inc: {
-                serial:
-                  1
-              },
-
-              $setOnInsert: {
-                season:
-                  SEASON
-              }
-            },
-
-            {
-              upsert:
-                true
-            }
-          );
-
-          const serialDoc =
-            await serialsCol
-              .findOne({
-                cardId:
-                  Number(
-                    cardToBuy.id
-                  ),
-
-                season:
-                  SEASON
-              });
-
-          if (!serialDoc) {
-            /*
-             * This should be extremely rare,
-             * but don't create an invalid card
-             * if serial retrieval fails.
-             */
-
-            await balancesCol.updateOne(
-              {
-                userId
-              },
-
-              {
-                $inc: {
-                  coins:
-                    price
-                }
-              }
-            );
-
-            return interaction.editReply({
-              content:
-                "❌ Failed to generate card serial. Your coins were refunded.",
-
-              components:
-                []
-            });
-          }
-
-          // ==================================
-          // UNIQUE CODE
-          // ==================================
-
-          const code =
-            await generateUniqueCode(
-              collectionsCol
-            );
-
-          // ==================================
-          // SAVE OWNED S1 CARD
-          // ==================================
-
-          await collectionsCol.insertOne({
-            userId,
-
-            cardId:
-              Number(
-                cardToBuy.id
-              ),
-
-            season:
-              SEASON,
-
-            serial:
-              serialDoc.serial,
-
-            code,
-
-            tag:
-              null,
-
-            favorite:
-              false
-          });
-
-          // ==================================
-          // SUCCESS
-          // ==================================
-
-          return interaction.editReply({
-            content:
-              `✅ **Purchase Successful!**\n\n` +
-
-              `1️⃣ ` +
-
-              `${getTierEmoji(
-                cardToBuy.tier
-              )} ` +
-
-              `**${cardToBuy.name}** ` +
-
-              `#${serialDoc.serial}\n` +
-
-              `Code: \`${code}\`\n` +
-
-              `Paid: ${COIN} ` +
-
-              `**${price.toLocaleString()}**`,
-
-            components:
-              []
-          });
-
-        } catch {
-          return interaction.editReply({
-            content:
-              "⌛ Purchase timed out.",
-
-            components:
-              []
-          });
         }
-      }
+      });
+    });
+
+    collector.on('end', () => {
+      message.edit({
+        components: []
+      }).catch(() => {});
+    });
+  } catch (error) {
+    console.error(
+      '[market] Command error:',
+      error
     );
 
-    // ========================================
-    // COLLECTOR END
-    // ========================================
-
-    collector.on(
-      "end",
-
-      async () => {
-        await marketMsg
-          .edit({
-            components:
-              []
-          })
-          .catch(
-            () => {}
-          );
-      }
-    );
+    await send({
+      content:
+        '❌ The market could not load. Check the bot logs and try again.',
+      components: [],
+      files: []
+    });
   }
+}
+
+async function handleButton(
+  interaction,
+  db,
+  market,
+  resolved
+) {
+  if (
+    !/^market_buy_\d+$/.test(interaction.customId)
+  ) {
+    return;
+  }
+
+  await interaction.deferReply({
+    ephemeral: true
+  });
+
+  const index = Number(
+    interaction.customId.split('_').pop()
+  );
+
+  const selected = resolved[index];
+
+  if (!selected) {
+    return interaction.editReply({
+      content: 'Market item not found.'
+    });
+  }
+
+  const token = randomBytes(8).toString('hex');
+  const confirmId = `market_confirm_${token}`;
+  const cancelId = `market_cancel_${token}`;
+
+  const row = new ActionRowBuilder()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId(confirmId)
+        .setLabel('Confirm')
+        .setStyle(ButtonStyle.Success),
+
+      new ButtonBuilder()
+        .setCustomId(cancelId)
+        .setLabel('Cancel')
+        .setStyle(ButtonStyle.Danger)
+    );
+
+  const reply = await interaction.editReply({
+    content:
+      `🛒 Buy ${S1} ${EMOJIS[selected.tier]} ` +
+      `**${selected.name}** for ${COIN} ` +
+      `**${selected.price.toLocaleString()}**?`,
+    components: [row],
+    allowedMentions: {
+      parse: []
+    }
+  });
+
+  let confirmation;
+
+  try {
+    confirmation =
+      await reply.awaitMessageComponent({
+        time: 30000,
+
+        filter: component =>
+          component.user.id === interaction.user.id &&
+          [confirmId, cancelId].includes(
+            component.customId
+          )
+      });
+  } catch {
+    return interaction.editReply({
+      content:
+        '⌛ Confirmation expired. No coins were charged.',
+      components: []
+    });
+  }
+
+  await confirmation.deferUpdate();
+
+  await interaction.editReply({
+    content:
+      confirmation.customId === cancelId
+        ? 'Purchase cancelled.'
+        : 'Processing purchase…',
+    components: []
+  });
+
+  if (confirmation.customId === cancelId) {
+    return;
+  }
+
+  const result = await purchase(
+    db,
+    market,
+    index,
+    interaction.user.id
+  );
+
+  if (result.error) {
+    return interaction.editReply({
+      content: `❌ ${result.error}`,
+      components: []
+    });
+  }
+
+  const { card, item, owned } = result;
+
+  // A reply failure after saving the card must
+  // never refund an already successful purchase.
+  await interaction.editReply({
+    content:
+      `✅ **Purchase successful!**\n\n` +
+      `${S1} ${EMOJIS[item.tier]} ` +
+      `**${card.name}** #${owned.serial}\n` +
+      `Code: \`${owned.code}\`\n` +
+      `Paid: ${COIN} ` +
+      `**${item.price.toLocaleString()}**`,
+    components: [],
+    allowedMentions: {
+      parse: []
+    }
+  });
+}
+
+const data = new SlashCommandBuilder()
+  .setName('market')
+  .setDescription(
+    'Browse and buy S1 cards; Legendary Sunday specials.'
+  );
+
+module.exports = {
+  name: 'market',
+  aliases: ['shop'],
+  description: 'Browse the card market.',
+
+  data,
+  slashData: data,
+
+  execute: run,
+  executeSlash: run,
+  slashExecute: run
 };

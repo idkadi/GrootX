@@ -3,367 +3,300 @@ const season1Cards = require("../data/season1");
 
 const {
   AttachmentBuilder,
-  EmbedBuilder
+  EmbedBuilder,
+  SlashCommandBuilder
 } = require("discord.js");
 
 const connectDB = require("../database");
 const renderCard = require("../utils/renderCard");
 
-function getTierEmoji(tier) {
-  switch (String(tier || "").toLowerCase()) {
-    case "common":
-      return "<:common:1504510702956839033>";
+const SEASONS = [
+  "<:Season0:1555956910560256082>",
+  "<:Season1:1555956879576793130>"
+];
 
-    case "uncommon":
-      return "<:uncommon:1504510929210052698>";
+const TIERS = {
+  common: ["<:common:1504510702956839033>", 0xcd7f32],
+  uncommon: ["<:uncommon:1504510929210052698>", 0xc0c0c0],
+  rare: ["<:rare:1504510606718275764>", 0xffd700],
+  epic: ["<:epic:1504510771214680175>", 0x8000ff],
+  legendary: ["<:legendary:1504511435974377552>", 0xe53935]
+};
 
-    case "rare":
-      return "<:rare:1504510606718275764>";
+const eventKey = value =>
+  String(value || "").trim().toLowerCase();
 
-    case "epic":
-      return "<:epic:1504510771214680175>";
-
-    case "legendary":
-      return "<:legendary:1504511435974377552>";
-
-    default:
-      return "❓";
-  }
-}
-
-function getColor(tier) {
-  switch (String(tier || "").toLowerCase()) {
-    case "common":
-      return 0xcd7f32;
-
-    case "uncommon":
-      return 0xc0c0c0;
-
-    case "rare":
-      return 0xffd700;
-
-    case "epic":
-      return 0x8000ff;
-
-    case "legendary":
-      return 0xe53935;
-
-    default:
-      return 0xffffff;
-  }
-}
-
-function getSeasonEmoji(season) {
-  return Number(season) === 1
-    ? "1️⃣"
-    : "0️⃣";
-}
-
-function getSeasonDatabase(season) {
-  return Number(season) === 1
-    ? season1Cards
-    : season0Cards;
-}
+const limit = (value, length = 1024) =>
+  String(value ?? "Unknown").slice(0, length) || "Unknown";
 
 module.exports = {
   name: "view",
   aliases: ["v"],
 
-  async execute(message, args) {
-    const db = await connectDB();
+  data: new SlashCommandBuilder()
+    .setName("view")
+    .setDescription("View a collected card, or your latest card.")
+    .addStringOption(option =>
+      option
+        .setName("code")
+        .setDescription(
+          "Card code; omit to view your latest collected card"
+        )
+    ),
 
-    const collectionsCol =
-      db.collection("collections");
+  async execute(message, args = []) {
+    const slash =
+      typeof message.isChatInputCommand === "function" &&
+      message.isChatInputCommand();
 
-    const cardTagsCol =
-      db.collection("cardtags");
+    const user = slash ? message.user : message.author;
 
-    let searchCode;
+    const reply = payload => {
+      if (typeof payload === "string") {
+        payload = { content: payload };
+      }
 
-    // ==========================================
-    // FIND CARD
-    // ==========================================
+      payload.allowedMentions = {
+        parse: [],
+        repliedUser: false
+      };
 
-    // If no code is provided,
-    // view the user's latest claimed card.
-    if (!args[0]) {
-      const latestCard = await collectionsCol
-        .find({
-          userId: message.author.id
-        })
-        .sort({
-          _id: -1
-        })
-        .limit(1)
-        .next();
+      if (!slash) return message.reply(payload);
+      if (message.deferred) return message.editReply(payload);
+      if (message.replied) return message.followUp(payload);
 
-      if (!latestCard) {
-        return message.reply(
-          "❌ Your collection is empty."
+      return message.reply(payload);
+    };
+
+    try {
+      // Acknowledge before database queries or image rendering.
+      if (slash && !message.deferred && !message.replied) {
+        await message.deferReply();
+      }
+
+      const code = String(
+        slash
+          ? message.options.getString("code") || ""
+          : args[0] || ""
+      ).trim().toLowerCase();
+
+      const db = await connectDB();
+      const collections = db.collection("collections");
+
+      // Explicit codes remain public, as in the original command.
+      const owned = code
+        ? await collections.findOne({ code })
+        : await collections.findOne(
+            { userId: user.id },
+            { sort: { _id: -1 } }
+          );
+
+      if (!owned) {
+        return await reply(
+          code
+            ? "❌ Card not found."
+            : "❌ Your collection is empty."
         );
       }
 
-      searchCode = String(
-        latestCard.code
+      const value = String(
+        owned.season ?? owned.cardSeason ?? 0
       ).toLowerCase();
-    } else {
-      searchCode = String(
-        args[0]
-      ).toLowerCase();
-    }
 
-    const foundCard =
-      await collectionsCol.findOne({
-        code: searchCode
-      });
-
-    if (!foundCard) {
-      return message.reply(
-        "❌ Card not found."
-      );
-    }
-
-    // ==========================================
-    // SEASON
-    // ==========================================
-
-    /*
-     * Existing cards created before the season
-     * system may not have a season field.
-     *
-     * They automatically count as Season 0.
-     */
-    const season = Number(
-      foundCard.season ?? 0
-    );
-
-    const seasonEmoji =
-      getSeasonEmoji(season);
-
-    /*
-     * S0 -> data/cards.js
-     * S1 -> data/season1.js
-     */
-    const activeCardDatabase =
-      getSeasonDatabase(season);
-
-    // IMPORTANT:
-    // We only search inside the database belonging
-    // to this owned card's season.
-    const card =
-      activeCardDatabase.find(
-        currentCard =>
-          Number(currentCard.id) ===
-          Number(foundCard.cardId)
-      );
-
-    if (!card) {
-      return message.reply(
-        `❌ ${seasonEmoji} Season ${season} card data not found.`
-      );
-    }
-
-    // ==========================================
-    // OWNER
-    // ==========================================
-
-    const ownerId =
-      foundCard.userId;
-
-    let ownerName =
-      "Unknown User";
-
-    try {
-      const user =
-        await message.client.users.fetch(
-          ownerId
+      if (!["0", "s0", "1", "s1"].includes(value)) {
+        return await reply(
+          "❌ This card has an unsupported season. " +
+          "Please report its code to the bot owner."
         );
+      }
 
-      ownerName =
-        user.username;
-    } catch (error) {
-      // Keep Unknown User
-    }
+      const season =
+        value === "1" || value === "s1" ? 1 : 0;
 
-    // ==========================================
-    // TAG
-    // ==========================================
+      const catalog =
+        season === 1 ? season1Cards : season0Cards;
 
-    const tagDoc =
-      await cardTagsCol.findOne({
-        userId: ownerId,
-        code: foundCard.code
+      const candidates = catalog.filter(card =>
+        card.id != null &&
+        owned.cardId != null &&
+        String(card.id) === String(owned.cardId)
+      );
+
+      const ownedEvent = eventKey(owned.event);
+
+      // Match the event as well as the season and card ID.
+      let card = candidates.find(
+        entry => eventKey(entry.event) === ownedEvent
+      );
+
+      // Recover older event records without a flag only
+      // when the catalog ID has exactly one match.
+      if (!card && !ownedEvent && candidates.length === 1) {
+        card = candidates[0];
+      }
+
+      if (!card) {
+        return await reply(
+          `❌ ${SEASONS[season]} Season ${season} card data ` +
+          `${
+            candidates.length > 1
+              ? "is ambiguous"
+              : "was not found"
+          }. Please report code \`${owned.code}\`.`
+        );
+      }
+
+      if (!card.rawImage) {
+        return await reply(
+          "❌ This card's raw image is missing from its catalog entry. " +
+          "Please report its code to the bot owner."
+        );
+      }
+
+      const event = owned.event || card.event || null;
+      const halloween = eventKey(event) === "halloween2026";
+
+      const tag = await db.collection("cardtags").findOne({
+        userId: owned.userId,
+        code: owned.code
       });
 
-    const tagDisplay =
-      tagDoc?.emoji || "No Tag";
+      const serial = owned.serial ?? "?";
 
-    // ==========================================
-    // SERIAL
-    // ==========================================
-
-    const serial =
-      foundCard.serial ?? "?";
-
-    // ==========================================
-    // RENDER CARD
-    // ==========================================
-
-    /*
-     * This is important.
-     *
-     * We pass:
-     *
-     * card:
-     *   Correct S0/S1 card database entry
-     *
-     * season:
-     *   Tells renderCard which season style
-     *   should be used
-     *
-     * foundCard:
-     *   Contains ownership information,
-     *   including frameId.
-     *
-     * Therefore:
-     *
-     * S0 -> S0 image/render
-     * S1 -> S1 image/render
-     * frameId -> custom framed render
-     */
-
-    let buffer;
-
-    try {
-      buffer = await renderCard(
+      // Catalog supplies the correct artwork.
+      // Ownership supplies the equipped frame and serial.
+      const buffer = await renderCard(
         {
           ...card,
-          season
+          season,
+          event
         },
         serial,
         {
-          ...foundCard,
-          season
+          ...owned,
+          season,
+          event
         }
       );
-    } catch (error) {
-      console.error(
-        `Failed to render card ${foundCard.code}:`,
-        error
-      );
 
-      return message.reply(
-        "❌ Failed to render this card."
-      );
-    }
+      const imageName = "view-card.png";
 
-    const imageName =
-      `view-${foundCard.code}-s${season}.png`;
-
-    const attachment =
-      new AttachmentBuilder(buffer, {
+      const attachment = new AttachmentBuilder(buffer, {
         name: imageName
       });
 
-    // ==========================================
-    // FRAME DISPLAY
-    // ==========================================
+      const tier = String(card.tier || "").toLowerCase();
 
-    const frameDisplay =
-      foundCard.frameId
-        ? `Frame #${foundCard.frameId}`
-        : "Default";
+      const [tierEmoji, color] = TIERS[tier] || [
+        halloween ? "🎃" : "🎴",
+        0xf28c28
+      ];
 
-    // ==========================================
-    // EMBED
-    // ==========================================
+      // Matches the frame priority in the updated renderer.
+      const frame = season === 0
+        ? "Season 0 tier style"
+        : halloween
+          ? "🎃 Halloween 2026"
+          : owned.frameId
+            ? `Custom frame #${owned.frameId}`
+            : `${limit(card.tier, 50)} default`;
 
-    const embed =
-      new EmbedBuilder()
-        .setColor(
-          getColor(card.tier)
-        )
-
+      const embed = new EmbedBuilder()
+        .setColor(halloween ? 0xf28c28 : color)
         .setTitle(
-          `${seasonEmoji} ${getTierEmoji(card.tier)} ${card.name}`
+          limit(
+            `${SEASONS[season]} ${tierEmoji} ` +
+            `${card.name || "Unknown Card"}`,
+            256
+          )
         )
-
         .addFields(
           {
             name: "🆔 Code",
-            value:
-              `\`${foundCard.code}\``,
+            value: limit(`\`${owned.code}\``),
             inline: true
           },
-
           {
             name: "🎴 Serial",
-            value:
-              `#${serial}`,
+            value: limit(`#${serial}`),
             inline: true
           },
-
           {
             name: "🗓️ Season",
-            value:
-              `${seasonEmoji} Season ${season}`,
+            value: `${SEASONS[season]} Season ${season}`,
             inline: true
           },
-
           {
             name: "🏷️ Tag",
-            value:
-              tagDisplay,
+            value: tag
+              ? limit(
+                  `${tag.emoji || "🏷️"} ${tag.tagName || ""}`
+                )
+              : "No Tag",
             inline: true
           },
-
           {
             name: "⭐ Favorite",
-            value:
-              foundCard.favorite
-                ? "Yes"
-                : "No",
+            value: owned.favorite ? "Yes" : "No",
             inline: true
           },
-
           {
             name: "🖼️ Frame",
-            value:
-              frameDisplay,
+            value: limit(frame),
             inline: true
           },
-
           {
             name: "👤 Claimed By",
-            value:
-              ownerName,
+            value: limit(`<@${owned.userId}>`),
             inline: true
           },
-
           {
             name: "🎬 Appearance",
-            value:
-              card.appearance ||
-              card.show ||
-              "Unknown"
+            value: limit(
+              card.appearance || card.show || "Unknown"
+            )
           }
         )
-
-        .setImage(
-          `attachment://${imageName}`
-        )
-
+        .setImage(`attachment://${imageName}`)
         .setFooter({
-          text:
-            `${seasonEmoji} Season ${season} • ` +
-            `Card ID: ${card.id}`
+          text: limit(
+            `Season ${season} • Card ID: ${card.id}`,
+            2048
+          )
         })
-
         .setTimestamp();
 
-    await message.reply({
-      embeds: [embed],
-      files: [attachment]
-    });
+      if (event) {
+        embed.addFields({
+          name: "🎉 Event",
+          value: halloween
+            ? "🎃 Halloween 2026"
+            : limit(event),
+          inline: true
+        });
+      }
+
+      return await reply({
+        embeds: [embed],
+        files: [attachment]
+      });
+    } catch (error) {
+      console.error("[VIEW]", error);
+
+      try {
+        return await reply(
+          "❌ Could not display this card. " +
+          "Please check the bot logs for missing image/frame files " +
+          "and try again."
+        );
+      } catch (replyError) {
+        console.error("[VIEW] Reply failed:", replyError);
+      }
+    }
   }
 };
+
+module.exports.executeSlash = module.exports.execute;
+module.exports.slashExecute = module.exports.execute;
+module.exports.slash = module.exports.execute;
+module.exports.run = module.exports.execute;

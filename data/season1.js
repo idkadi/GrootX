@@ -7758,6 +7758,535 @@ module.exports = [
     rawImage: "raw/jamesaw.png"
   },
 
+  {
+  id: 860,
+  name: "Agatha",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/agatha26.png",
+  event: "halloween2026"
+},
+
+ {
+  id: 861,
+  name: "Scarlet Witch",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/wanda26.png",
+  event: "halloween2026"
+},
+
+ {
+  id: 862,
+  name: "Ikaris",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/ikaris26.png",
+  event: "halloween2026"
+},
+
+ {
+  id: 863,
+  name: "Namor",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/namor26.png",
+  event: "halloween2026"
+},
+
+ {
+  id: 864,
+  name: "Zombie Captain America",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/cap26.png",
+  event: "halloween2026"
+},
+
+ {
+  id: 865,
+  name: "Norman Osborn",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/noman26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 866,
+  name: "Billy Maximoff",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/billy26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 867,
+  name: "Mysterio",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/mysterio26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 868,
+  name: "Frost Giant Loki",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/frostgiantloki26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 869,
+  name: "Zombie Thanos",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/zombiethanos26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 870,
+  name: "Hobgoblin",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/hobgoblin26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 871,
+  name: "Green Goblin",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/greengoblin26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 872,
+  name: "Ghost Rider",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/ghostrider26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 873,
+  name: "Spider-Man",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/spiderman26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 874,
+  name: "Daredevil",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/daredevil26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 875,
+  name: "Venom",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/venom26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 876,
+  name: "Morbius",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/mobius26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 877,
+  name: "Knull",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/knull26.jpg",
+  event: "halloween2026"
+},
+
+{
+  id: 878,
+  name: "The Living Mummy",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/mummy26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 879,
+  name: "Wolf-Spider",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/wolfspider26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 880,
+  name: "Blade",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/blade26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 881,
+  name: "Gorr The God Butcher",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/gorr26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 882,
+  name: "Hela",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/hela26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 883,
+  name: "Venom",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/venomsony26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 884,
+  name: "Wolverine",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/wolverinecomic26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 885,
+  name: "Headpool",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/headpool26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 886,
+  name: "Man-Wolf",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/manwolf26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 887,
+  name: "Frankenstein's Monster",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/monster26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 888,
+  name: "Man-Spider",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/manspider26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 889,
+  name: "Wanda Maximoff",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/wandahlw26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 890,
+  name: "Vision",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/vision26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 891,
+  name: "Illusion Iron Man",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/illusionironman26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 892,
+  name: "Dracula",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/dracula26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 893,
+  name: "Blood Spider",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/bloodspider26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 894,
+  name: "Red Skull",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/redskull26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 895,
+  name: "Dead Strange",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/deadstrange26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 896,
+  name: "Crucified Wolverine",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/xwolv26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 897,
+  name: "Skeleton Wolverine",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/skelwolv26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 898,
+  name: "Man-Thing",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/manthing26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 899,
+  name: "Werewolf",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/werewolf26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 900,
+  name: "Blade Knight",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/bladeknight26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 901,
+  name: "Zombie Iron Man",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/zombieironman26.png",
+  event: "halloween2026"
+},
+
+
+{
+  id: 902,
+  name: "Zombie Hawkeye",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/zombiehawkeye26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 903,
+  name: "Zombie Thor",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/zombiethor26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 904,
+  name: "Dormammu",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/dormammu26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 905,
+  name: "Infinity Hulk",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/infinityhulk26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 906,
+  name: "Carnage",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/carnage26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 907,
+  name: "Ultron",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/ultron26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 908,
+  name: "Doctor Strange",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/drstrange26.png",
+  event: "halloween2026"
+},
+
+{
+  id: 909,
+  name: "Wolf-Cap",
+  aka: [],
+  appearance: "Halloween 2026",
+  tier: "legendary",
+  rawImage: "raw/halloween/wolfcap26.png",
+  event: "halloween2026"
+},
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -1,1418 +1,880 @@
-const fs = require("fs");
-const path = require("path");
+const fs = require('fs');
+const path = require('path');
+const { randomInt } = require('crypto');
 
-const createDropImage =
-  require("../utils/createDropImage");
+const {
+  createCanvas,
+  loadImage
+} = require('canvas');
 
 const {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
   AttachmentBuilder
-} = require("discord.js");
+} = require('discord.js');
 
-const {
-  createCanvas,
-  loadImage
-} = require("canvas");
-
-const cards =
-  require("../data/season1");
+const cards = require('../data/season1');
+const renderCard = require('../utils/renderCard');
+const connectDB = require('../database');
 
 const SEASON = 1;
+const HALLOWEEN_EVENT = 'halloween2026';
 
-const connectDB =
-  require("../database");
+const START = Date.parse(
+  '2026-10-03T00:00:00+05:30'
+);
 
-// ==========================================
-// TIER EMOJI
-// ==========================================
+const END = Date.parse(
+  '2026-11-01T00:00:00+05:30'
+);
 
-function getTierEmoji(tier) {
-  switch (tier) {
-    case "common":
-      return "<:common:1504510702956839033>";
+const CANDY =
+  '<:grootcandy:1555950722816675870>';
 
-    case "uncommon":
-      return "<:uncommon:1504510929210052698>";
+const runningClients = new WeakMap();
+const claimLocks = new Set();
 
-    case "rare":
-      return "<:rare:1504510606718275764>";
+const activeEvent = (now = Date.now()) =>
+  now >= START && now < END;
 
-    case "epic":
-      return "<:epic:1504510771214680175>";
+const tierOf = card =>
+  String(card.tier || '').trim().toLowerCase();
 
-    case "legendary":
-      return "<:legendary:1504511435974377552>";
+const isHalloween = card =>
+  card.event === HALLOWEEN_EVENT;
 
-    default:
-      return "🎴";
-  }
-}
+const idOf = card => Number(card.id);
 
-// ==========================================
-// RANDOM TIER
-// ==========================================
+const seriesOf = card =>
+  String(card.show || card.appearance || '').trim();
 
-function getRandomTier() {
-  const chance =
-    Math.random() * 100;
-
-  if (chance < 65)
-    return "common";
-
-  if (chance < 90)
-    return "uncommon";
-
-  if (chance < 98)
-    return "rare";
-
-  if (chance < 99.7)
-    return "epic";
-
-  return "legendary";
-}
-
-// ==========================================
-// RECENT DROPS
-// ==========================================
-
-async function getRecentDrops(
-  recentDropsCol
-) {
-  const docs =
-    await recentDropsCol
-      .find({
-        season: SEASON
-      })
-      .sort({
-        createdAt: 1
-      })
-      .toArray();
-
-  return docs.map(
-    doc =>
-      Number(
-        doc.cardId
-      )
-  );
-}
-
-async function saveRecentDrops(
-  recentDropsCol,
-  recentDrops
-) {
-  await recentDropsCol.deleteMany({
-    season: SEASON
-  });
-
-  if (
-    recentDrops.length > 0
-  ) {
-    await recentDropsCol.insertMany(
-      recentDrops.map(
-        (
-          cardId,
-          index
-        ) => ({
-          cardId:
-            Number(cardId),
-
-          season:
-            SEASON,
-
-          createdAt:
-            Date.now() +
-            index
-        })
-      )
-    );
-  }
-}
-
-// ==========================================
-// PICK CARD
-// ==========================================
-
-function pickWithoutRecent(
-  tier,
-  dropCards,
-  recentDrops
-) {
-  const matchesTier =
-    card =>
-      String(
-        card.tier ||
-        ""
-      ).toLowerCase() ===
-      tier;
-
-  const sameCard =
-    (a, b) =>
-      Number(a.id) ===
-      Number(b.id);
-
-  let pool =
-    cards.filter(
-      card =>
-        matchesTier(card) &&
-
-        !recentDrops.includes(
-          Number(card.id)
-        ) &&
-
-        !dropCards.some(
-          c =>
-            sameCard(
-              c,
-              card
-            )
-        )
-    );
-
-  if (
-    pool.length === 0
-  ) {
-    pool =
-      cards.filter(
-        card =>
-          matchesTier(card) &&
-
-          !dropCards.some(
-            c =>
-              sameCard(
-                c,
-                card
-              )
-          )
-      );
-  }
-
-  if (
-    pool.length === 0
-  ) {
-    pool =
-      cards.filter(
-        matchesTier
-      );
-  }
-
-  /*
-   * Safety fallback:
-   *
-   * If S1 currently has no card
-   * of that randomly selected tier,
-   * use another S1 card instead
-   * of crashing.
-   */
-
-  if (
-    pool.length === 0
-  ) {
-    pool =
-      cards.filter(
-        card =>
-          !dropCards.some(
-            c =>
-              sameCard(
-                c,
-                card
-              )
-          )
-      );
-  }
-
-  if (
-    pool.length === 0
-  ) {
-    pool = [
-      ...cards
-    ];
-  }
-
-  const picked =
-    pool[
-      Math.floor(
-        Math.random() *
-        pool.length
-      )
-    ];
-
-  if (!picked) {
-    return null;
-  }
-
-  recentDrops.push(
-    Number(
-      picked.id
-    )
-  );
-
-  while (
-    recentDrops.length >
-    15
-  ) {
-    recentDrops.shift();
-  }
-
-  return picked;
-}
-
-// ==========================================
-// GENERATE CARD
-// ==========================================
-
-function generateCard(
-  dropCards,
-  recentDrops
-) {
-  const tier =
-    getRandomTier();
-
-  return pickWithoutRecent(
-    tier,
-    dropCards,
-    recentDrops
-  );
-}
-
-// ==========================================
-// UNIQUE CARD CODE
-// ==========================================
-
-async function generateUniqueCode(
-  collectionsCol
-) {
-  const chars =
-    "abcdefghijklmnopqrstuvwxyz0123456789";
-
-  while (true) {
-    let code = "";
-
-    for (
-      let i = 0;
-      i < 6;
-      i++
-    ) {
-      code +=
-        chars.charAt(
-          Math.floor(
-            Math.random() *
-            chars.length
-          )
-        );
-    }
-
-    const exists =
-      await collectionsCol
-        .findOne({
-          code
-        });
-
-    if (!exists) {
-      return code;
-    }
-  }
-}
-
-// ==========================================
-// S1 SERIALS
-// ==========================================
-
-async function assignDropSerials(
-  serialsCol,
-  dropCards
-) {
-  const serialMap = {};
-
-  for (
-    const card
-    of dropCards
-  ) {
-    await serialsCol.updateOne(
-      {
-        cardId:
-          Number(
-            card.id
-          ),
-
-        season:
-          SEASON
-      },
-
-      {
-        $inc: {
-          serial: 1
-        },
-
-        $setOnInsert: {
-          season:
-            SEASON
-        }
-      },
-
-      {
-        upsert:
-          true
-      }
-    );
-
-    const serialDoc =
-      await serialsCol
-        .findOne({
-          cardId:
-            Number(
-              card.id
-            ),
-
-          season:
-            SEASON
-        });
-
-    serialMap[
-      card.id
-    ] =
-      serialDoc.serial;
-  }
-
-  return serialMap;
-}
-
-// ==========================================
-// S1 WISHLIST
-// ==========================================
-
-async function getWishlistData(
-  db,
-  dropCards
-) {
-  const wishCol =
-    db.collection(
-      "wishlists"
-    );
-
-  const droppedIds =
-    dropCards.map(
-      card =>
-        Number(
-          card.id
-        )
-    );
-
-  const wishUsers =
-    await wishCol
-      .find({
-        cards: {
-          $elemMatch: {
-            cardId: {
-              $in:
-                droppedIds
-            },
-
-            season:
-              SEASON
-          }
-        }
-      })
-      .toArray();
-
-  const counts = {};
-
-  const pingUsers =
-    new Set();
-
-  for (
-    const card
-    of dropCards
-  ) {
-    counts[
-      card.id
-    ] = 0;
-  }
-
-  for (
-    const wish
-    of wishUsers
-  ) {
-    const wishedKeys =
-      new Set(
-        (
-          wish.cards ||
-          []
-        )
-          .filter(
-            entry =>
-              entry &&
-              typeof entry ===
-                "object" &&
-              !Array.isArray(
-                entry
-              )
-          )
-
-          .map(
-            entry =>
-              `${
-                Number(
-                  entry.season ??
-                  0
-                )
-              }:${
-                Number(
-                  entry.cardId ??
-                  entry.id
-                )
-              }`
-          )
-      );
-
-    let matched =
-      false;
-
-    for (
-      const droppedId
-      of droppedIds
-    ) {
-      const key =
-        `${SEASON}:${
-          Number(
-            droppedId
-          )
-        }`;
-
-      if (
-        wishedKeys.has(
-          key
-        )
-      ) {
-        counts[
-          droppedId
-        ] =
-          (
-            counts[
-              droppedId
-            ] ||
-            0
-          ) + 1;
-
-        matched =
-          true;
-      }
-    }
-
-    if (matched) {
-      pingUsers.add(
-        wish.userId
-      );
-    }
-  }
-
-  const pingText =
-    pingUsers.size > 0
-
-      ? `\n\n💫 Wishlist alert: ${
-          Array
-            .from(
-              pingUsers
-            )
-            .map(
-              id =>
-                `<@${id}>`
-            )
-            .join(" ")
-        }`
-
-      : "";
+function emoji(card) {
+  if (card.event) return '🎃';
 
   return {
-    counts,
-    pingText
-  };
+    common: '<:common:1504510702956839033>',
+    uncommon: '<:uncommon:1504510929210052698>',
+    rare: '<:rare:1504510606718275764>',
+    epic: '<:epic:1504510771214680175>',
+    legendary: '<:legendary:1504511435974377552>'
+  }[tierOf(card)] || '🎴';
 }
 
-// ==========================================
-// DROP CHANNEL CONFIG
-// ==========================================
-
-async function getConfiguredDropChannels(
-  db
-) {
-  const channelIds =
-    new Set();
-
-  // ========================================
-  // MONGODB SUPPORT
-  // ========================================
-
-  try {
-    const docs =
-      await db
-        .collection(
-          "dropChannels"
-        )
-        .find({})
-        .toArray();
-
-    for (
-      const doc
-      of docs
-    ) {
-      if (
-        doc?.channelId
-      ) {
-        channelIds.add(
-          String(
-            doc.channelId
-          )
-        );
-      }
-    }
-  }
-
-  catch (error) {
-    console.error(
-      "[AutoDrop] Mongo channel config error:",
-      error
-    );
-  }
-
-  // ========================================
-  // JSON SUPPORT
-  // ========================================
-
-  /*
-   * Your !setdrop command stores:
-   *
-   * {
-   *   guildId: channelId
-   * }
-   *
-   * inside:
-   *
-   * data/dropChannels.json
-   */
-
-  try {
-    const jsonPath =
+function usableCards() {
+  return cards.filter(card =>
+    Number.isFinite(idOf(card)) &&
+    typeof card.rawImage === 'string' &&
+    fs.existsSync(
       path.join(
         __dirname,
-        "..",
-        "data",
-        "dropChannels.json"
-      );
-
-    if (
-      fs.existsSync(
-        jsonPath
+        '..',
+        'images',
+        card.rawImage
       )
-    ) {
-      const parsed =
-        JSON.parse(
-          fs.readFileSync(
-            jsonPath,
-            "utf8"
-          )
-        );
-
-      for (
-        const channelId
-        of Object.values(
-          parsed ||
-          {}
-        )
-      ) {
-        if (
-          channelId
-        ) {
-          channelIds.add(
-            String(
-              channelId
-            )
-          );
-        }
-      }
-    }
-
-    else {
-      console.log(
-        "[AutoDrop] data/dropChannels.json not found."
-      );
-    }
-  }
-
-  catch (error) {
-    console.error(
-      "[AutoDrop] JSON channel config error:",
-      error
-    );
-  }
-
-  return Array.from(
-    channelIds
+    )
   );
 }
 
-// ==========================================
-// AUTO DROP SYSTEM
-// ==========================================
+function rollTier(halloweenAvailable) {
+  const chance = Math.random() * 100;
 
-module.exports =
-  client => {
+  // During Halloween:
+  // Common 59.5%, Uncommon 27.5%, Rare 10%,
+  // Epic 2.2%, Legendary 0.3%, Halloween 0.5%.
+  const common = halloweenAvailable ? 59.5 : 60;
 
-    // ========================================
-    // RUN ONE AUTO DROP CYCLE
-    // ========================================
+  if (chance < common) return 'common';
+  if (chance < common + 27.5) return 'uncommon';
+  if (chance < common + 37.5) return 'rare';
+  if (chance < common + 39.7) return 'epic';
+  if (chance < common + 40) return 'legendary';
 
-    const runAutoDrop =
-      async () => {
-        try {
-          console.log(
-            "[AutoDrop] Running auto-drop cycle..."
-          );
+  return 'halloween';
+}
 
-          const db =
-            await connectDB();
+function pickCards(available, recent) {
+  const regular = available.filter(
+    card => !card.event
+  );
 
-          const collectionsCol =
-            db.collection(
-              "collections"
-            );
+  const halloween = activeEvent()
+    ? available.filter(isHalloween)
+    : [];
 
-          const serialsCol =
-            db.collection(
-              "serials"
-            );
+  const selected = [];
 
-          const cooldownsCol =
-            db.collection(
-              "cooldowns"
-            );
+  for (let index = 0; index < 3; index++) {
+    const rarity = rollTier(halloween.length > 0);
 
-          const recentDropsCol =
-            db.collection(
-              "recentDrops"
-            );
+    const pool = rarity === 'halloween'
+      ? halloween
+      : regular.filter(
+          card => tierOf(card) === rarity
+        );
 
-          const inventoryCol =
-            db.collection(
-              "inventory"
-            );
+    const unused = card =>
+      !selected.some(
+        old => idOf(old) === idOf(card)
+      );
 
-          // ==================================
-          // FIND CONFIGURED CHANNELS
-          // ==================================
+    const fresh = card =>
+      !recent.includes(idOf(card));
 
-          const dropChannelIds =
-            await getConfiguredDropChannels(
-              db
-            );
+    const newSeries = card =>
+      !selected.some(
+        old => seriesOf(old) === seriesOf(card)
+      );
 
-          console.log(
-            `[AutoDrop] configured channels: ${dropChannelIds.length}`
-          );
+    let choices = pool.filter(card =>
+      unused(card) &&
+      fresh(card) &&
+      newSeries(card)
+    );
 
-          if (
-            dropChannelIds.length ===
-            0
-          ) {
-            console.log(
-              "[AutoDrop] No drop channels configured. Use !setdrop #channel."
-            );
+    if (!choices.length) {
+      choices = pool.filter(card =>
+        unused(card) && fresh(card)
+      );
+    }
 
-            return;
+    if (!choices.length) {
+      choices = pool.filter(unused);
+    }
+
+    // Fallbacks exclude all event cards.
+    if (!choices.length) {
+      choices = regular.filter(card =>
+        unused(card) && fresh(card)
+      );
+    }
+
+    if (!choices.length) {
+      choices = regular.filter(unused);
+    }
+
+    if (!choices.length) {
+      throw new Error(
+        'Not enough distinct renderable cards ' +
+        'for a three-card drop.'
+      );
+    }
+
+    const chosen = choices[randomInt(choices.length)];
+
+    selected.push(chosen);
+    recent.push(idOf(chosen));
+
+    while (recent.length > 15) {
+      recent.shift();
+    }
+  }
+
+  return selected;
+}
+
+function documentFrom(result) {
+  return result &&
+    Object.prototype.hasOwnProperty.call(result, 'value')
+    ? result.value
+    : result;
+}
+
+async function assignSerials(db, selected) {
+  const serials = [];
+
+  for (const card of selected) {
+    const document = documentFrom(
+      await db.collection('serials').findOneAndUpdate(
+        {
+          cardId: idOf(card),
+          season: SEASON
+        },
+        {
+          $inc: { serial: 1 },
+          $setOnInsert: { season: SEASON }
+        },
+        {
+          upsert: true,
+          returnDocument: 'after'
+        }
+      )
+    );
+
+    if (
+      !document ||
+      !Number.isFinite(document.serial)
+    ) {
+      throw new Error('Serial allocation failed.');
+    }
+
+    serials.push(document.serial);
+  }
+
+  return serials;
+}
+
+async function renderDrop(selected, serials) {
+  const width = 360;
+  const height = Math.round(width * 1492 / 1054);
+
+  const canvas = createCanvas(
+    width * selected.length,
+    height + 50
+  );
+
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = '#10151d';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Sequential rendering limits memory usage.
+  for (let index = 0; index < selected.length; index++) {
+    const card = {
+      ...selected[index],
+      season: SEASON
+    };
+
+    const buffer = await renderCard(
+      card,
+      serials[index],
+      {
+        season: SEASON,
+        event: card.event
+      }
+    );
+
+    const image = await loadImage(buffer);
+
+    ctx.drawImage(
+      image,
+      index * width,
+      0,
+      width,
+      height
+    );
+
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 23px sans-serif';
+
+    ctx.fillText(
+      `${index + 1} • #${serials[index]}`,
+      index * width + width / 2,
+      height + 32
+    );
+  }
+
+  return canvas.toBuffer('image/png');
+}
+
+function wishlistSeason(entry) {
+  return [
+    '1',
+    's1',
+    'season1',
+    'season 1'
+  ].includes(
+    String(entry.season ?? 0).toLowerCase()
+  ) ? 1 : 0;
+}
+
+async function wishlistData(db, selected) {
+  const ids = selected.map(idOf);
+
+  const documents = await db.collection('wishlists')
+    .find({
+      $or: [
+        {
+          'cards.cardId': {
+            $in: [...ids, ...ids.map(String)]
           }
-
-          // ==================================
-          // EACH DROP CHANNEL
-          // ==================================
-
-          for (
-            const channelId
-            of dropChannelIds
-          ) {
-            try {
-              // ==============================
-              // GET CHANNEL
-              // ==============================
-
-              let channel =
-                client.channels.cache.get(
-                  channelId
-                );
-
-              /*
-               * If not cached, fetch it
-               * instead of silently skipping.
-               */
-
-              if (!channel) {
-                try {
-                  channel =
-                    await client.channels.fetch(
-                      channelId
-                    );
-                }
-
-                catch (error) {
-                  console.error(
-                    `[AutoDrop] Cannot fetch channel ${channelId}:`,
-                    error.message
-                  );
-
-                  continue;
-                }
-              }
-
-              if (
-                !channel
-                  ?.isTextBased
-                  ?.()
-              ) {
-                console.log(
-                  `[AutoDrop] Channel ${channelId} is not text based.`
-                );
-
-                continue;
-              }
-
-              console.log(
-                `[AutoDrop] Creating S1 drop in ${channelId}`
-              );
-
-              // ==============================
-              // GENERATE CARDS
-              // ==============================
-
-              const recentDrops =
-                await getRecentDrops(
-                  recentDropsCol
-                );
-
-              const dropCards =
-                [];
-
-              while (
-                dropCards.length <
-                3
-              ) {
-                const card =
-                  generateCard(
-                    dropCards,
-                    recentDrops
-                  );
-
-                if (!card) {
-                  continue;
-                }
-
-                dropCards.push(
-                  card
-                );
-              }
-
-              await saveRecentDrops(
-                recentDropsCol,
-                recentDrops
-              );
-
-              // ==============================
-              // SERIALS
-              // ==============================
-
-              const dropSerials =
-                await assignDropSerials(
-                  serialsCol,
-                  dropCards
-                );
-
-              // ==============================
-              // WISHLIST
-              // ==============================
-
-              const wishlistData =
-                await getWishlistData(
-                  db,
-                  dropCards
-                );
-
-              const claimed = [
-                false,
-                false,
-                false
-              ];
-
-              const claimedUsers =
-                new Set();
-
-              // ==============================
-              // S1 DROP IMAGE
-              // ==============================
-
-              const imageBuffer =
-                await createDropImage(
-                  dropCards.map(
-                    card => ({
-                      ...card,
-
-                      season:
-                        SEASON,
-
-                      serial:
-                        dropSerials[
-                          card.id
-                        ]
-                    })
-                  )
-                );
-
-              const attachment =
-                new AttachmentBuilder(
-                  imageBuffer,
-                  {
-                    name:
-                      "drop.png"
-                  }
-                );
-
-              // ==============================
-              // DROP TEXT
-              // ==============================
-
-              const dropText =
-                "🎴 **A New Season 1 Auto Drop Has Appeared!**\n" +
-
-                "1️⃣ **Season 1**\n" +
-
-                "\u200B\n" +
-
-                dropCards
-                  .map(
-                    (
-                      card,
-                      index
-                    ) =>
-                      `**${
-                        index + 1
-                      }.** ` +
-
-                      `${getTierEmoji(
-                        card.tier
-                      )} ` +
-
-                      `**${
-                        card.name
-                      }** ` +
-
-                      `#${
-                        dropSerials[
-                          card.id
-                        ]
-                      }`
-                  )
-                  .join("\n") +
-
-                wishlistData
-                  .pingText;
-
-              // ==============================
-              // BUTTONS
-              // ==============================
-
-              const row =
-                new ActionRowBuilder();
-
-              for (
-                let i = 0;
-                i < 3;
-                i++
-              ) {
-                const card =
-                  dropCards[
-                    i
-                  ];
-
-                const wishCount =
-                  wishlistData
-                    .counts[
-                      card.id
-                    ] ||
-                  0;
-
-                row.addComponents(
-                  new ButtonBuilder()
-
-                    .setCustomId(
-                      `drop_${i}`
-                    )
-
-                    .setLabel(
-                      `💖 ${wishCount}`
-                    )
-
-                    .setStyle(
-                      ButtonStyle.Primary
-                    )
-                );
-              }
-
-              // ==============================
-              // SEND DROP
-              // ==============================
-
-              const msg =
-                await channel.send({
-                  content:
-                    dropText,
-
-                  files: [
-                    attachment
-                  ],
-
-                  components: [
-                    row
-                  ]
-                });
-
-              console.log(
-                `[AutoDrop] ✅ Drop sent in ${channel.id}`
-              );
-
-              // ==============================
-              // CLAIM COLLECTOR
-              // ==============================
-
-              const collector =
-                msg
-                  .createMessageComponentCollector({
-                    time:
-                      60000
-                  });
-
-              collector.on(
-                "collect",
-
-                async interaction => {
-                  try {
-                    const userId =
-                      interaction
-                        .user
-                        .id;
-
-                    const now =
-                      Date.now();
-
-                    // ========================
-                    // PICKUP COOLDOWN
-                    // ========================
-
-                    const pickupCooldown =
-                      await cooldownsCol
-                        .findOne({
-                          type:
-                            "pickup",
-
-                          userId
-                        });
-
-                    const cooldownTime =
-                      5 *
-                      60 *
-                      1000;
-
-                    let usedExtraGrab =
-                      false;
-
-                    if (
-                      pickupCooldown &&
-                      now -
-                        pickupCooldown
-                          .timestamp <
-                        cooldownTime
-                    ) {
-                      const inventoryDoc =
-                        await inventoryCol
-                          .findOne({
-                            userId
-                          });
-
-                      const extraGrabs =
-                        inventoryDoc
-                          ?.items
-                          ?.extra_grab ||
-                        0;
-
-                      if (
-                        extraGrabs <=
-                        0
-                      ) {
-                        const remaining =
-                          cooldownTime -
-                          (
-                            now -
-                            pickupCooldown
-                              .timestamp
-                          );
-
-                        const minutes =
-                          Math.floor(
-                            remaining /
-                            60000
-                          );
-
-                        const seconds =
-                          Math.floor(
-                            (
-                              remaining %
-                              60000
-                            ) /
-                            1000
-                          );
-
-                        return interaction
-                          .reply({
-                            content:
-                              `❌ You can claim again in ${minutes}m ${seconds}s.`,
-
-                            ephemeral:
-                              true
-                          });
-                      }
-
-                      await inventoryCol
-                        .updateOne(
-                          {
-                            userId
-                          },
-
-                          {
-                            $inc: {
-                              "items.extra_grab":
-                                -1
-                            }
-                          }
-                        );
-
-                      usedExtraGrab =
-                        true;
-                    }
-
-                    // ========================
-                    // ONE CLAIM PER DROP
-                    // ========================
-
-                    if (
-                      claimedUsers.has(
-                        userId
-                      )
-                    ) {
-                      return interaction
-                        .reply({
-                          content:
-                            "❌ You already claimed a card from this drop.",
-
-                          ephemeral:
-                            true
-                        });
-                    }
-
-                    // ========================
-                    // CARD INDEX
-                    // ========================
-
-                    const index =
-                      parseInt(
-                        interaction
-                          .customId
-                          .split(
-                            "_"
-                          )[1]
-                      );
-
-                    if (
-                      Number.isNaN(
-                        index
-                      ) ||
-                      !dropCards[
-                        index
-                      ]
-                    ) {
-                      return interaction
-                        .reply({
-                          content:
-                            "❌ Invalid card.",
-
-                          ephemeral:
-                            true
-                        });
-                    }
-
-                    if (
-                      claimed[
-                        index
-                      ]
-                    ) {
-                      return interaction
-                        .reply({
-                          content:
-                            "❌ This card is already claimed.",
-
-                          ephemeral:
-                            true
-                        });
-                    }
-
-                    claimed[
-                      index
-                    ] =
-                      true;
-
-                    claimedUsers.add(
-                      userId
-                    );
-
-                    const selectedCard =
-                      dropCards[
-                        index
-                      ];
-
-                    const serial =
-                      dropSerials[
-                        selectedCard.id
-                      ];
-
-                    const code =
-                      await generateUniqueCode(
-                        collectionsCol
-                      );
-
-                    // ========================
-                    // SAVE S1 CARD
-                    // ========================
-
-                    await collectionsCol
-                      .insertOne({
-                        userId,
-
-                        cardId:
-                          Number(
-                            selectedCard.id
-                          ),
-
-                        season:
-                          SEASON,
-
-                        serial,
-
-                        code,
-
-                        tag:
-                          null,
-
-                        favorite:
-                          false
-                      });
-
-                    // ========================
-                    // PICKUP COOLDOWN
-                    // ========================
-
-                    await cooldownsCol
-                      .updateOne(
-                        {
-                          type:
-                            "pickup",
-
-                          userId
-                        },
-
-                        {
-                          $set: {
-                            timestamp:
-                              now,
-
-                            notified:
-                              false
-                          }
-                        },
-
-                        {
-                          upsert:
-                            true
-                        }
-                      );
-
-                    // ========================
-                    // DISABLE CLAIM BUTTON
-                    // ========================
-
-                    row
-                      .components[
-                        index
-                      ]
-                      .setDisabled(
-                        true
-                      )
-                      .setStyle(
-                        ButtonStyle.Secondary
-                      );
-
-                    await interaction
-                      .update({
-                        content:
-                          dropText,
-
-                        files: [
-                          attachment
-                        ],
-
-                        components: [
-                          row
-                        ]
-                      });
-
-                    // ========================
-                    // CLAIM MESSAGE
-                    // ========================
-
-                    await channel.send(
-                      `🎉 ${interaction.user} claimed ` +
-
-                      `1️⃣ ${getTierEmoji(
-                        selectedCard.tier
-                      )} ` +
-
-                      `**${
-                        selectedCard.name
-                      }** ` +
-
-                      `#${serial} • ${code}` +
-
-                      (
-                        usedExtraGrab
-
-                          ? "\n⚡ **Extra Grab Used!**"
-
-                          : ""
-                      )
-                    );
-                  }
-
-                  catch (err) {
-                    console.error(
-                      "[AutoDrop] Claim Error:",
-                      err
-                    );
-                  }
-                }
-              );
-
-              // ==============================
-              // COLLECTOR END
-              // ==============================
-
-              collector.on(
-                "end",
-
-                async () => {
-                  try {
-                    row
-                      .components
-                      .forEach(
-                        button =>
-                          button
-                            .setDisabled(
-                              true
-                            )
-                      );
-
-                    await msg.edit({
-                      content:
-                        dropText,
-
-                      files: [
-                        attachment
-                      ],
-
-                      components: [
-                        row
-                      ]
-                    });
-                  }
-
-                  catch (err) {
-                    console.error(
-                      "[AutoDrop] End Error:",
-                      err
-                    );
-                  }
-                }
-              );
-            }
-
-            catch (err) {
-              console.error(
-                "[AutoDrop] Channel Error:",
-                err
-              );
-            }
+        },
+        {
+          'cards.id': {
+            $in: [...ids, ...ids.map(String)]
           }
         }
+      ]
+    })
+    .toArray();
 
-        catch (err) {
-          console.error(
-            "[AutoDrop] Main Error:",
-            err
-          );
-        }
-      };
+  const wishers = selected.map(() => new Set());
 
-    // ========================================
-    // START SYSTEM
-    // ========================================
+  for (const document of documents) {
+    for (let index = 0; index < selected.length; index++) {
+      const matched = (document.cards || []).some(
+        entry =>
+          entry &&
+          typeof entry === 'object' &&
+          wishlistSeason(entry) === SEASON &&
+          Number(entry.cardId ?? entry.id) ===
+            idOf(selected[index]) &&
+          (
+            !entry.event ||
+            entry.event === selected[index].event
+          )
+      );
 
-    console.log(
-      "[AutoDrop] ✅ Season 1 auto-drop system started."
-    );
+      if (matched) {
+        wishers[index].add(String(document.userId));
+      }
+    }
+  }
 
-    /*
-     * Run one test drop 5 seconds
-     * after the bot starts.
-     *
-     * This makes debugging MUCH easier
-     * than waiting 30 minutes.
-     */
+  const users = [
+    ...new Set(
+      wishers.flatMap(set => [...set])
+    )
+  ];
 
-    setTimeout(
-      () => {
-        runAutoDrop()
-          .catch(
-            error =>
-              console.error(
-                "[AutoDrop] Startup run failed:",
-                error
-              )
-          );
-      },
+  const pings = users.slice(0, 100);
 
-      5000
-    );
+  return {
+    counts: wishers.map(set => set.size),
+    pings,
 
-    // ========================================
-    // NORMAL 30 MINUTE LOOP
-    // ========================================
-
-    setInterval(
-      () => {
-        runAutoDrop()
-          .catch(
-            error =>
-              console.error(
-                "[AutoDrop] Interval run failed:",
-                error
-              )
-          );
-      },
-
-      1800000
-    );
+    text: pings.length
+      ? '\n\n💫 Wishlist alert: ' +
+        pings.map(id => `<@${id}>`).join(' ')
+      : ''
   };
+}
+
+async function configuredChannels(db) {
+  const ids = new Set();
+
+  try {
+    const documents = await db.collection('dropChannels')
+      .find({})
+      .toArray();
+
+    for (const document of documents) {
+      if (document.channelId) {
+        ids.add(String(document.channelId));
+      }
+    }
+  } catch (error) {
+    console.error('[AutoDrop] Mongo config:', error);
+  }
+
+  try {
+    const file = path.join(
+      __dirname,
+      '..',
+      'data',
+      'dropChannels.json'
+    );
+
+    if (fs.existsSync(file)) {
+      const config = JSON.parse(
+        await fs.promises.readFile(file, 'utf8')
+      );
+
+      for (const id of Object.values(config || {})) {
+        if (id) ids.add(String(id));
+      }
+    }
+  } catch (error) {
+    console.error('[AutoDrop] JSON config:', error);
+  }
+
+  return [...ids];
+}
+
+async function uniqueCode(collection, session) {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+
+  for (let attempt = 0; attempt < 100; attempt++) {
+    const code = Array.from(
+      { length: 6 },
+      () => chars[randomInt(chars.length)]
+    ).join('');
+
+    const exists = await collection.findOne(
+      { code },
+      { session }
+    );
+
+    if (!exists) return code;
+  }
+
+  throw new Error('Could not allocate a card code.');
+}
+
+async function postDrop(
+  client,
+  db,
+  channelId,
+  available
+) {
+  const channel =
+    client.channels.cache.get(channelId) ||
+    await client.channels.fetch(channelId);
+
+  if (
+    !channel?.isTextBased?.() ||
+    typeof channel.send !== 'function'
+  ) {
+    return;
+  }
+
+  const recentCol = db.collection('recentDrops');
+
+  const recent = (
+    await recentCol
+      .find({ season: SEASON })
+      .sort({ createdAt: 1 })
+      .toArray()
+  )
+    .map(document => Number(document.cardId))
+    .slice(-15);
+
+  const selected = pickCards(available, recent);
+  const serials = await assignSerials(db, selected);
+  const buffer = await renderDrop(selected, serials);
+  const wish = await wishlistData(db, selected);
+
+  const row = new ActionRowBuilder()
+    .addComponents(
+      ...selected.map((_, index) =>
+        new ButtonBuilder()
+          .setCustomId(`autodrop_${index}`)
+          .setLabel(
+            `${index + 1} • 💖 ${wish.counts[index]}`
+          )
+          .setStyle(ButtonStyle.Primary)
+      )
+    );
+
+  const text =
+    (
+      selected.some(isHalloween)
+        ? '🎃 **Halloween 26 Auto Drop!**'
+        : '🎴 **A New Season 1 Auto Drop!**'
+    ) +
+    '\n\n' +
+    selected.map((card, index) =>
+      `**${index + 1}.** ${emoji(card)} ` +
+      `**${card.name}** #${serials[index]}` +
+      (
+        card.event
+          ? ' • Halloween 26'
+          : ' • S1'
+      )
+    ).join('\n');
+
+  const content =
+    text +
+    (
+      text.length + wish.text.length <= 2000
+        ? wish.text
+        : ''
+    );
+
+  const msg = await channel.send({
+    content,
+
+    files: [
+      new AttachmentBuilder(buffer, {
+        name: 'drop.png'
+      })
+    ],
+
+    components: [row],
+
+    allowedMentions: {
+      parse: [],
+      users: wish.pings
+    }
+  });
+
+  try {
+    await recentCol.deleteMany({
+      season: SEASON
+    });
+
+    if (recent.length) {
+      await recentCol.insertMany(
+        recent.map((cardId, index) => ({
+          cardId,
+          season: SEASON,
+          createdAt: Date.now() + index
+        }))
+      );
+    }
+  } catch (error) {
+    console.error('[AutoDrop] Recent history:', error);
+  }
+
+  const claimed = new Set();
+  const pending = new Set();
+  const claimedUsers = new Set();
+
+  let ended = false;
+
+  const collector =
+    msg.createMessageComponentCollector({
+      time: 60000
+    });
+
+  collector.on('collect', async interaction => {
+    const match = /^autodrop_([0-2])$/.exec(
+      interaction.customId
+    );
+
+    if (!match) return;
+
+    const index = Number(match[1]);
+    const userId = interaction.user.id;
+
+    let locked = false;
+    let committed = false;
+    let session;
+
+    try {
+      await interaction.deferReply({
+        ephemeral: true
+      });
+
+      const tell = content =>
+        interaction.editReply({ content });
+
+      if (
+        ended ||
+        claimed.has(index) ||
+        pending.has(index)
+      ) {
+        return await tell(
+          '❌ This card is already claimed or being claimed.'
+        );
+      }
+
+      if (claimedUsers.has(userId)) {
+        return await tell(
+          '❌ You already claimed a card from this drop.'
+        );
+      }
+
+      if (claimLocks.has(userId)) {
+        return await tell(
+          '⏳ Your previous claim is still processing.'
+        );
+      }
+
+      pending.add(index);
+      claimLocks.add(userId);
+      locked = true;
+
+      if (!db.client?.startSession) {
+        throw new Error(
+          'Database wrapper must expose db.client ' +
+          'for safe claims.'
+        );
+      }
+
+      session = db.client.startSession();
+
+      let code;
+      let extra;
+      let candy;
+
+      await session.withTransaction(async () => {
+        const now = Date.now();
+
+        const cooldowns = db.collection('cooldowns');
+        const inventory = db.collection('inventory');
+        const collection = db.collection('collections');
+
+        const effect = await db.collection('stoneeffects')
+          .findOne({ userId }, { session });
+
+        const cooldown = await cooldowns.findOne(
+          {
+            type: 'pickup',
+            userId
+          },
+          { session }
+        );
+
+        const duration = effect?.timeUntil > now
+          ? 2 * 60 * 1000
+          : 4 * 60 * 1000;
+
+        extra = false;
+
+        if (
+          cooldown &&
+          now - cooldown.timestamp < duration
+        ) {
+          const spent = await inventory.updateOne(
+            {
+              userId,
+              'items.extra_grab': { $gte: 1 }
+            },
+            {
+              $inc: {
+                'items.extra_grab': -1
+              }
+            },
+            { session }
+          );
+
+          if (!spent.modifiedCount) {
+            const remaining = Math.ceil(
+              (
+                duration -
+                (now - cooldown.timestamp)
+              ) / 1000
+            );
+
+            throw new Error(
+              `You can claim again in ` +
+              `${Math.floor(remaining / 60)}m ` +
+              `${remaining % 60}s.`
+            );
+          }
+
+          extra = true;
+        }
+
+        code = await uniqueCode(collection, session);
+
+        const card = selected[index];
+
+        await collection.insertOne(
+          {
+            userId,
+            cardId: idOf(card),
+            season: SEASON,
+            serial: serials[index],
+            code,
+            tag: null,
+            favorite: false,
+
+            ...(card.event
+              ? { event: card.event }
+              : {})
+          },
+          { session }
+        );
+
+        await cooldowns.updateOne(
+          {
+            type: 'pickup',
+            userId
+          },
+          {
+            $set: {
+              timestamp: now,
+              notified: false
+            }
+          },
+          {
+            upsert: true,
+            session
+          }
+        );
+
+        // No dropper exists for auto drops.
+        // Candy goes to successful claimers instead.
+        candy =
+          activeEvent(now) && Math.random() < 0.15
+            ? randomInt(25, 101)
+            : 0;
+
+        if (candy) {
+          await inventory.updateOne(
+            { userId },
+            {
+              $inc: {
+                'items.groot_candy': candy
+              }
+            },
+            {
+              upsert: true,
+              session
+            }
+          );
+        }
+      });
+
+      committed = true;
+
+      claimed.add(index);
+      claimedUsers.add(userId);
+
+      row.components[index]
+        .setDisabled(true)
+        .setStyle(ButtonStyle.Secondary);
+
+      await msg.edit({
+        components: [row]
+      }).catch(error =>
+        console.error(
+          '[AutoDrop] Button display:',
+          error
+        )
+      );
+
+      const card = selected[index];
+
+      const notice =
+        `🎉 <@${userId}> claimed ${emoji(card)} ` +
+        `**${card.name}** #${serials[index]} ` +
+        `• \`${code}\`` +
+        (
+          card.event
+            ? ' • Halloween 26'
+            : ' • S1'
+        ) +
+        (
+          extra
+            ? '\n⚡ **Extra Grab Used!**'
+            : ''
+        ) +
+        (
+          candy
+            ? `\n${CANDY} Found **${candy} Groot Candy!**`
+            : ''
+        );
+
+      await interaction.editReply({
+        content:
+          `✅ Claimed **${card.name}** • \`${code}\`` +
+          (
+            candy
+              ? `\n${CANDY} +${candy} Groot Candy`
+              : ''
+          )
+      });
+
+      await channel.send({
+        content: notice,
+        allowedMentions: {
+          parse: [],
+          users: [userId]
+        }
+      });
+
+      if (claimed.size === selected.length) {
+        collector.stop('claimed');
+      }
+    } catch (error) {
+      console.error('[AutoDrop] Claim:', error);
+
+      const content = committed
+        ? '✅ Your claim was saved, but its announcement ' +
+          'could not be completed. Check your collection.'
+        : `❌ ${error.message || 'Claim failed; try again.'}`;
+
+      if (interaction.deferred) {
+        await interaction.editReply({
+          content
+        }).catch(() => {});
+      }
+    } finally {
+      if (locked) {
+        pending.delete(index);
+        claimLocks.delete(userId);
+      }
+
+      if (session) {
+        await session.endSession().catch(() => {});
+      }
+    }
+  });
+
+  collector.on('end', () => {
+    ended = true;
+
+    row.components.forEach(button =>
+      button.setDisabled(true)
+    );
+
+    msg.edit({
+      components: [row]
+    }).catch(error =>
+      console.error('[AutoDrop] Expiry:', error)
+    );
+  });
+}
+
+module.exports = client => {
+  // Prevent duplicate timers on repeated initialization.
+  if (runningClients.has(client)) {
+    return runningClients.get(client);
+  }
+
+  let busy = false;
+  let stopped = false;
+
+  const run = async () => {
+    if (busy || stopped) return;
+
+    busy = true;
+
+    try {
+      const db = await connectDB();
+      const available = usableCards();
+
+      console.log(
+        `[AutoDrop] Renderable S1 cards: ` +
+        `${available.length}/${cards.length}`
+      );
+
+      const channels = await configuredChannels(db);
+
+      for (const channelId of channels) {
+        if (stopped) break;
+
+        try {
+          await postDrop(
+            client,
+            db,
+            channelId,
+            available
+          );
+        } catch (error) {
+          console.error(
+            `[AutoDrop] Channel ${channelId}:`,
+            error
+          );
+        }
+      }
+    } catch (error) {
+      console.error('[AutoDrop] Cycle:', error);
+    } finally {
+      busy = false;
+    }
+  };
+
+  const startup = setTimeout(() => {
+    void run();
+  }, 5000);
+
+  const interval = setInterval(() => {
+    void run();
+  }, 30 * 60 * 1000);
+
+  const control = {
+    run,
+
+    stop() {
+      stopped = true;
+
+      clearTimeout(startup);
+      clearInterval(interval);
+
+      runningClients.delete(client);
+    }
+  };
+
+  runningClients.set(client, control);
+
+  console.log(
+    '[AutoDrop] S1/Halloween system started.'
+  );
+
+  return control;
+};

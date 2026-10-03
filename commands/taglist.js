@@ -1,27 +1,42 @@
 const connectDB = require("../database");
 
 const {
-  EmbedBuilder
+  EmbedBuilder,
+  SlashCommandBuilder
 } = require("discord.js");
 
-module.exports = {
-  name: "taglist",
-  aliases: ["tags"],
+async function execute(context) {
+  const isSlash =
+    typeof context.isChatInputCommand === "function" &&
+    context.isChatInputCommand();
 
-  async execute(message) {
+  const user = isSlash
+    ? context.user
+    : context.author;
+
+  // Acknowledge before waiting for MongoDB.
+  if (isSlash && !context.deferred && !context.replied) {
+    await context.deferReply();
+  }
+
+  const reply = payload =>
+    isSlash
+      ? context.editReply(payload)
+      : context.reply(payload);
+
+  try {
     const db = await connectDB();
 
-    const createdTagsCol = db.collection("createdtags");
-
-    const userId = message.author.id;
-
-    const tags = await createdTagsCol
-      .find({ userId })
+    const tags = await db
+      .collection("createdtags")
+      .find({ userId: user.id })
       .sort({ name: 1 })
       .toArray();
 
     if (!tags.length) {
-      return message.reply("❌ You have no created tags.");
+      return reply({
+        content: "❌ You have no created tags."
+      });
     }
 
     const description = tags
@@ -30,15 +45,37 @@ module.exports = {
 
     const embed = new EmbedBuilder()
       .setColor(0x00aeff)
-      .setTitle(`🏷️ ${message.author.username}'s Tags`)
+      .setTitle(`🏷️ ${user.username}'s Tags`)
       .setDescription(description)
       .setFooter({
         text: `Total Tags: ${tags.length}`
       })
       .setTimestamp();
 
-    return message.reply({
+    return reply({
       embeds: [embed]
     });
+  } catch (error) {
+    console.error(
+      "[TAGLIST] Failed to load tags:",
+      error
+    );
+
+    return reply({
+      content:
+        "❌ Could not load your tags. Please try again."
+    });
   }
+}
+
+module.exports = {
+  name: "taglist",
+  aliases: ["tags"],
+
+  data: new SlashCommandBuilder()
+    .setName("taglist")
+    .setDescription("Show all tags you have created."),
+
+  execute,
+  executeSlash: execute
 };

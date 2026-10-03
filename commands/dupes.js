@@ -1,25 +1,5 @@
-const cards = require("../data/cards");
-const season1 = require("../data/season1");
-const path = require("path");
-
-const allCards = [...cards, ...season1];
-
-function getCard(entry) {
-  const season = String(entry.season ?? entry.cardSeason ?? "").toLowerCase();
-  const pool = season === "1" || season === "s1" ? season1
-    : season === "0" || season === "s0" ? cards : allCards;
-
-  return pool.find(c => String(c.id) === String(entry.cardId));
-}
-
-function countKey(entry) {
-  return `${String(entry.season ?? entry.cardSeason ?? "").toLowerCase()}:${entry.cardId}`;
-}
-
-function getImage(entry) {
-  const card = getCard(entry);
-  return card?.rawImage || card?.image;
-}
+const season0Cards = require("../data/cards");
+const season1Cards = require("../data/season1");
 
 const {
   EmbedBuilder,
@@ -27,247 +7,510 @@ const {
   ButtonBuilder,
   ButtonStyle,
   StringSelectMenuBuilder,
-  AttachmentBuilder
+  AttachmentBuilder,
+  SlashCommandBuilder
 } = require("discord.js");
 
 const connectDB = require("../database");
+const renderCard = require("../utils/renderCard");
+const path = require("path");
+
+const SEASON_EMOJIS = [
+  "<:Season0:1555956910560256082>",
+  "<:Season1:1555956879576793130>"
+];
+
+const isHalloween = (card, entry = {}) =>
+  (entry.event || card.event) === "halloween2026";
+
+const cardEmoji = (card, entry) =>
+  isHalloween(card, entry) ? "🎃" : getTierEmoji(card.tier);
 
 function getTierEmoji(tier) {
-  switch (tier.toLowerCase()) {
-    case "common": return "<:common:1504510702956839033>";
-    case "uncommon": return "<:uncommon:1504510929210052698>";
-    case "rare": return "<:rare:1504510606718275764>";
-    case "epic": return "<:epic:1504510771214680175>";
-    case "legendary": return "<:legendary:1504511435974377552>";
-    default: return "❓";
+  switch (String(tier || "").toLowerCase()) {
+    case "common":
+      return "<:common:1504510702956839033>";
+    case "uncommon":
+      return "<:uncommon:1504510929210052698>";
+    case "rare":
+      return "<:rare:1504510606718275764>";
+    case "epic":
+      return "<:epic:1504510771214680175>";
+    case "legendary":
+      return "<:legendary:1504511435974377552>";
+    default:
+      return "❓";
   }
+}
+
+function getSeason(entry) {
+  // Legacy records without a season belong to Season 0.
+  const value = String(
+    entry?.season ?? entry?.cardSeason ?? 0
+  ).toLowerCase();
+
+  return value === "s1" || value === "1" ? 1 : 0;
+}
+
+function getSeasonEmoji(season) {
+  return SEASON_EMOJIS[Number(season) === 1 ? 1 : 0];
+}
+
+function getCardFromEntry(entry) {
+  if (!entry) return null;
+
+  const database =
+    getSeason(entry) === 1 ? season1Cards : season0Cards;
+
+  return database.find(
+    card => Number(card.id) === Number(entry.cardId)
+  );
 }
 
 module.exports = {
   name: "dupes",
   aliases: ["duplicates"],
 
-  async execute(message, args) {
-    const db = await connectDB();
+  data: new SlashCommandBuilder()
+    .setName("dupes")
+    .setDescription("Browse duplicate cards across seasons and events.")
+    .addStringOption(option =>
+      option
+        .setName("s")
+        .setDescription("Season or event filter")
+        .addChoices(
+          { name: "Season 0", value: "0" },
+          { name: "Season 1", value: "1" },
+          { name: "Halloween", value: "halloween" }
+        )
+    )
+    .addStringOption(option =>
+      option
+        .setName("tier")
+        .setDescription("Optional rarity filter")
+        .addChoices(
+          ...["common", "uncommon", "rare", "epic", "legendary"].map(
+            tier => ({ name: tier, value: tier })
+          )
+        )
+    ),
 
-    const collectionsCol = db.collection("collections");
-    const cardTagsCol = db.collection("cardtags");
-    const userId = message.author.id;
+  async execute(message, args = []) {
+    const slash =
+      typeof message.isChatInputCommand === "function" &&
+      message.isChatInputCommand();
 
-    const userCards = await collectionsCol
-      .find({ userId })
-      .sort({ _id: -1 })
-      .toArray();
+    const user = slash ? message.user : message.author;
 
-    if (!userCards || userCards.length === 0) {
-      return message.reply("❌ Your collection is empty.");
+    if (slash && !message.deferred && !message.replied) {
+      await message.deferReply();
     }
 
-    const cardCounts = {};
+    const reply = payload => {
+      if (typeof payload === "string") {
+        payload = { content: payload };
+      }
 
-    for (const entry of userCards) {
-      const key = countKey(entry);
-      cardCounts[key] = (cardCounts[key] || 0) + 1;
+      if (!slash) return message.reply(payload);
+
+      return message.deferred
+        ? message.editReply(payload)
+        : message.followUp(payload);
+    };
+
+    if (slash) {
+      args = [
+        message.options.getString("s"),
+        message.options.getString("tier")
+      ].filter(Boolean);
     }
 
-    let filteredCards = userCards.filter(
-      entry => cardCounts[countKey(entry)] > 1
-    );
+    try {
+      const db = await connectDB();
+      const collectionsCol = db.collection("collections");
+      const cardTagsCol = db.collection("cardtags");
+      const userId = user.id;
 
-    const validTiers = [
-      "common",
-      "uncommon",
-      "rare",
-      "epic",
-      "legendary"
-    ];
+      const userCards = await collectionsCol
+        .find({ userId })
+        .sort({ _id: -1 })
+        .toArray();
 
-    if (args[0]) {
-      const tier = args[0].toLowerCase();
+      if (!userCards || userCards.length === 0) {
+        return reply("❌ Your collection is empty.");
+      }
 
-      if (validTiers.includes(tier)) {
-        filteredCards = filteredCards.filter(entry => {
-          const card = getCard(entry);
-          return card && String(card.tier).toLowerCase() === tier;
+      const userTagsDocs = await cardTagsCol
+        .find({ userId })
+        .toArray();
+
+      const userTags = {};
+
+      for (const tag of userTagsDocs) {
+        userTags[String(tag.code).toLowerCase()] = tag.emoji;
+      }
+
+      const cardCounts = new Map();
+      const countKey = entry =>
+        `${getSeason(entry)}:${Number(entry.cardId)}`;
+
+      for (const entry of userCards) {
+        const key = countKey(entry);
+        cardCounts.set(key, (cardCounts.get(key) || 0) + 1);
+      }
+
+      const validTiers = [
+        "common",
+        "uncommon",
+        "rare",
+        "epic",
+        "legendary"
+      ];
+
+      let tierFilter = null;
+      let seasonFilter = "all";
+      const imageCache = new Map();
+
+      if (
+        args.some(argument =>
+          ["halloween", "halloween2026"].includes(
+            argument.toLowerCase()
+          )
+        )
+      ) {
+        seasonFilter = "halloween";
+      }
+
+      if (args[0]) {
+        const argument = args[0].toLowerCase();
+
+        if (validTiers.includes(argument)) {
+          tierFilter = argument;
+        }
+
+        if (["s0", "season0", "0"].includes(argument)) {
+          seasonFilter = "0";
+        }
+
+        if (["s1", "season1", "1"].includes(argument)) {
+          seasonFilter = "1";
+        }
+      }
+
+      if (args[1]) {
+        const argument = args[1].toLowerCase();
+
+        if (validTiers.includes(argument)) {
+          tierFilter = argument;
+        }
+
+        if (["s0", "season0", "0"].includes(argument)) {
+          seasonFilter = "0";
+        }
+
+        if (["s1", "season1", "1"].includes(argument)) {
+          seasonFilter = "1";
+        }
+      }
+
+      let filteredCards = [];
+
+      function applyFilters() {
+        filteredCards = userCards.filter(entry => {
+          const card = getCardFromEntry(entry);
+
+          if (!card || (cardCounts.get(countKey(entry)) || 0) < 2) {
+            return false;
+          }
+
+          const season = getSeason(entry);
+
+          if (
+            seasonFilter === "halloween" &&
+            !isHalloween(card, entry)
+          ) {
+            return false;
+          }
+
+          if (
+            ["0", "1"].includes(seasonFilter) &&
+            season !== Number(seasonFilter)
+          ) {
+            return false;
+          }
+
+          if (
+            tierFilter &&
+            String(card.tier || "").toLowerCase() !== tierFilter
+          ) {
+            return false;
+          }
+
+          return true;
         });
       }
-    }
 
-    if (filteredCards.length === 0) {
-      return message.reply("❌ You don't have any duplicate cards.");
-    }
+      applyFilters();
 
-    const userTagsDocs = await cardTagsCol
-      .find({ userId })
-      .toArray();
-
-    const userTags = {};
-
-    for (const tag of userTagsDocs) {
-      userTags[String(tag.code).toLowerCase()] = tag.emoji;
-    }
-
-    const perPage = 10;
-    let page = 0;
-    let imageIndex = 0;
-    let viewMode = "list";
-    let currentSort = "latest";
-
-    function applySort(sortType) {
-      currentSort = sortType;
-
-      switch (sortType) {
-        case "latest":
-          filteredCards.sort((a, b) =>
-            b._id.toString().localeCompare(a._id.toString())
-          );
-          break;
-
-        case "name":
-          filteredCards.sort((a, b) => {
-            const cardA = getCard(a);
-            const cardB = getCard(b);
-
-            return (cardA?.name || "").localeCompare(cardB?.name || "");
-          });
-          break;
-
-        case "serial_low":
-          filteredCards.sort((a, b) => a.serial - b.serial);
-          break;
-
-        case "serial_high":
-          filteredCards.sort((a, b) => b.serial - a.serial);
-          break;
-
-        case "copies":
-          filteredCards.sort((a, b) =>
-            cardCounts[countKey(b)] - cardCounts[countKey(a)]
-          );
-          break;
-
-        case "tag":
-          filteredCards.sort((a, b) => {
-            const tagA =
-              userTags[String(a.code).toLowerCase()] || "";
-
-            const tagB =
-              userTags[String(b.code).toLowerCase()] || "";
-
-            return tagA.localeCompare(tagB);
-          });
-          break;
+      if (filteredCards.length === 0) {
+        return reply("❌ No duplicate cards match these filters.");
       }
-    }
 
-    applySort("latest");
+      const perPage = 10;
+      let page = 0;
+      let imageIndex = 0;
+      let viewMode = "list";
+      let currentSort = "latest";
 
-    function getTotalPages() {
-      return Math.ceil(filteredCards.length / perPage);
-    }
+      function applySort(sortType) {
+        currentSort = sortType;
 
-    function getCardFromEntry(entry) {
-      return getCard(entry);
-    }
+        switch (sortType) {
+          case "latest":
+            filteredCards.sort((a, b) =>
+              b._id.toString().localeCompare(a._id.toString())
+            );
+            break;
 
-    function generateListEmbed() {
-      const totalPages = getTotalPages();
-      const start = page * perPage;
-      const end = start + perPage;
-      const currentCards = filteredCards.slice(start, end);
+          case "name":
+            filteredCards.sort((a, b) => {
+              const cardA = getCardFromEntry(a);
+              const cardB = getCardFromEntry(b);
 
-      const description = currentCards.map(entry => {
+              return (cardA?.name || "").localeCompare(
+                cardB?.name || ""
+              );
+            });
+            break;
+
+          case "serial_low":
+            filteredCards.sort(
+              (a, b) =>
+                Number(a.serial || 0) - Number(b.serial || 0)
+            );
+            break;
+
+          case "serial_high":
+            filteredCards.sort(
+              (a, b) =>
+                Number(b.serial || 0) - Number(a.serial || 0)
+            );
+            break;
+
+          case "copies":
+            filteredCards.sort(
+              (a, b) =>
+                cardCounts.get(countKey(b)) -
+                cardCounts.get(countKey(a))
+            );
+            break;
+
+          case "tag":
+            filteredCards.sort((a, b) => {
+              const tagA =
+                userTags[String(a.code).toLowerCase()] || "";
+              const tagB =
+                userTags[String(b.code).toLowerCase()] || "";
+
+              return tagA.localeCompare(tagB);
+            });
+            break;
+        }
+      }
+
+      applySort("latest");
+
+      function getTotalPages() {
+        return Math.max(
+          1,
+          Math.ceil(filteredCards.length / perPage)
+        );
+      }
+
+      function generateListEmbed() {
+        const totalPages = getTotalPages();
+        const start = page * perPage;
+        const currentCards = filteredCards.slice(
+          start,
+          start + perPage
+        );
+
+        const description = currentCards
+          .map(entry => {
+            const card = getCardFromEntry(entry);
+
+            if (!card) return "❌ Unknown Card";
+
+            const season = getSeason(entry);
+            const savedTag =
+              userTags[String(entry.code).toLowerCase()];
+            const tagText = savedTag ? `${savedTag} • ` : "";
+
+            return (
+              `🔹 ${tagText}` +
+              `${getSeasonEmoji(season)} ` +
+              `\`${entry.code}\` • ` +
+              `${cardEmoji(card, entry)} ` +
+              `#${entry.serial} ` +
+              `**${card.name}** ×${cardCounts.get(countKey(entry))} ` +
+              `• ${card.appearance || card.show || "Unknown"}`
+            );
+          })
+          .join("\n");
+
+        let filterText = "All Seasons";
+
+        if (seasonFilter === "0") filterText = "Season 0";
+        if (seasonFilter === "1") filterText = "Season 1";
+        if (seasonFilter === "halloween") {
+          filterText = "Halloween 2026";
+        }
+
+        if (tierFilter) filterText += ` • ${tierFilter}`;
+
+        return new EmbedBuilder()
+          .setColor(0x00aeff)
+          .setTitle(`${user.username}'s Duplicate Cards`)
+          .setDescription(description || "No cards found.")
+          .setFooter({
+            text:
+              `List View • Page ${page + 1}/${totalPages} • ` +
+              `Total Cards: ${filteredCards.length} • ` +
+              `${filterText} • Sort: ${currentSort}`
+          })
+          .setTimestamp();
+      }
+
+      async function generateImagePayload() {
+        const entry = filteredCards[imageIndex];
+
+        if (!entry) {
+          return {
+            embeds: [
+              new EmbedBuilder()
+                .setColor(0xff0000)
+                .setDescription("❌ No card found.")
+            ],
+            attachments: [],
+            files: [],
+            components: [
+              makeSortRow(),
+              makeSeasonRow(),
+              makeButtonRow()
+            ]
+          };
+        }
+
         const card = getCardFromEntry(entry);
 
-        if (!card) return "❌ Unknown Card";
+        if (!card) {
+          return {
+            embeds: [
+              new EmbedBuilder()
+                .setColor(0xff0000)
+                .setDescription("❌ Card data not found.")
+            ],
+            attachments: [],
+            files: [],
+            components: [
+              makeSortRow(),
+              makeSeasonRow(),
+              makeButtonRow()
+            ]
+          };
+        }
 
+        const season = getSeason(entry);
         const savedTag =
           userTags[String(entry.code).toLowerCase()];
 
-        const tagText = savedTag
-          ? `${savedTag} • `
-          : "";
+        const cacheKey =
+          `${entry.code}:${season}:${entry.frameId || "default"}`;
 
-        const ownedCount = cardCounts[countKey(entry)] || 1;
+        let buffer = imageCache.get(cacheKey);
 
-        return (
-          `🔹 ${tagText}` +
-          `\`${entry.code}\` • ` +
-          `${getTierEmoji(card.tier)} ` +
-          `#${entry.serial} ` +
-          `**${card.name}** ` +
-          `×${ownedCount} ` +
-          `• ${card.appearance}`
-        );
-      }).join("\n");
+        if (!buffer) {
+          if (season === 0 && card.image) {
+            const image = String(card.image).replace(/\\/g, "/");
 
-      return new EmbedBuilder()
-        .setColor(0xffcc00)
-        .setTitle(`${message.author.username}'s Duplicate Cards`)
-        .setDescription(description || "No duplicates found.")
-        .setFooter({
-          text:
-            `Dupes View • Page ${page + 1}/${totalPages} • ` +
-            `Duplicate Cards: ${filteredCards.length} • ` +
-            `Sort: ${currentSort}`
-        })
-        .setTimestamp();
-    }
+            buffer = /^https?:\/\//i.test(image)
+              ? image
+              : path.resolve(
+                  __dirname,
+                  "..",
+                  image.startsWith("images/")
+                    ? image
+                    : `images/${image}`
+                );
+          } else {
+            buffer = await renderCard(
+              { ...card, season },
+              entry.serial ?? "?",
+              {
+                ...entry,
+                season,
+                event: entry.event || card.event
+              }
+            );
+          }
 
-    function generateImageEmbed() {
-      const entry = filteredCards[imageIndex];
-      const card = getCardFromEntry(entry);
+          imageCache.set(cacheKey, buffer);
 
-      const savedTag =
-        userTags[String(entry.code).toLowerCase()];
+          if (imageCache.size > 8) {
+            imageCache.delete(imageCache.keys().next().value);
+          }
+        }
 
-      const image = getImage(entry);
-      const imageName = image ? path.basename(image) : null;
-      const ownedCount = cardCounts[countKey(entry)] || 1;
+        const imageName = `dupes-${entry.code}-s${season}.png`;
+        const attachment = new AttachmentBuilder(buffer, {
+          name: imageName
+        });
 
-      return new EmbedBuilder()
-        .setColor(0xffcc00)
-        .setTitle(`${card.name}`)
-        .setDescription(
-          `${getTierEmoji(card.tier)} **${card.tier}**\n\n` +
-          `Series: **${card.appearance}**\n` +
-          `Serial: **#${entry.serial}**\n` +
-          `Code: \`${entry.code}\`\n` +
-          `Copies Owned: **×${ownedCount}**\n` +
-          `Tag: ${savedTag || "None"}\n` +
-          `Card: **${imageIndex + 1}/${filteredCards.length}**`
-        )
-        .setImage(imageName ? `attachment://${imageName}` : null)
-        .setFooter({
-          text:
-            `Image View • Duplicate Cards: ${filteredCards.length} • ` +
-            `Sort: ${currentSort}`
-        })
-        .setTimestamp();
-    }
+        const embed = new EmbedBuilder()
+          .setColor(0x00aeff)
+          .setTitle(`${getSeasonEmoji(season)} ${card.name}`)
+          .setDescription(
+            `${cardEmoji(card, entry)} **${
+              isHalloween(card, entry) ? "Halloween" : card.tier
+            }**\n\n` +
+              `Season: **${getSeasonEmoji(season)} Season ${season}**\n` +
+              `Series: **${card.appearance || card.show || "Unknown"}**\n` +
+              `Serial: **#${entry.serial}**\n` +
+              `Code: \`${entry.code}\`\n` +
+              `Copies Owned: **×${cardCounts.get(countKey(entry))}**\n` +
+              `Tag: ${savedTag || "None"}\n` +
+              `Frame: ${
+                isHalloween(card, entry)
+                  ? "Halloween 2026"
+                  : entry.frameId
+                    ? `**#${entry.frameId}**`
+                    : "Default"
+              }\n` +
+              `Card: **${imageIndex + 1}/${filteredCards.length}**`
+          )
+          .setImage(`attachment://${imageName}`)
+          .setFooter({
+            text:
+              `Image View • Season ${season} • ` +
+              `Total Cards: ${filteredCards.length} • ` +
+              `Sort: ${currentSort}`
+          })
+          .setTimestamp();
 
-    function getImageFile() {
-      const entry = filteredCards[imageIndex];
-      const image = getImage(entry);
+        return {
+          embeds: [embed],
+          attachments: [],
+          files: [attachment],
+          components: [
+            makeSortRow(),
+            makeSeasonRow(),
+            makeButtonRow()
+          ]
+        };
+      }
 
-      if (!image) return null;
-
-      const imageName = path.basename(image);
-      const imagePath = path.join(
-        __dirname,
-        "..",
-        "images",
-        image
-      );
-
-      return new AttachmentBuilder(imagePath, {
-        name: imageName
-      });
-    }
-
-    function makeSelectRow() {
-      const selectMenu =
-        new StringSelectMenuBuilder()
+      function makeSortRow() {
+        const selectMenu = new StringSelectMenuBuilder()
           .setCustomId("dupes_sort")
           .setPlaceholder("Sort Duplicates")
           .addOptions([
@@ -303,129 +546,193 @@ module.exports = {
             }
           ]);
 
-      return new ActionRowBuilder().addComponents(selectMenu);
-    }
+        return new ActionRowBuilder().addComponents(selectMenu);
+      }
 
-    function makeButtonRow() {
-      const totalPages = getTotalPages();
+      function makeSeasonRow() {
+        const seasonMenu = new StringSelectMenuBuilder()
+          .setCustomId("dupes_season")
+          .setPlaceholder("Filter by Season")
+          .addOptions([
+            {
+              label: "All Seasons",
+              value: "all",
+              emoji: "🎴",
+              description: "Show Season 0 and Season 1",
+              default: seasonFilter === "all"
+            },
+            {
+              label: "Season 0",
+              value: "0",
+              emoji: SEASON_EMOJIS[0],
+              description: "Show only Season 0 cards",
+              default: seasonFilter === "0"
+            },
+            {
+              label: "Season 1",
+              value: "1",
+              emoji: SEASON_EMOJIS[1],
+              description: "Show only Season 1 cards",
+              default: seasonFilter === "1"
+            },
+            {
+              label: "Halloween 2026",
+              value: "halloween",
+              emoji: "🎃",
+              default: seasonFilter === "halloween"
+            }
+          ]);
 
-      return new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId("dupes_prev")
-          .setLabel("⬅️")
-          .setStyle(ButtonStyle.Primary)
-          .setDisabled(
-            viewMode === "list"
-              ? totalPages <= 1
-              : filteredCards.length <= 1
-          ),
+        return new ActionRowBuilder().addComponents(seasonMenu);
+      }
 
-        new ButtonBuilder()
-          .setCustomId("dupes_view")
-          .setLabel(
-            viewMode === "list"
-              ? "Image View"
-              : "List View"
-          )
-          .setEmoji("🖼️")
-          .setStyle(ButtonStyle.Secondary),
+      function makeButtonRow() {
+        const totalPages = getTotalPages();
 
-        new ButtonBuilder()
-          .setCustomId("dupes_next")
-          .setLabel("➡️")
-          .setStyle(ButtonStyle.Primary)
-          .setDisabled(
-            viewMode === "list"
-              ? totalPages <= 1
-              : filteredCards.length <= 1
-          )
-      );
-    }
+        return new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId("dupes_prev")
+            .setLabel("⬅️")
+            .setStyle(ButtonStyle.Primary)
+            .setDisabled(
+              viewMode === "list"
+                ? totalPages <= 1
+                : filteredCards.length <= 1
+            ),
 
-    function getPayload() {
-      if (viewMode === "image") {
+          new ButtonBuilder()
+            .setCustomId("dupes_view")
+            .setLabel(
+              viewMode === "list" ? "Image View" : "List View"
+            )
+            .setEmoji("🖼️")
+            .setStyle(ButtonStyle.Secondary),
+
+          new ButtonBuilder()
+            .setCustomId("dupes_next")
+            .setLabel("➡️")
+            .setStyle(ButtonStyle.Primary)
+            .setDisabled(
+              viewMode === "list"
+                ? totalPages <= 1
+                : filteredCards.length <= 1
+            )
+        );
+      }
+
+      async function getPayload() {
+        if (viewMode === "image") {
+          return generateImagePayload();
+        }
+
         return {
-          embeds: [generateImageEmbed()],
-          files: [getImageFile()].filter(Boolean),
+          embeds: [generateListEmbed()],
+          attachments: [],
+          files: [],
           components: [
-            makeSelectRow(),
+            makeSortRow(),
+            makeSeasonRow(),
             makeButtonRow()
           ]
         };
       }
 
-      return {
-        embeds: [generateListEmbed()],
-        files: [],
-        components: [
-          makeSelectRow(),
-          makeButtonRow()
-        ]
-      };
+      const msg = await reply(await getPayload());
+
+      const collector = msg.createMessageComponentCollector({
+        time: 120000
+      });
+
+      let busy = false;
+
+      collector.on("collect", async interaction => {
+        if (interaction.user.id !== user.id) {
+          return interaction.reply({
+            content: "❌ This is not your duplicate list.",
+            ephemeral: true
+          });
+        }
+
+        let acquired = false;
+
+        try {
+          // Acknowledge immediately before rendering any image.
+          await interaction.deferUpdate();
+
+          if (busy || collector.ended) return;
+
+          busy = true;
+          acquired = true;
+          collector.resetTimer();
+
+          const id = interaction.customId;
+
+          if (id === "dupes_sort") {
+            applySort(interaction.values[0]);
+            page = imageIndex = 0;
+          } else if (id === "dupes_season") {
+            seasonFilter = interaction.values[0];
+            applyFilters();
+            applySort(currentSort);
+            page = imageIndex = 0;
+          } else if (id === "dupes_view") {
+            viewMode = viewMode === "list" ? "image" : "list";
+
+            if (viewMode === "image") {
+              imageIndex = page * perPage;
+            } else {
+              page = Math.floor(imageIndex / perPage);
+            }
+          } else if (
+            id === "dupes_next" ||
+            id === "dupes_prev"
+          ) {
+            const delta = id === "dupes_next" ? 1 : -1;
+
+            if (viewMode === "list") {
+              page =
+                (page + delta + getTotalPages()) %
+                getTotalPages();
+            } else {
+              const total = Math.max(1, filteredCards.length);
+              imageIndex = (imageIndex + delta + total) % total;
+            }
+          }
+
+          const payload = await getPayload();
+
+          if (!collector.ended) {
+            await interaction.editReply(payload);
+          }
+        } catch (error) {
+          console.error("[COLLECTION] Image/menu error:", error);
+
+          await interaction
+            .followUp({
+              content:
+                "❌ Could not load that card. Check its image and frame files, or switch to List View.",
+              ephemeral: true
+            })
+            .catch(() => {});
+        } finally {
+          if (acquired) busy = false;
+        }
+      });
+
+      collector.on("end", async () => {
+        await msg.edit({ components: [] }).catch(() => {});
+      });
+    } catch (error) {
+      console.error("[COLLECTION]", error);
+
+      return reply({
+        content: "❌ Could not load your dupes. Please try again."
+      });
     }
-
-    const msg = await message.reply(getPayload());
-
-    const collector = msg.createMessageComponentCollector({
-      time: 120000
-    });
-
-    collector.on("collect", async interaction => {
-      collector.resetTimer();
-
-      if (interaction.user.id !== message.author.id) {
-        return interaction.reply({
-          content: "❌ This is not your duplicate list.",
-          ephemeral: true
-        });
-      }
-
-      if (interaction.customId === "dupes_sort") {
-        applySort(interaction.values[0]);
-        page = 0;
-        imageIndex = 0;
-
-        return interaction.update(getPayload());
-      }
-
-      if (interaction.customId === "dupes_view") {
-        viewMode =
-          viewMode === "list"
-            ? "image"
-            : "list";
-
-        return interaction.update(getPayload());
-      }
-
-      if (interaction.customId === "dupes_next") {
-        if (viewMode === "list") {
-          page++;
-          if (page >= getTotalPages()) page = 0;
-        } else {
-          imageIndex++;
-          if (imageIndex >= filteredCards.length) imageIndex = 0;
-        }
-
-        return interaction.update(getPayload());
-      }
-
-      if (interaction.customId === "dupes_prev") {
-        if (viewMode === "list") {
-          page--;
-          if (page < 0) page = getTotalPages() - 1;
-        } else {
-          imageIndex--;
-          if (imageIndex < 0) imageIndex = filteredCards.length - 1;
-        }
-
-        return interaction.update(getPayload());
-      }
-    });
-
-    collector.on("end", async () => {
-      await msg.edit({
-        components: []
-      }).catch(() => {});
-    });
   }
 };
+
+module.exports.executeSlash = module.exports.execute;
+module.exports.slashExecute = module.exports.execute;
+module.exports.slash = module.exports.execute;
+module.exports.run = module.exports.execute;

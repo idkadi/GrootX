@@ -5,468 +5,502 @@ const {
   ButtonStyle,
   AttachmentBuilder,
   SlashCommandBuilder
-} = require("discord.js");
+} = require('discord.js');
 
-const cards = require("../data/cards");       // Season 0
-const season1 = require("../data/season1");   // Season 1
-const connectDB = require("../database");
-const renderCard = require("../utils/renderCard");
+const cards = require('../data/cards');
+const season1 = require('../data/season1');
+const connectDB = require('../database');
+const renderCard = require('../utils/renderCard');
 
 const {
   removeCardFromAlbums
-} = require("../utils/albumUtils");
+} = require('../utils/albumUtils');
 
-async function runGive({ message, interaction, target, code }) {
-  const isSlash = !!interaction;
+const data = new SlashCommandBuilder()
+  .setName('give')
+  .setDescription('Give an owned card to another user')
+  .addUserOption(option =>
+    option
+      .setName('user')
+      .setDescription('Recipient')
+      .setRequired(true)
+  )
+  .addStringOption(option =>
+    option
+      .setName('code')
+      .setDescription('Owned card code')
+      .setRequired(true)
+  );
 
-  const author = isSlash ? interaction.user : message.author;
-  const replyTarget = isSlash ? interaction : message;
+function resolveCard(owned) {
+  const value = String(owned.season ?? 0)
+    .trim()
+    .toLowerCase();
 
-  // =====================================================
-  // VALIDATION
-  // =====================================================
+  const season = [
+    '1',
+    's1',
+    'season1',
+    'season 1'
+  ].includes(value)
+    ? 1
+    : [
+        '0',
+        's0',
+        'season0',
+        'season 0'
+      ].includes(value)
+      ? 0
+      : null;
+
+  if (season === null) {
+    throw new Error('Unrecognised card season.');
+  }
+
+  const pool = season === 1 ? season1 : cards;
+
+  const matches = pool.filter(
+    card =>
+      String(card.id) === String(owned.cardId)
+  );
+
+  const event = String(owned.event || '')
+    .trim()
+    .toLowerCase();
+
+  const info = event
+    ? matches.find(
+        card =>
+          String(card.event || '')
+            .trim()
+            .toLowerCase() === event
+      )
+    : matches.length === 1
+      ? matches[0]
+      : matches.find(card => !card.event);
+
+  if (!info) {
+    throw new Error(
+      'Card data not found for this season/event.'
+    );
+  }
+
+  const eventId = info.event || owned.event;
+
+  return {
+    season,
+
+    info: {
+      ...info,
+      season,
+      ...(eventId ? { event: eventId } : {})
+    },
+
+    owned: {
+      ...owned,
+      season,
+      ...(eventId ? { event: eventId } : {})
+    },
+
+    label: eventId
+      ? `🎃 ${info.show || info.appearance || eventId}`
+      : `Season ${season}`
+  };
+}
+
+// Transfer only the exact card shown in the preview.
+// Ownership, favorite state and card details are checked
+// atomically when the giver confirms.
+function transferFilter(card, giverId) {
+  const filter = {
+    _id: card._id,
+    userId: giverId,
+    favorite: { $ne: true }
+  };
+
+  for (const field of [
+    'code',
+    'cardId',
+    'season',
+    'event',
+    'serial',
+    'frameId'
+  ]) {
+    filter[field] =
+      Object.prototype.hasOwnProperty.call(card, field)
+        ? {
+            $eq: card[field],
+            $exists: true
+          }
+        : {
+            $exists: false
+          };
+  }
+
+  return filter;
+}
+
+async function runGive({
+  message,
+  interaction,
+  target,
+  code
+}) {
+  const slash = !!interaction;
+
+  const author = slash
+    ? interaction.user
+    : message.author;
+
+  const reply = payload =>
+    slash
+      ? interaction.editReply(payload)
+      : message.reply(payload);
+
+  // Acknowledge before database or rendering work.
+  if (
+    slash &&
+    !interaction.deferred &&
+    !interaction.replied
+  ) {
+    await interaction.deferReply();
+  }
+
+  code = String(code || '')
+    .trim()
+    .toLowerCase();
 
   if (!target) {
-    return replyTarget.reply({
-      content: "❌ Mention/select a user.\nExample: `!give @user q7mz2x`",
-      ephemeral: isSlash ? true : undefined
+    return reply({
+      content:
+        '❌ Choose a recipient: `give @user <code>`.'
     });
   }
 
   if (!code) {
-    return replyTarget.reply({
-      content: "❌ Provide a card code.",
-      ephemeral: isSlash ? true : undefined
+    return reply({
+      content: '❌ Provide an owned card code.'
     });
   }
-
-  code = code.toLowerCase();
 
   if (target.id === author.id) {
-    return replyTarget.reply({
-      content: "❌ You cannot give cards to yourself.",
-      ephemeral: isSlash ? true : undefined
+    return reply({
+      content: '❌ You cannot give cards to yourself.'
     });
   }
 
-  // =====================================================
-  // DATABASE
-  // =====================================================
-
-  const db = await connectDB();
-  const collectionsCol = db.collection("collections");
-
-  const giverId = author.id;
-  const receiverId = target.id;
-
-  // Find owned card
-  const card = await collectionsCol.findOne({
-    userId: giverId,
-    code
-  });
-
-  if (!card) {
-    return replyTarget.reply({
-      content: "❌ You do not own this card.",
-      ephemeral: isSlash ? true : undefined
+  if (target.bot) {
+    return reply({
+      content: '❌ You cannot give cards to bots.'
     });
   }
-
-  // Favorited cards cannot be given
-  if (card.favorite) {
-    return replyTarget.reply({
-      content: "⭐ You cannot give a favorited card.",
-      ephemeral: isSlash ? true : undefined
-    });
-  }
-
-  // =====================================================
-  // RESOLVE CARD DATA BY SEASON
-  // =====================================================
-
-  // Legacy cards without season are treated as Season 0
-  const season = Number(card.season ?? 0);
-
-  let cardInfo;
-
-  if (season === 1) {
-    // Season 1
-    cardInfo = season1.find(
-      c => Number(c.id) === Number(card.cardId)
-    );
-  } else {
-    // Season 0
-    cardInfo = cards.find(
-      c => Number(c.id) === Number(card.cardId)
-    );
-  }
-
-  if (!cardInfo) {
-    return replyTarget.reply({
-      content: `❌ Card data not found for Season ${season}.`,
-      ephemeral: isSlash ? true : undefined
-    });
-  }
-
-  // =====================================================
-  // RENDER CARD
-  // =====================================================
-
-  let buffer;
 
   try {
-    /*
-      IMPORTANT:
-      Passing the owned card as the third argument lets renderCard()
-      detect season and frameId.
+    const db = await connectDB();
 
-      S0 -> old coloured format
-      S1 -> rawImage + default/custom frame
-    */
-    buffer = await renderCard(
-      cardInfo,
+    const collection = db.collection('collections');
+
+    const card = await collection.findOne({
+      userId: author.id,
+      code
+    });
+
+    if (!card) {
+      return reply({
+        content: '❌ You do not own this card.'
+      });
+    }
+
+    if (card.favorite) {
+      return reply({
+        content:
+          '⭐ Unfavorite this card before giving it.'
+      });
+    }
+
+    const resolved = resolveCard(card);
+
+    // Canonical season/event and equipped frame are
+    // passed to the existing shared renderer.
+    const buffer = await renderCard(
+      resolved.info,
       card.serial,
-      card
+      resolved.owned
     );
-  } catch (error) {
-    console.error("[GIVE] Card render failed:", error);
 
-    return replyTarget.reply({
-      content: "❌ Failed to render this card.",
-      ephemeral: isSlash ? true : undefined
-    });
-  }
+    const embed = new EmbedBuilder()
+      .setColor(0x00aeff)
+      .setTitle('🎁 Confirm Gift')
+      .setDescription(
+        `**${resolved.info.name}**\n` +
+        `\`${code}\` • #${card.serial}\n` +
+        `${resolved.label}\n\n` +
+        `Recipient: <@${target.id}>`
+      )
+      .setImage('attachment://givecard.png')
+      .setFooter({
+        text: 'Confirm within 30 seconds.'
+      })
+      .setTimestamp();
 
-  const file = new AttachmentBuilder(buffer, {
-    name: "givecard.png"
-  });
+    const row = new ActionRowBuilder()
+      .addComponents(
+        new ButtonBuilder()
+          .setCustomId('give_confirm')
+          .setLabel('Confirm')
+          .setEmoji('✅')
+          .setStyle(ButtonStyle.Success),
 
-  // =====================================================
-  // CONFIRMATION EMBED
-  // =====================================================
+        new ButtonBuilder()
+          .setCustomId('give_cancel')
+          .setLabel('Cancel')
+          .setStyle(ButtonStyle.Secondary)
+      );
 
-  const confirmEmbed = new EmbedBuilder()
-    .setColor(0x00aeff)
-    .setTitle("🎁 Confirm Gift")
-    .setDescription(
-      `**${cardInfo.name}**\n` +
-      `└ \`${card.code}\` • #${card.serial}\n` +
-      `└ Season ${season}\n\n` +
-      `Recipient: ${target}`
-    )
-    .setImage("attachment://givecard.png")
-    .setFooter({
-      text: "This action cannot be undone."
-    })
-    .setTimestamp();
+    const payload = {
+      embeds: [embed],
 
-  const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId("give_confirm")
-      .setLabel("Confirm")
-      .setEmoji("✅")
-      .setStyle(ButtonStyle.Success),
+      files: [
+        new AttachmentBuilder(buffer, {
+          name: 'givecard.png'
+        })
+      ],
 
-    new ButtonBuilder()
-      .setCustomId("give_cancel")
-      .setLabel("Cancel")
-      .setEmoji("❌")
-      .setStyle(ButtonStyle.Secondary)
-  );
-
-  let confirmMsg;
-
-  // =====================================================
-  // SEND CONFIRMATION
-  // =====================================================
-
-  if (isSlash) {
-    confirmMsg = await interaction.reply({
-      embeds: [confirmEmbed],
-      files: [file],
       components: [row],
-      fetchReply: true
-    });
-  } else {
-    confirmMsg = await message.reply({
-      embeds: [confirmEmbed],
-      files: [file],
-      components: [row]
-    });
-  }
 
-  // =====================================================
-  // BUTTON COLLECTOR
-  // =====================================================
+      allowedMentions: {
+        parse: []
+      }
+    };
 
-  const collector = confirmMsg.createMessageComponentCollector({
-    time: 30000
-  });
+    const sent = await reply(payload);
 
-  collector.on("collect", async btn => {
+    const confirmation = slash
+      ? await interaction.fetchReply()
+      : sent;
 
-    // Only giver can use buttons
-    if (btn.user.id !== giverId) {
-      return btn.reply({
-        content: "❌ This is not your gift confirmation.",
-        ephemeral: true
+    const collector =
+      confirmation.createMessageComponentCollector({
+        time: 30000
       });
-    }
 
-    // ===================================================
-    // CANCEL
-    // ===================================================
+    let handling = false;
+    let transferred = false;
 
-    if (btn.customId === "give_cancel") {
-      collector.stop("cancelled");
-
-      return btn.update({
-        content: "❌ Gift cancelled.",
+    const clear = content =>
+      confirmation.edit({
+        content,
         embeds: [],
-        files: [],
-        components: []
-      });
-    }
-
-    // ===================================================
-    // CONFIRM
-    // ===================================================
-
-    if (btn.customId === "give_confirm") {
-      await btn.deferUpdate();
-
-      collector.stop("confirmed");
-
-      /*
-        Re-check ownership.
-
-        This prevents duplicate transfers if the card was
-        traded/given/burned while the confirmation was open.
-      */
-      const freshCard = await collectionsCol.findOne({
-        _id: card._id,
-        userId: giverId,
-        code
-      });
-
-      if (!freshCard) {
-        return confirmMsg.edit({
-          content: "❌ This card is no longer available.",
-          embeds: [],
-          files: [],
-          components: []
-        });
-      }
-
-      // Check favorite again in case it changed
-      if (freshCard.favorite) {
-        return confirmMsg.edit({
-          content: "⭐ This card is now favorited and cannot be given.",
-          embeds: [],
-          files: [],
-          components: []
-        });
-      }
-
-      // =================================================
-      // TRANSFER OWNERSHIP
-      // =================================================
-
-      /*
-        Only userId + favorite are changed.
-
-        season
-        cardId
-        serial
-        frameId
-        code
-
-        all remain untouched.
-      */
-
-      const transferResult = await collectionsCol.updateOne(
-        {
-          _id: card._id,
-          userId: giverId
-        },
-        {
-          $set: {
-            userId: receiverId,
-            favorite: false
-          }
+        attachments: [],
+        components: [],
+        allowedMentions: {
+          parse: []
         }
-      );
+      });
 
-      // Extra protection against race conditions
-      if (transferResult.modifiedCount !== 1) {
-        return confirmMsg.edit({
-          content: "❌ Card transfer failed because the card is no longer available.",
-          embeds: [],
-          files: [],
-          components: []
-        });
-      }
-
-      // Remove from giver's albums
-      await removeCardFromAlbums(
-        db,
-        giverId,
-        code
-      );
-
-      // =================================================
-      // FINAL CARD RENDER
-      // =================================================
-
-      let finalBuffer;
-
+    collector.on('collect', async button => {
       try {
-        /*
-          freshCard still contains:
-          season
-          frameId
-          serial
+        if (
+          ![
+            'give_confirm',
+            'give_cancel'
+          ].includes(button.customId)
+        ) {
+          return;
+        }
 
-          so renderCard knows exactly how to render it.
-        */
-        finalBuffer = await renderCard(
-          cardInfo,
-          freshCard.serial,
-          freshCard
+        if (button.user.id !== author.id) {
+          return await button.reply({
+            content:
+              '❌ Only the giver can confirm this gift.',
+            ephemeral: true
+          });
+        }
+
+        if (handling) {
+          return await button.deferUpdate();
+        }
+
+        handling = true;
+
+        // Acknowledge before database operations.
+        await button.deferUpdate();
+
+        collector.stop(
+          button.customId === 'give_cancel'
+            ? 'cancelled'
+            : 'confirmed'
         );
-      } catch (error) {
-        console.error("[GIVE] Final card render failed:", error);
 
-        /*
-          Transfer already happened, so don't tell the user
-          that the transfer itself failed.
-        */
-        return confirmMsg.edit({
-          content:
-            `✅ ${author} gave **${cardInfo.name}** to ${target}\n\n` +
-            `Code: \`${freshCard.code}\`\n` +
-            `Serial: **#${freshCard.serial}**\n` +
-            `Season: **${season}**`,
-          embeds: [],
-          files: [],
-          components: []
+        if (button.customId === 'give_cancel') {
+          return await clear('❌ Gift cancelled.');
+        }
+
+        const changed = await collection.updateOne(
+          transferFilter(card, author.id),
+          {
+            $set: {
+              userId: target.id,
+              favorite: false
+            },
+
+            // Tags belong to the giver.
+            $unset: {
+              tag: ''
+            }
+          }
+        );
+
+        if (changed.modifiedCount !== 1) {
+          return await clear(
+            '❌ The card changed, was favorited, ' +
+            'or is no longer yours. Run give again.'
+          );
+        }
+
+        transferred = true;
+
+        let albumNotice = '';
+
+        try {
+          await removeCardFromAlbums(
+            db,
+            author.id,
+            code
+          );
+        } catch (error) {
+          console.error(
+            '[GIVE] Album cleanup failed:',
+            error
+          );
+
+          albumNotice =
+            '\n⚠️ Gift completed, but removal ' +
+            'from your albums needs retrying.';
+        }
+
+        // Reuse the verified preview. The atomic check
+        // ensures its card, serial and frame match the
+        // card that was transferred.
+        const success = new EmbedBuilder()
+          .setColor(0x2ecc71)
+          .setTitle('✅ Card Given')
+          .setDescription(
+            `<@${author.id}> gave ` +
+            `**${resolved.info.name}** ` +
+            `to <@${target.id}>\n\n` +
+            `\`${code}\` • #${card.serial}\n` +
+            `${resolved.label}${albumNotice}`
+          )
+          .setImage('attachment://given-card.png')
+          .setTimestamp();
+
+        await confirmation.edit({
+          content: '',
+          embeds: [success],
+          components: [],
+          attachments: [],
+
+          files: [
+            new AttachmentBuilder(buffer, {
+              name: 'given-card.png'
+            })
+          ],
+
+          allowedMentions: {
+            parse: []
+          }
         });
+      } catch (error) {
+        console.error(
+          '[GIVE] Confirmation failed:',
+          error
+        );
+
+        // A display failure must not be reported as
+        // a failed transfer after ownership changed.
+        if (transferred) {
+          await clear(
+            `✅ Card \`${code}\` was given ` +
+            `to <@${target.id}>. ` +
+            'The confirmation display could not ' +
+            'be completed.'
+          ).catch(() => {});
+        } else {
+          await clear(
+            '❌ Gift could not be completed. ' +
+            'Check your collection before retrying.'
+          ).catch(() => {});
+        }
+
+        collector.stop('error');
       }
+    });
 
-      const finalFile = new AttachmentBuilder(finalBuffer, {
-        name: "given-card.png"
-      });
+    collector.on('end', (_, reason) => {
+      if (reason === 'time' && !handling) {
+        clear(
+          '⌛ Gift confirmation expired.'
+        ).catch(() => {});
+      }
+    });
+  } catch (error) {
+    console.error('[GIVE]', error);
 
-      // =================================================
-      // SUCCESS EMBED
-      // =================================================
+    return reply({
+      content:
+        '❌ Could not prepare the gift: ' +
+        (error.message || 'Unknown error')
+    }).catch(() => {});
+  }
+}
 
-      const successEmbed = new EmbedBuilder()
-        .setColor(0x2ecc71)
-        .setTitle("✅ Card Given")
-        .setDescription(
-          `${author} gave **${cardInfo.name}** to ${target}\n\n` +
-          `Code: \`${freshCard.code}\`\n` +
-          `Serial: **#${freshCard.serial}**\n` +
-          `Season: **${season}**`
-        )
-        .setImage("attachment://given-card.png")
-        .setTimestamp();
-
-      return confirmMsg.edit({
-        content: "",
-        embeds: [successEmbed],
-        files: [finalFile],
-        components: []
-      });
-    }
-  });
-
-  // =====================================================
-  // CONFIRMATION TIMEOUT
-  // =====================================================
-
-  collector.on("end", async (_, reason) => {
-    if (reason === "time") {
-      await confirmMsg.edit({
-        content: "⌛ Gift confirmation expired.",
-        embeds: [],
-        files: [],
-        components: []
-      }).catch(() => {});
-    }
+async function executeSlash(interaction) {
+  return runGive({
+    interaction,
+    target: interaction.options.getUser('user'),
+    code: interaction.options.getString('code')
   });
 }
 
-// =======================================================
-// COMMAND EXPORT
-// =======================================================
-
 module.exports = {
-  name: "give",
-  aliases: ["gift"],
+  name: 'give',
+  aliases: ['gift'],
 
-  // =====================================================
-  // SLASH COMMAND
-  // =====================================================
+  data,
+  slashData: data,
 
-  data: new SlashCommandBuilder()
-    .setName("give")
-    .setDescription("Give a card to another user")
+  async execute(source, args = []) {
+    if (
+      typeof source.isChatInputCommand === 'function' &&
+      source.isChatInputCommand()
+    ) {
+      return executeSlash(source);
+    }
 
-    .addUserOption(option =>
-      option
-        .setName("user")
-        .setDescription("User to give the card to")
-        .setRequired(true)
-    )
-
-    .addStringOption(option =>
-      option
-        .setName("code")
-        .setDescription("Card code")
-        .setRequired(true)
-    ),
-
-  // =====================================================
-  // PREFIX COMMAND
-  // =====================================================
-
-  async execute(message, args) {
-    const target = message.mentions.users.first();
-
-    /*
-      Example:
-      !give @Spidey abc123
-
-      Find argument that isn't the mention.
-    */
-    const code = args.find(
-      arg => !arg.startsWith("<@")
+    // Ignore GrootX's mention for:
+    // @GrootX give @user <code>
+    const mention = args.find(
+      arg =>
+        /^<@!?\d+>$/.test(arg) &&
+        arg.replace(/\D/g, '') !== source.client.user.id
     );
 
+    const target = mention
+      ? source.mentions.users.get(
+          mention.replace(/\D/g, '')
+        )
+      : null;
+
     return runGive({
-      message,
+      message: source,
       target,
-      code
+      code: args.find(
+        arg => !arg.startsWith('<@')
+      )
     });
   },
 
-  // =====================================================
-  // SLASH EXECUTION
-  // =====================================================
-
-  async slashExecute(interaction) {
-    const target =
-      interaction.options.getUser("user");
-
-    const code =
-      interaction.options.getString("code");
-
-    return runGive({
-      interaction,
-      target,
-      code
-    });
-  }
+  executeSlash,
+  slashExecute: executeSlash
 };

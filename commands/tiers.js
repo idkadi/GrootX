@@ -2,7 +2,8 @@ const {
   EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
-  ButtonStyle
+  ButtonStyle,
+  SlashCommandBuilder
 } = require("discord.js");
 
 const {
@@ -42,12 +43,18 @@ function formatNumber(num) {
 
 function tierEmoji(tier) {
   switch (tier.toLowerCase()) {
-    case "common": return "<:common:1504510702956839033>";
-    case "uncommon": return "<:uncommon:1504510929210052698>";
-    case "rare": return "<:rare:1504510606718275764>";
-    case "epic": return "<:epic:1504510771214680175>";
-    case "legendary": return "<:legendary:1504511435974377552>";
-    default: return "🎴";
+    case "common":
+      return "<:common:1504510702956839033>";
+    case "uncommon":
+      return "<:uncommon:1504510929210052698>";
+    case "rare":
+      return "<:rare:1504510606718275764>";
+    case "epic":
+      return "<:epic:1504510771214680175>";
+    case "legendary":
+      return "<:legendary:1504511435974377552>";
+    default:
+      return "🎴";
   }
 }
 
@@ -99,12 +106,20 @@ function makeButtons(active) {
     new ButtonBuilder()
       .setCustomId("tiers_trophies")
       .setLabel("Trophies")
-      .setStyle(active === "trophies" ? ButtonStyle.Success : ButtonStyle.Secondary),
+      .setStyle(
+        active === "trophies"
+          ? ButtonStyle.Success
+          : ButtonStyle.Secondary
+      ),
 
     new ButtonBuilder()
       .setCustomId("tiers_rewards")
       .setLabel("Rewards")
-      .setStyle(active === "rewards" ? ButtonStyle.Success : ButtonStyle.Secondary)
+      .setStyle(
+        active === "rewards"
+          ? ButtonStyle.Success
+          : ButtonStyle.Secondary
+      )
   );
 }
 
@@ -112,18 +127,42 @@ module.exports = {
   name: "tiers",
   aliases: ["tier", "ranks", "ranktiers"],
 
+  data: new SlashCommandBuilder()
+    .setName("tiers")
+    .setDescription("View ranked trophy tiers and rank rewards."),
+
   async execute(message) {
-    const msg = await message.reply({
+    const isSlash =
+      typeof message.isChatInputCommand === "function" &&
+      message.isChatInputCommand();
+
+    const user = isSlash
+      ? message.user
+      : message.author;
+
+    const payload = {
       embeds: [makeTrophyEmbed()],
       components: [makeButtons("trophies")]
-    });
+    };
+
+    let msg;
+
+    if (isSlash) {
+      if (!message.deferred && !message.replied) {
+        await message.deferReply();
+      }
+
+      msg = await message.editReply(payload);
+    } else {
+      msg = await message.reply(payload);
+    }
 
     const collector = msg.createMessageComponentCollector({
       time: 120000
     });
 
     collector.on("collect", async interaction => {
-      if (interaction.user.id !== message.author.id) {
+      if (interaction.user.id !== user.id) {
         return interaction.reply({
           content: "Only the command user can use these buttons.",
           ephemeral: true
@@ -166,3 +205,6 @@ module.exports = {
     });
   }
 };
+
+// Support handlers that call executeSlash.
+module.exports.executeSlash = module.exports.execute;

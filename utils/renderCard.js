@@ -299,7 +299,24 @@ async function renderCard(
   // Choose Season 1 frame
   let framePath;
 
-  if (ownedCard?.frameId) {
+  const isHalloween =
+    card.event === "halloween2026" ||
+    ownedCard?.event === "halloween2026";
+
+  // Halloween cards always use their event frame.
+  // Their internal Legendary tier is unchanged.
+  if (isHalloween) {
+    framePath = path.join(
+      __dirname,
+      "..",
+      "images",
+      "default",
+      "halloween26.png"
+    );
+  }
+
+  // Equipped frames for ordinary cards
+  if (!framePath && ownedCard?.frameId) {
     const frameData = frames.find(
       frame =>
         Number(frame.id) ===
@@ -315,7 +332,7 @@ async function renderCard(
     }
   }
 
-  // Default tier frame
+  // Default tier frame for ordinary cards
   if (!framePath) {
     const tier = String(
       card.tier || "common"

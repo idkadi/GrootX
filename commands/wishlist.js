@@ -1,2870 +1,895 @@
 const {
-  EmbedBuilder,
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  StringSelectMenuBuilder,
-  AttachmentBuilder,
-  SlashCommandBuilder
+  EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle,
+  StringSelectMenuBuilder, AttachmentBuilder, SlashCommandBuilder
 } = require("discord.js");
-
 const connectDB = require("../database");
 const season0Data = require("../data/cards.js");
 const season1Data = require("../data/season1.js");
 const renderCard = require("../utils/renderCard");
+const path = require("path");
+
+const MAX_WISHES = 15;
+let cleanupPromise;
+
+async function wishlistCollection() {
+  const db = await connectDB();
+  const col = db.collection("wishlists");
+
+  if (!cleanupPromise) {
+    cleanupPromise = col.updateMany(
+      { "cards.15": { $exists: true } },
+      [{ $set: { cards: { $slice: ["$cards", MAX_WISHES] } } }]
+    ).catch(error => {
+      cleanupPromise = null;
+      throw error;
+    });
+  }
+
+  await cleanupPromise;
+  return col;
+}
 
 const PER_PAGE = 15;
+const SEASON_EMOJIS = [
+  "<:Season0:1555956910560256082>",
+  "<:Season1:1555956879576793130>"
+];
 
-function toArray(data) {
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.cards)) return data.cards;
-  return [];
-}
+const toArray = data => Array.isArray(data) ? data : data?.cards || [];
+const databases = [toArray(season0Data), toArray(season1Data)];
+const seasonEmoji = season => SEASON_EMOJIS[Number(season) === 1 ? 1 : 0];
+const appearance = card => card.appearance || card.show || "Unknown";
+const isHalloween = card => card.event === "halloween2026";
+const rarity = card => isHalloween(card)
+  ? "Halloween"
+  : card.tier || card.rarity || "Unknown";
 
-const season0Cards = toArray(season0Data);
-const season1Cards = toArray(season1Data);
-
-function getTierEmoji(tier = "") {
-  switch (String(tier).toLowerCase()) {
-    case "common":
-      return "<:common:1504510702956839033>";
-
-    case "uncommon":
-      return "<:uncommon:1504510929210052698>";
-
-    case "rare":
-      return "<:rare:1504510606718275764>";
-
-    case "epic":
-      return "<:epic:1504510771214680175>";
-
-    case "legendary":
-      return "<:legendary:1504511435974377552>";
-
-    default:
-      return "❓";
-  }
-}
-
-function getSeasonEmoji(season) {
-  return Number(season) === 1
-    ? "1️⃣"
-    : "0️⃣";
-}
-
-function getRarity(card) {
-  return card?.tier ||
-    card?.rarity ||
-    "Unknown";
-}
-
-function getSeasonCards(season) {
-  return Number(season) === 1
-    ? season1Cards
-    : season0Cards;
-}
-
-function getCardBySeason(cardId, season) {
-  return getSeasonCards(season).find(
-    card =>
-      Number(card.id) ===
-      Number(cardId)
-  );
-}
-
-// ==========================================
-// WISHLIST ENTRY HELPERS
-// ==========================================
-
-/*
- * OLD FORMAT:
- *
- * cards: [
- *   5,
- *   12,
- *   28
- * ]
- *
- * These automatically become S0.
- *
- *
- * NEW FORMAT:
- *
- * cards: [
- *   {
- *     cardId: 5,
- *     season: 0
- *   },
- *   {
- *     cardId: 5,
- *     season: 1
- *   }
- * ]
- */
-
-function normalizeWishlistEntry(entry) {
-  if (
-    entry &&
-    typeof entry === "object" &&
-    !Array.isArray(entry)
-  ) {
-    return {
-      cardId:
-        entry.cardId ??
-        entry.id,
-
-      season:
-        Number(entry.season ?? 0)
-    };
-  }
+function cardEmoji(card) {
+  if (isHalloween(card)) return "🎃";
 
   return {
-    cardId: entry,
-    season: 0
-  };
+    common: "<:common:1504510702956839033>",
+    uncommon: "<:uncommon:1504510929210052698>",
+    rare: "<:rare:1504510606718275764>",
+    epic: "<:epic:1504510771214680175>",
+    legendary: "<:legendary:1504511435974377552>"
+  }[String(card.tier || card.rarity || "").toLowerCase()] || "❓";
 }
 
-function wishlistKey(entry) {
-  const normalized =
-    normalizeWishlistEntry(entry);
+function normalize(entry) {
+  return entry && typeof entry === "object" && !Array.isArray(entry)
+    ? {
+        cardId: Number(entry.cardId ?? entry.id),
+        season: Number(entry.season ?? 0)
+      }
+    : { cardId: Number(entry), season: 0 };
+}
 
-  return (
-    `${normalized.season}:` +
-    `${String(normalized.cardId)}`
+function key(entry) {
+  const e = normalize(entry);
+  return `${e.season}:${e.cardId}`;
+}
+
+function resolve(entry) {
+  const e = normalize(entry);
+  const card = databases[e.season]?.find(c => Number(c.id) === e.cardId);
+  return card ? { ...card, season: e.season } : null;
+}
+
+async function wishlistImage(card) {
+  // S0 image files already contain their original card design.
+  if (card.season === 0 && card.image) {
+    if (/^https?:\/\//i.test(card.image)) return card.image;
+
+    const image = String(card.image).replace(/\\/g, "/");
+    return path.resolve(
+      __dirname,
+      "..",
+      image.startsWith("images/") ? image : `images/${image}`
+    );
+  }
+
+  return renderCard(card, "?", {
+    season: card.season,
+    event: card.event
+  });
+}
+
+// Spider-Man and Spider Man both match.
+const searchText = value => String(value || "")
+  .toLowerCase()
+  .replace(/[^\p{L}\p{N}]/gu, "");
+
+function findCards(filters) {
+  const n = searchText(filters.name);
+  const a = searchText(filters.appearance);
+
+  return databases.flatMap((cards, season) =>
+    filters.season !== null && filters.season !== season
+      ? []
+      : cards.filter(card =>
+          [card.name, ...(Array.isArray(card.aka) ? card.aka : [])]
+            .some(name => searchText(name).includes(n)) &&
+          (!a || searchText(appearance(card)).includes(a))
+        ).map(card => ({ ...card, season }))
+  ).sort((x, y) =>
+    Number(searchText(y.name) === n) -
+      Number(searchText(x.name) === n) ||
+    String(x.name).localeCompare(String(y.name)) ||
+    appearance(x).localeCompare(appearance(y)) ||
+    x.season - y.season ||
+    Number(x.id) - Number(y.id)
   );
 }
 
-function resolveWishlistEntry(entry) {
-  const normalized =
-    normalizeWishlistEntry(entry);
+function parseFilters(args) {
+  const text = args.join(" ");
+  const markers = [...text.matchAll(/(?:^|\s)(n|s|a):/gi)];
+  const result = { name: "", season: null, appearance: "" };
 
-  const card =
-    getCardBySeason(
-      normalized.cardId,
-      normalized.season
-    );
+  markers.forEach((m, i) => {
+    const value = text.slice(
+      m.index + m[0].length,
+      markers[i + 1]?.index ?? text.length
+    ).trim();
 
-  if (!card) {
-    return null;
-  }
+    const field = m[1].toLowerCase();
 
-  return {
-    ...card,
+    if (field === "n") result.name = value;
+    if (field === "a") result.appearance = value;
 
-    wishlistCardId:
-      normalized.cardId,
-
-    season:
-      normalized.season
-  };
-}
-
-// ==========================================
-// SEARCH BOTH SEASONS WITH FILTERS
-// ==========================================
-
-function findCards({
-  name = "",
-  season = null,
-  appearance = ""
-} = {}) {
-  const nq =
-    String(name || "")
-      .trim()
-      .toLowerCase();
-
-  const aq =
-    String(appearance || "")
-      .trim()
-      .toLowerCase();
-
-  const results = [];
-
-  function scan(
-    database,
-    cardSeason
-  ) {
-    for (const card of database) {
-      const cardName =
-        String(card.name || "")
-          .toLowerCase();
-
-      const aliases =
-        Array.isArray(card.aka)
-          ? card.aka
-          : [];
-
-      const cardAppearance =
-        String(
-          card.appearance ||
-          card.show ||
-          ""
-        ).toLowerCase();
-
-      const nameMatch =
-        !nq ||
-        cardName.includes(nq) ||
-        aliases.some(alias =>
-          String(alias || "")
-            .toLowerCase()
-            .includes(nq)
-        );
-
-      const appearanceMatch =
-        !aq ||
-        cardAppearance.includes(aq);
-
-      if (
-        nameMatch &&
-        appearanceMatch
-      ) {
-        results.push({
-          ...card,
-          season: cardSeason
-        });
-      }
+    if (field === "s") {
+      const v = value.toLowerCase().replace(/^season|^s/, "");
+      result.season = v === "0" || v === "1" ? Number(v) : NaN;
     }
-  }
+  });
 
-  // If season is provided, only search that season.
-  if (
-    season === 0 ||
-    season === 1
-  ) {
-    scan(
-      getSeasonCards(season),
-      season
-    );
-  } else {
-    // Otherwise search ALL S0 + S1 cards.
-    scan(
-      season0Cards,
-      0
-    );
-
-    scan(
-      season1Cards,
-      1
-    );
-  }
-
-  // IMPORTANT:
-  // Rank results BEFORE Discord's 25-option limit.
-  results.sort(
-    (a, b) => {
-      const an =
-        String(a.name || "")
-          .toLowerCase();
-
-      const bn =
-        String(b.name || "")
-          .toLowerCase();
-
-      if (nq) {
-        // Exact name first
-        const ae =
-          an === nq;
-
-        const be =
-          bn === nq;
-
-        if (
-          ae !== be
-        ) {
-          return ae
-            ? -1
-            : 1;
-        }
-
-        // Starts-with second
-        const as =
-          an.startsWith(nq);
-
-        const bs =
-          bn.startsWith(nq);
-
-        if (
-          as !== bs
-        ) {
-          return as
-            ? -1
-            : 1;
-        }
-      }
-
-      // Alphabetical name
-      const nc =
-        an.localeCompare(
-          bn
-        );
-
-      if (
-        nc !== 0
-      ) {
-        return nc;
-      }
-
-      // Appearance
-      const aa =
-        String(
-          a.appearance ||
-          a.show ||
-          ""
-        );
-
-      const ba =
-        String(
-          b.appearance ||
-          b.show ||
-          ""
-        );
-
-      const ac =
-        aa.localeCompare(
-          ba
-        );
-
-      if (
-        ac !== 0
-      ) {
-        return ac;
-      }
-
-      // Season
-      return (
-        Number(a.season) -
-        Number(b.season)
-      );
-    }
-  );
-
-  return results;
+  return result;
 }
-
-// ==========================================
-// RESPONSE HELPERS
-// ==========================================
 
 async function reply(ctx, payload) {
-  if (
-    typeof payload === "string"
-  ) {
-    payload = {
-      content: payload
-    };
-  }
+  if (typeof payload === "string") payload = { content: payload };
 
-  if (ctx.interaction) {
-    if (
-      ctx.interaction.replied ||
-      ctx.interaction.deferred
-    ) {
-      return ctx.interaction.followUp(
-        payload
-      );
-    }
+  if (!ctx.interaction) return ctx.message.reply(payload);
+  if (ctx.interaction.deferred) return ctx.interaction.editReply(payload);
+  if (ctx.interaction.replied) return ctx.interaction.followUp(payload);
 
-    return ctx.interaction.reply({
-      ...payload,
-      fetchReply: true
-    });
-  }
+  await ctx.interaction.reply(payload);
+  return ctx.interaction.fetchReply();
+}
 
-  return ctx.message.reply(
-    payload
+function button(id, label, disabled = false, emoji = null) {
+  const b = new ButtonBuilder()
+    .setCustomId(id)
+    .setLabel(label)
+    .setStyle(ButtonStyle.Secondary)
+    .setDisabled(disabled);
+
+  if (emoji) b.setEmoji(emoji);
+  return b;
+}
+
+function expire(msg, collector) {
+  collector.on("end", () =>
+    msg.edit({ components: [] }).catch(() => {})
   );
 }
 
-async function send(ctx, payload) {
-  if (
-    typeof payload === "string"
-  ) {
-    payload = {
-      content: payload
-    };
+async function componentError(i, error) {
+  console.error("[WISHLIST]", error);
+
+  const payload = {
+    content: "❌ Could not complete that action. Please try again.",
+    ephemeral: true
+  };
+
+  if (i.deferred || i.replied) {
+    return i.followUp(payload).catch(() => {});
   }
 
-  if (ctx.interaction) {
-    if (
-      ctx.interaction.replied ||
-      ctx.interaction.deferred
-    ) {
-      return ctx.interaction.followUp(
-        payload
-      );
-    }
-
-    return ctx.interaction.reply({
-      ...payload,
-      fetchReply: true
-    });
-  }
-
-  return ctx.message.channel.send(
-    payload
-  );
+  return i.reply(payload).catch(() => {});
 }
 
-// ==========================================
-// SHOW WISHLIST
-// ==========================================
+async function wishlistCounts(col, entries) {
+  const wanted = new Set(
+    entries.map(card => key({
+      cardId: card.id,
+      season: card.season
+    }))
+  );
 
-async function showWishlist(
-  ctx,
-  targetUser
-) {
-  const db =
-    await connectDB();
+  const ids = [...new Set(entries.map(c => Number(c.id)))];
 
-  const wishCol =
-    db.collection("wishlists");
+  const docs = await col.find({
+    $or: [
+      { "cards.cardId": { $in: ids } },
+      { "cards.id": { $in: ids } },
+      { cards: { $in: ids } }
+    ]
+  }).toArray();
 
-  const viewerId =
-    ctx.user.id;
+  const users = new Map();
 
-  const targetId =
-    targetUser.id;
+  for (const doc of docs) {
+    if (!doc.userId) continue;
 
-  const data =
-    await wishCol.findOne({
-      userId: targetId
-    });
+    for (const entry of Array.isArray(doc.cards) ? doc.cards : []) {
+      const k = key(entry);
+      if (!wanted.has(k)) continue;
 
-  if (
-    !data ||
-    !Array.isArray(data.cards) ||
-    data.cards.length === 0
-  ) {
+      if (!users.has(k)) users.set(k, new Set());
+      users.get(k).add(doc.userId);
+    }
+  }
+
+  return new Map([...users].map(([k, people]) => [k, people.size]));
+}
+
+async function showWishlist(ctx, target) {
+  const col = await wishlistCollection();
+  const doc = await col.findOne({ userId: target.id });
+  const original = [];
+  const seen = new Set();
+
+  for (const entry of Array.isArray(doc?.cards) ? doc.cards : []) {
+    const card = resolve(entry);
+
+    if (card && !seen.has(key(entry))) {
+      seen.add(key(entry));
+      original.push(card);
+    }
+  }
+
+  if (!original.length) {
     return reply(
       ctx,
-
-      targetId === viewerId
-        ? (
-          "💫 Your wishlist is empty.\n" +
-          "Use: `@GrootX wishlist add n:Spider-Man s:0 a:Spider-Man (2002)` " +
-          "or `/wishlist add`"
-        )
-        : (
-          `💫 **${targetUser.username}**'s wishlist is empty.`
-        )
+      `💫 **${target.username}**'s wishlist is empty.\n` +
+      "Use `@GrootX wishlist add n:spider-man` or `/wishlist add`."
     );
   }
 
-  // Resolve each stored wishlist entry
-  // using its own season database.
-  const originalEntries =
-    data.cards
-      .map(resolveWishlistEntry)
-      .filter(Boolean);
+  const counts = await wishlistCounts(col, original);
 
-  let wishedCards =
-    [...originalEntries];
-
+  let filter = "all";
+  let sort = "default";
+  let mode = "list";
+  let index = 0;
   let page = 0;
-  let imageIndex = 0;
+  let busy = false;
 
-  let viewMode =
-    "list";
+  const cache = new Map();
 
-  let currentSort =
-    "default";
-
-  let seasonFilter =
-    "all";
-
-  // ========================================
-  // FILTER + SORT
-  // ========================================
-
-  function applyFiltersAndSort() {
-    wishedCards =
-      originalEntries.filter(card =>
-        seasonFilter === "all" ||
-        Number(card.season) ===
-          Number(seasonFilter)
-      );
-
-    if (
-      currentSort === "name"
-    ) {
-      wishedCards.sort(
-        (a, b) =>
-          (a.name || "")
-            .localeCompare(
-              b.name || ""
-            )
-      );
-    }
-
-    if (
-      currentSort === "tier"
-    ) {
-      wishedCards.sort(
-        (a, b) =>
-          getRarity(a)
-            .localeCompare(
-              getRarity(b)
-            )
-      );
-    }
-
-    if (
-      currentSort === "series"
-    ) {
-      wishedCards.sort(
-        (a, b) =>
-          (
-            a.appearance ||
-            a.show ||
-            ""
-          ).localeCompare(
-            b.appearance ||
-            b.show ||
-            ""
-          )
-      );
-    }
-  }
-
-  function applySort(
-    sortType
-  ) {
-    currentSort =
-      sortType;
-
-    applyFiltersAndSort();
-  }
-
-  function getTotalPages() {
-    return Math.max(
-      1,
-      Math.ceil(
-        wishedCards.length /
-        PER_PAGE
-      )
+  function cards() {
+    const list = original.filter(c =>
+      filter === "all" ||
+      (filter === "halloween"
+        ? isHalloween(c)
+        : c.season === Number(filter))
     );
-  }
 
-  function clampIndexes() {
-    const totalPages =
-      getTotalPages();
-
-    if (
-      page >= totalPages
-    ) {
-      page =
-        totalPages - 1;
+    if (sort === "name") {
+      list.sort((a, b) => a.name.localeCompare(b.name));
     }
 
-    if (
-      page < 0
-    ) {
-      page = 0;
+    if (sort === "tier") {
+      list.sort((a, b) => rarity(a).localeCompare(rarity(b)));
     }
 
-    if (
-      imageIndex >=
-      wishedCards.length
-    ) {
-      imageIndex =
-        Math.max(
-          0,
-          wishedCards.length - 1
-        );
-    }
-
-    if (
-      imageIndex < 0
-    ) {
-      imageIndex = 0;
-    }
-  }
-
-  // ========================================
-  // LIST EMBED
-  // ========================================
-
-  function buildListEmbed() {
-    clampIndexes();
-
-    const totalPages =
-      getTotalPages();
-
-    const start =
-      page * PER_PAGE;
-
-    const pageCards =
-      wishedCards.slice(
-        start,
-        start + PER_PAGE
+    if (sort === "series") {
+      list.sort((a, b) =>
+        appearance(a).localeCompare(appearance(b))
       );
+    }
 
-    const description =
-      pageCards.length
-        ? pageCards
-            .map(
-              (card, index) => {
-                const globalIndex =
-                  start +
-                  index +
-                  1;
-
-                const season =
-                  Number(
-                    card.season ??
-                    0
-                  );
-
-                const appearance =
-                  card.appearance ||
-                  card.show ||
-                  "Unknown";
-
-                return (
-                  `**${globalIndex}.** ` +
-                  `${getSeasonEmoji(season)} ` +
-                  `${getTierEmoji(getRarity(card))} ` +
-                  `**${card.name}**\n` +
-                  `└ ${appearance} • Season ${season}`
-                );
-              }
-            )
-            .join("\n\n")
-        : (
-          "No wishlist cards match this season filter."
-        );
-
-    return new EmbedBuilder()
-      .setColor(
-        0xffc107
-      )
-      .setAuthor({
-        name:
-          `${targetUser.username}'s Wishlist`,
-
-        iconURL:
-          targetUser.displayAvatarURL({
-            dynamic: true
-          })
-      })
-      .setDescription(
-        description
-      )
-      .setFooter({
-        text:
-          `Page ${page + 1}/${totalPages} • ` +
-          `${wishedCards.length} cards • ` +
-          `Season: ${
-            seasonFilter === "all"
-              ? "All"
-              : `S${seasonFilter}`
-          }`
-      });
+    return list;
   }
 
-  // ========================================
-  // LIST BUTTONS
-  // ========================================
+  function controls(list) {
+    const total = mode === "image"
+      ? list.length
+      : Math.ceil(list.length / PER_PAGE);
 
-  function buildListButtons() {
-    const totalPages =
-      getTotalPages();
-
-    const navRow =
-      new ActionRowBuilder()
-        .addComponents(
-
-          new ButtonBuilder()
-            .setCustomId(
-              "wish_prev"
-            )
-            .setLabel(
-              "◀"
-            )
-            .setStyle(
-              ButtonStyle.Secondary
-            )
-            .setDisabled(
-              page <= 0
-            ),
-
-          new ButtonBuilder()
-            .setCustomId(
-              "wish_next"
-            )
-            .setLabel(
-              "▶"
-            )
-            .setStyle(
-              ButtonStyle.Secondary
-            )
-            .setDisabled(
-              page >=
-              totalPages - 1
-            ),
-
-          new ButtonBuilder()
-            .setCustomId(
-              "wish_image"
-            )
-            .setLabel(
-              "🖼️ Image View"
-            )
-            .setStyle(
-              ButtonStyle.Primary
-            )
-            .setDisabled(
-              wishedCards.length === 0
-            ),
-
-          new ButtonBuilder()
-            .setCustomId(
-              "wish_sort"
-            )
-            .setLabel(
-              "↕ Sort"
-            )
-            .setStyle(
-              ButtonStyle.Secondary
-            )
-        );
-
-    const filterRow =
-      new ActionRowBuilder()
-        .addComponents(
-
-          new ButtonBuilder()
-            .setCustomId(
-              "wish_season_all"
-            )
-            .setLabel(
-              "All"
-            )
-            .setStyle(
-              seasonFilter === "all"
-                ? ButtonStyle.Success
-                : ButtonStyle.Secondary
-            ),
-
-          new ButtonBuilder()
-            .setCustomId(
-              "wish_season_0"
-            )
-            .setLabel(
-              "S0"
-            )
-            .setEmoji(
-              "0️⃣"
-            )
-            .setStyle(
-              seasonFilter === 0
-                ? ButtonStyle.Success
-                : ButtonStyle.Secondary
-            ),
-
-          new ButtonBuilder()
-            .setCustomId(
-              "wish_season_1"
-            )
-            .setLabel(
-              "S1"
-            )
-            .setEmoji(
-              "1️⃣"
-            )
-            .setStyle(
-              seasonFilter === 1
-                ? ButtonStyle.Success
-                : ButtonStyle.Secondary
-            )
-        );
+    const pos = mode === "image" ? index : page;
 
     return [
-      navRow,
-      filterRow
+      new ActionRowBuilder().addComponents(
+        button("wish_prev", "Previous", pos <= 0),
+        button("wish_next", "Next", pos >= total - 1),
+        button(
+          "wish_toggle",
+          mode === "image" ? "List View" : "Image View",
+          !list.length
+        )
+      ),
+
+      new ActionRowBuilder().addComponents(
+        new StringSelectMenuBuilder()
+          .setCustomId("wish_filter")
+          .setPlaceholder("Filter by season")
+          .addOptions([
+            {
+              label: "All cards",
+              value: "all",
+              default: filter === "all"
+            },
+            {
+              label: "Season 0",
+              value: "0",
+              emoji: SEASON_EMOJIS[0],
+              default: filter === "0"
+            },
+            {
+              label: "Season 1",
+              value: "1",
+              emoji: SEASON_EMOJIS[1],
+              default: filter === "1"
+            },
+            {
+              label: "Halloween 2026",
+              value: "halloween",
+              emoji: "🎃",
+              default: filter === "halloween"
+            }
+          ])
+      ),
+
+      new ActionRowBuilder().addComponents(
+        new StringSelectMenuBuilder()
+          .setCustomId("wish_sort")
+          .setPlaceholder("Sort wishlist")
+          .addOptions(
+            ["default", "name", "tier", "series"].map(v => ({
+              label: v === "default"
+                ? "Original order"
+                : v[0].toUpperCase() + v.slice(1),
+              value: v,
+              default: sort === v
+            }))
+          )
+      )
     ];
   }
-    // ========================================
-  // IMAGE VIEW
-  // ========================================
 
-  async function buildImagePayload() {
-    clampIndexes();
+  const heart = card =>
+    `❤️ ${counts.get(key({
+      cardId: card.id,
+      season: card.season
+    })) || 0}`;
 
-    if (
-      wishedCards.length === 0
-    ) {
-      return {
-        embeds: [
-          new EmbedBuilder()
-            .setColor(
-              0xffc107
-            )
-            .setTitle(
-              `${targetUser.username}'s Wishlist`
-            )
-            .setDescription(
-              "No wishlist cards match this season filter."
-            )
-        ],
+  async function payload() {
+    const list = cards();
 
-        components:
-          buildListButtons(),
+    page = Math.max(
+      0,
+      Math.min(page, Math.ceil(list.length / PER_PAGE) - 1)
+    );
 
-        files: []
-      };
-    }
+    index = Math.max(0, Math.min(index, list.length - 1));
 
-    const card =
-      wishedCards[
-        imageIndex
-      ];
+    const embed = new EmbedBuilder()
+      .setColor(0xffc107)
+      .setAuthor({
+        name: `${target.username}'s Wishlist`,
+        iconURL: target.displayAvatarURL()
+      });
 
-    const season =
-      Number(
-        card.season ??
-        0
-      );
+    const out = {
+      embeds: [embed],
+      components: controls(list),
+      attachments: [],
+      files: []
+    };
 
-    let buffer;
+    if (mode === "image" && list.length) {
+      const card = list[index];
+      const k = key({ cardId: card.id, season: card.season });
 
-    try {
-      buffer =
-        await renderCard(
-          card,
-          "000000",
-          {
-            cardId:
-              card.id,
-
-            season
-          }
-        );
-    }
-
-    catch (error) {
-      console.error(
-        "Wishlist render error:",
-        error
-      );
-
-      return {
-        embeds: [
-          new EmbedBuilder()
-            .setColor(
-              0xff0000
-            )
-            .setTitle(
-              "❌ Render Error"
-            )
-            .setDescription(
-              `Could not render **${card.name}** from Season ${season}.`
-            )
-        ],
-
-        components:
-          buildImageButtons(),
-
-        files: []
-      };
-    }
-
-    const attachment =
-      new AttachmentBuilder(
-        buffer,
-        {
-          name:
-            "wishlist-card.png"
+      try {
+        if (!cache.has(k)) {
+          cache.set(k, await wishlistImage(card));
         }
-      );
 
-    const embed =
-      new EmbedBuilder()
-        .setColor(
-          0xffc107
-        )
-        .setAuthor({
-          name:
-            `${targetUser.username}'s Wishlist`,
+        out.files = [
+          new AttachmentBuilder(cache.get(k), {
+            name: "wishlist-card.png"
+          })
+        ];
 
-          iconURL:
-            targetUser.displayAvatarURL({
-              dynamic: true
-            })
-        })
-        .setTitle(
-          `${getSeasonEmoji(season)} ${card.name}`
-        )
+        embed
+          .setTitle(card.name)
+          .setDescription(
+            `${seasonEmoji(card.season)} ${cardEmoji(card)} ` +
+            `**${rarity(card)}** • ${heart(card)}\n` +
+            `🎬 ${appearance(card)}`
+          )
+          .setImage("attachment://wishlist-card.png")
+          .setFooter({
+            text:
+              `Card ${index + 1}/${list.length} • ` +
+              `${original.length}/${MAX_WISHES} wishes`
+          });
+      } catch (error) {
+        console.error("[WISHLIST] Render failed:", error);
+
+        embed.setDescription(
+          `❌ Could not render ${seasonEmoji(card.season)} ` +
+          `**${card.name}**. Check its image and frame files.`
+        );
+      }
+    } else {
+      embed
         .setDescription(
-          `${getTierEmoji(getRarity(card))} ` +
-          `**${getRarity(card)}**\n` +
-          `🎬 ${card.appearance || card.show || "Unknown"}\n` +
-          `🌌 Season ${season}`
-        )
-        .setImage(
-          "attachment://wishlist-card.png"
+          list.length
+            ? list
+                .slice(page * PER_PAGE, (page + 1) * PER_PAGE)
+                .map((c, i) =>
+                  `**${page * PER_PAGE + i + 1}.** ` +
+                  `${seasonEmoji(c.season)} ${cardEmoji(c)} ` +
+                  `**${c.name}** • ${heart(c)}\n` +
+                  `└ ${appearance(c)} • ID ${c.id}`
+                )
+                .join("\n\n")
+            : "No cards match this season."
         )
         .setFooter({
           text:
-            `Card ${imageIndex + 1}/${wishedCards.length}`
+            `Page ${page + 1}/` +
+            `${Math.max(1, Math.ceil(list.length / PER_PAGE))} • ` +
+            `${original.length}/${MAX_WISHES} wishes`
         });
+    }
+
+    return out;
+  }
+
+  const msg = await reply(ctx, await payload());
+  const collector = msg.createMessageComponentCollector({
+    time: 180000
+  });
+
+  collector.on("collect", async i => {
+    if (i.user.id !== ctx.user.id) {
+      return i.reply({
+        content: "❌ These controls aren't for you.",
+        ephemeral: true
+      });
+    }
+
+    let acquired = false;
+
+    try {
+      // Acknowledge before rendering or database work.
+      await i.deferUpdate();
+
+      if (busy) return;
+      busy = true;
+      acquired = true;
+
+      if (i.customId === "wish_filter") {
+        filter = i.values[0];
+        page = index = 0;
+      }
+
+      if (i.customId === "wish_sort") {
+        sort = i.values[0];
+        page = index = 0;
+      }
+
+      if (i.customId === "wish_toggle") {
+        mode = mode === "list" ? "image" : "list";
+
+        if (mode === "image") index = page * PER_PAGE;
+        else page = Math.floor(index / PER_PAGE);
+      }
+
+      if (i.customId === "wish_prev") {
+        if (mode === "image") index--;
+        else page--;
+      }
+
+      if (i.customId === "wish_next") {
+        if (mode === "image") index++;
+        else page++;
+      }
+
+      const next = await payload();
+
+      if (!collector.ended) {
+        await i.editReply(next);
+      }
+    } catch (error) {
+      await componentError(i, error);
+    } finally {
+      if (acquired) busy = false;
+    }
+  });
+
+  expire(msg, collector);
+}
+
+async function changeWishlist(col, userId, sub, card) {
+  const entry = {
+    cardId: Number(card.id),
+    season: card.season
+  };
+
+  // Compare stored snapshots to prevent concurrent additions
+  // from bypassing the limit or adding duplicates.
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const doc = await col.findOne({ userId });
+    const stored = Array.isArray(doc?.cards) ? doc.cards : [];
+
+    const unique = [
+      ...new Map(stored.map(e => [key(e), e])).values()
+    ];
+
+    const exists = stored.some(e => key(e) === key(entry));
+
+    if (sub === "add" && exists) {
+      return "❌ That card is already in your wishlist.";
+    }
+
+    if (sub === "remove" && !exists) {
+      return "❌ That card isn't in your wishlist.";
+    }
+
+    if (sub === "add" && unique.length >= MAX_WISHES) {
+      return (
+        "❌ Your wishlist is full (15 cards maximum). " +
+        "Remove a card first."
+      );
+    }
+
+    const next = sub === "add"
+      ? [...unique, entry]
+      : unique.filter(e => key(e) !== key(entry));
+
+    if (!doc) {
+      try {
+        await col.insertOne({ userId, cards: next });
+      } catch (e) {
+        if (e.code === 11000) continue;
+        throw e;
+      }
+    } else {
+      const query = {
+        _id: doc._id,
+        cards: doc.cards === undefined
+          ? { $exists: false }
+          : doc.cards
+      };
+
+      const result = await col.updateOne(
+        query,
+        { $set: { cards: next } }
+      );
+
+      if (!result.modifiedCount) continue;
+    }
+
+    return (
+      `${sub === "add" ? "💫 Added" : "🗑️ Removed"} ` +
+      `${seasonEmoji(card.season)} ${cardEmoji(card)} ` +
+      `**${card.name}** • **${appearance(card)}** • ID ${card.id} ` +
+      `${sub === "add" ? "to" : "from"} your wishlist.`
+    );
+  }
+
+  return (
+    "❌ Your wishlist changed while processing. Please try again."
+  );
+}
+
+async function addOrRemove(ctx, sub, filters) {
+  if (!filters.name.trim()) {
+    return reply(
+      ctx,
+      "❌ Name is required. Use `wishlist add n:spider-man` " +
+      "(s: and a: are optional)."
+    );
+  }
+
+  if (
+    filters.season !== null &&
+    ![0, 1].includes(filters.season)
+  ) {
+    return reply(ctx, "❌ Season must be 0 or 1.");
+  }
+
+  const col = await wishlistCollection();
+
+  // Prevent simultaneous first additions creating two user documents.
+  await col.createIndex({ userId: 1 }, { unique: true });
+
+  let matches = findCards(filters);
+
+  if (sub === "remove") {
+    const doc = await col.findOne({ userId: ctx.user.id });
+
+    const keys = new Set(
+      (Array.isArray(doc?.cards) ? doc.cards : []).map(key)
+    );
+
+    matches = matches.filter(c =>
+      keys.has(key({ cardId: c.id, season: c.season }))
+    );
+  }
+
+  if (!matches.length) {
+    return reply(
+      ctx,
+      "❌ No matching cards found. Check n:, s:, and a:."
+    );
+  }
+
+  if (matches.length === 1) {
+    return reply(
+      ctx,
+      await changeWishlist(col, ctx.user.id, sub, matches[0])
+    );
+  }
+
+  let page = 0;
+  let busy = false;
+  const pages = Math.ceil(matches.length / 25);
+
+  function selectionPayload() {
+    const options = matches
+      .slice(page * 25, (page + 1) * 25)
+      .map((card, offset) => ({
+        label:
+          `${card.name} • S${card.season} • #${card.id}`
+            .slice(0, 100),
+        description:
+          `${rarity(card)} • ${appearance(card)}`
+            .slice(0, 100),
+        value: String(page * 25 + offset),
+        emoji: seasonEmoji(card.season)
+      }));
 
     return {
+      content: null,
       embeds: [
-        embed
+        new EmbedBuilder()
+          .setColor(0xffc107)
+          .setTitle("🔎 Choose the exact card")
+          .setDescription(
+            `${SEASON_EMOJIS[0]} Season 0 • ` +
+            `${SEASON_EMOJIS[1]} Season 1\n` +
+            "🎃 Halloween cards are in Season 1.\n" +
+            `Found **${matches.length}** matches. ` +
+            "All are available through the pages."
+          )
+          .setFooter({
+            text:
+              `Page ${page + 1}/${pages} • ` +
+              "Selection expires in 2 minutes"
+          })
       ],
-
-      components:
-        buildImageButtons(),
-
-      files: [
-        attachment
+      components: [
+        new ActionRowBuilder().addComponents(
+          new StringSelectMenuBuilder()
+            .setCustomId("wish_pick")
+            .setPlaceholder("Choose a card")
+            .addOptions(options)
+        ),
+        new ActionRowBuilder().addComponents(
+          button("pick_prev", "Previous", page === 0),
+          button("pick_next", "Next", page === pages - 1)
+        )
       ]
     };
   }
 
-
-  // ========================================
-  // IMAGE BUTTONS
-  // ========================================
-
-  function buildImageButtons() {
-    const navRow =
-      new ActionRowBuilder()
-        .addComponents(
-
-          new ButtonBuilder()
-            .setCustomId(
-              "wish_img_prev"
-            )
-            .setLabel(
-              "◀"
-            )
-            .setStyle(
-              ButtonStyle.Secondary
-            )
-            .setDisabled(
-              imageIndex <= 0
-            ),
-
-          new ButtonBuilder()
-            .setCustomId(
-              "wish_img_next"
-            )
-            .setLabel(
-              "▶"
-            )
-            .setStyle(
-              ButtonStyle.Secondary
-            )
-            .setDisabled(
-              imageIndex >=
-              wishedCards.length - 1
-            ),
-
-          new ButtonBuilder()
-            .setCustomId(
-              "wish_list"
-            )
-            .setLabel(
-              "📋 List View"
-            )
-            .setStyle(
-              ButtonStyle.Primary
-            ),
-
-          new ButtonBuilder()
-            .setCustomId(
-              "wish_sort"
-            )
-            .setLabel(
-              "↕ Sort"
-            )
-            .setStyle(
-              ButtonStyle.Secondary
-            )
-        );
-
-    const filterRow =
-      new ActionRowBuilder()
-        .addComponents(
-
-          new ButtonBuilder()
-            .setCustomId(
-              "wish_season_all"
-            )
-            .setLabel(
-              "All"
-            )
-            .setStyle(
-              seasonFilter === "all"
-                ? ButtonStyle.Success
-                : ButtonStyle.Secondary
-            ),
-
-          new ButtonBuilder()
-            .setCustomId(
-              "wish_season_0"
-            )
-            .setLabel(
-              "S0"
-            )
-            .setEmoji(
-              "0️⃣"
-            )
-            .setStyle(
-              seasonFilter === 0
-                ? ButtonStyle.Success
-                : ButtonStyle.Secondary
-            ),
-
-          new ButtonBuilder()
-            .setCustomId(
-              "wish_season_1"
-            )
-            .setLabel(
-              "S1"
-            )
-            .setEmoji(
-              "1️⃣"
-            )
-            .setStyle(
-              seasonFilter === 1
-                ? ButtonStyle.Success
-                : ButtonStyle.Secondary
-            )
-        );
-
-    return [
-      navRow,
-      filterRow
-    ];
-  }
-
-
-  // ========================================
-  // SORT MENU
-  // ========================================
-
-  function buildSortMenu() {
-    const sortMenu =
-      new StringSelectMenuBuilder()
-        .setCustomId(
-          "wish_sort_select"
-        )
-        .setPlaceholder(
-          "Choose sorting"
-        )
-        .addOptions(
-          {
-            label:
-              "Default",
-
-            value:
-              "default",
-
-            description:
-              "Original wishlist order"
-          },
-
-          {
-            label:
-              "Name",
-
-            value:
-              "name",
-
-            description:
-              "Sort alphabetically"
-          },
-
-          {
-            label:
-              "Tier",
-
-            value:
-              "tier",
-
-            description:
-              "Sort by rarity / tier"
-          },
-
-          {
-            label:
-              "Series",
-
-            value:
-              "series",
-
-            description:
-              "Sort by appearance / series"
-          }
-        );
-
-    return new ActionRowBuilder()
-      .addComponents(
-        sortMenu
-      );
-  }
-
-
-  // ========================================
-  // RESET ORIGINAL ORDER
-  // ========================================
-
-  function resetDefaultOrder() {
-    wishedCards =
-      originalEntries.filter(card =>
-        seasonFilter === "all" ||
-        Number(card.season) ===
-          Number(seasonFilter)
-      );
-  }
-
-
-  // ========================================
-  // APPLY INITIAL FILTER
-  // ========================================
-
-  applyFiltersAndSort();
-
-
-  // ========================================
-  // INITIAL MESSAGE
-  // ========================================
-
-  const initialPayload = {
-    embeds: [
-      buildListEmbed()
-    ],
-
-    components:
-      buildListButtons()
-  };
-
-  const msg =
-    await reply(
-      ctx,
-      initialPayload
-    );
-
-
-  // ========================================
-  // COMPONENT COLLECTOR
-  // ========================================
-
-  const collector =
-    msg.createMessageComponentCollector({
-      time:
-        180000
-    });
-
-
-  collector.on(
-    "collect",
-
-    async interaction => {
-
-      // Only the person who opened
-      // the wishlist controls the menu.
-
-      if (
-        interaction.user.id !==
-        viewerId
-      ) {
-        return interaction.reply({
-          content:
-            "❌ These wishlist controls aren't for you.",
-
-          ephemeral:
-            true
-        });
-      }
-
-
-      // ====================================
-      // PREVIOUS LIST PAGE
-      // ====================================
-
-      if (
-        interaction.customId ===
-        "wish_prev"
-      ) {
-        page--;
-
-        clampIndexes();
-
-        return interaction.update({
-          embeds: [
-            buildListEmbed()
-          ],
-
-          components:
-            buildListButtons(),
-
-          files: []
-        });
-      }
-
-
-      // ====================================
-      // NEXT LIST PAGE
-      // ====================================
-
-      if (
-        interaction.customId ===
-        "wish_next"
-      ) {
-        page++;
-
-        clampIndexes();
-
-        return interaction.update({
-          embeds: [
-            buildListEmbed()
-          ],
-
-          components:
-            buildListButtons(),
-
-          files: []
-        });
-      }
-
-
-      // ====================================
-      // SWITCH TO IMAGE VIEW
-      // ====================================
-
-      if (
-        interaction.customId ===
-        "wish_image"
-      ) {
-        viewMode =
-          "image";
-
-        imageIndex =
-          Math.min(
-            page * PER_PAGE,
-            Math.max(
-              0,
-              wishedCards.length - 1
-            )
-          );
-
-        const payload =
-          await buildImagePayload();
-
-        return interaction.update(
-          payload
-        );
-      }
-
-
-      // ====================================
-      // SWITCH TO LIST VIEW
-      // ====================================
-
-      if (
-        interaction.customId ===
-        "wish_list"
-      ) {
-        viewMode =
-          "list";
-
-        page =
-          Math.floor(
-            imageIndex /
-            PER_PAGE
-          );
-
-        clampIndexes();
-
-        return interaction.update({
-          embeds: [
-            buildListEmbed()
-          ],
-
-          components:
-            buildListButtons(),
-
-          files: []
-        });
-      }
-
-
-      // ====================================
-      // PREVIOUS IMAGE
-      // ====================================
-
-      if (
-        interaction.customId ===
-        "wish_img_prev"
-      ) {
-        imageIndex--;
-
-        clampIndexes();
-
-        const payload =
-          await buildImagePayload();
-
-        return interaction.update(
-          payload
-        );
-      }
-
-
-      // ====================================
-      // NEXT IMAGE
-      // ====================================
-
-      if (
-        interaction.customId ===
-        "wish_img_next"
-      ) {
-        imageIndex++;
-
-        clampIndexes();
-
-        const payload =
-          await buildImagePayload();
-
-        return interaction.update(
-          payload
-        );
-      }
-
-
-      // ====================================
-      // OPEN SORT MENU
-      // ====================================
-
-      if (
-        interaction.customId ===
-        "wish_sort"
-      ) {
-        const components =
-          viewMode === "image"
-            ? buildImageButtons()
-            : buildListButtons();
-
-        components.push(
-          buildSortMenu()
-        );
-
-        return interaction.update({
-          components
-        });
-      }
-
-
-      // ====================================
-      // SORT SELECTION
-      // ====================================
-
-      if (
-        interaction.customId ===
-        "wish_sort_select"
-      ) {
-        const selectedSort =
-          interaction.values[0];
-
-        if (
-          selectedSort ===
-          "default"
-        ) {
-          currentSort =
-            "default";
-
-          resetDefaultOrder();
-        }
-
-        else {
-          applySort(
-            selectedSort
-          );
-        }
-
-        page = 0;
-        imageIndex = 0;
-
-        clampIndexes();
-
-
-        if (
-          viewMode === "image"
-        ) {
-          const payload =
-            await buildImagePayload();
-
-          return interaction.update(
-            payload
-          );
-        }
-
-
-        return interaction.update({
-          embeds: [
-            buildListEmbed()
-          ],
-
-          components:
-            buildListButtons(),
-
-          files: []
-        });
-      }
-
-
-      // ====================================
-      // ALL SEASONS
-      // ====================================
-
-      if (
-        interaction.customId ===
-        "wish_season_all"
-      ) {
-        seasonFilter =
-          "all";
-
-        page = 0;
-        imageIndex = 0;
-
-        if (
-          currentSort ===
-          "default"
-        ) {
-          resetDefaultOrder();
-        }
-
-        else {
-          applyFiltersAndSort();
-        }
-
-        clampIndexes();
-
-
-        if (
-          viewMode === "image"
-        ) {
-          if (
-            wishedCards.length === 0
-          ) {
-            viewMode =
-              "list";
-
-            return interaction.update({
-              embeds: [
-                buildListEmbed()
-              ],
-
-              components:
-                buildListButtons(),
-
-              files: []
-            });
-          }
-
-          const payload =
-            await buildImagePayload();
-
-          return interaction.update(
-            payload
-          );
-        }
-
-
-        return interaction.update({
-          embeds: [
-            buildListEmbed()
-          ],
-
-          components:
-            buildListButtons(),
-
-          files: []
-        });
-      }
-
-
-      // ====================================
-      // SEASON 0 FILTER
-      // ====================================
-
-      if (
-        interaction.customId ===
-        "wish_season_0"
-      ) {
-        seasonFilter =
-          0;
-
-        page = 0;
-        imageIndex = 0;
-
-        if (
-          currentSort ===
-          "default"
-        ) {
-          resetDefaultOrder();
-        }
-
-        else {
-          applyFiltersAndSort();
-        }
-
-        clampIndexes();
-
-
-        if (
-          viewMode === "image"
-        ) {
-          if (
-            wishedCards.length === 0
-          ) {
-            viewMode =
-              "list";
-
-            return interaction.update({
-              embeds: [
-                buildListEmbed()
-              ],
-
-              components:
-                buildListButtons(),
-
-              files: []
-            });
-          }
-
-          const payload =
-            await buildImagePayload();
-
-          return interaction.update(
-            payload
-          );
-        }
-
-
-        return interaction.update({
-          embeds: [
-            buildListEmbed()
-          ],
-
-          components:
-            buildListButtons(),
-
-          files: []
-        });
-      }
-
-
-      // ====================================
-      // SEASON 1 FILTER
-      // ====================================
-
-      if (
-        interaction.customId ===
-        "wish_season_1"
-      ) {
-        seasonFilter =
-          1;
-
-        page = 0;
-        imageIndex = 0;
-
-        if (
-          currentSort ===
-          "default"
-        ) {
-          resetDefaultOrder();
-        }
-
-        else {
-          applyFiltersAndSort();
-        }
-
-        clampIndexes();
-
-
-        if (
-          viewMode === "image"
-        ) {
-          if (
-            wishedCards.length === 0
-          ) {
-            viewMode =
-              "list";
-
-            return interaction.update({
-              embeds: [
-                buildListEmbed()
-              ],
-
-              components:
-                buildListButtons(),
-
-              files: []
-            });
-          }
-
-          const payload =
-            await buildImagePayload();
-
-          return interaction.update(
-            payload
-          );
-        }
-
-
-        return interaction.update({
-          embeds: [
-            buildListEmbed()
-          ],
-
-          components:
-            buildListButtons(),
-
-          files: []
-        });
-      }
+  const msg = await reply(ctx, selectionPayload());
+
+  const collector = msg.createMessageComponentCollector({
+    time: 120000
+  });
+
+  collector.on("collect", async i => {
+    if (i.user.id !== ctx.user.id) {
+      return i.reply({
+        content: "❌ This selection isn't for you.",
+        ephemeral: true
+      });
     }
-  );
 
+    let acquired = false;
 
-  // ========================================
-  // COLLECTOR END
-  // ========================================
+    try {
+      await i.deferUpdate();
 
-  collector.on(
-    "end",
+      if (busy) return;
+      busy = true;
+      acquired = true;
 
-    async () => {
-      try {
-        await msg.edit({
+      if (
+        i.customId === "pick_prev" ||
+        i.customId === "pick_next"
+      ) {
+        page = Math.max(
+          0,
+          Math.min(
+            pages - 1,
+            page + (i.customId === "pick_next" ? 1 : -1)
+          )
+        );
+
+        await i.editReply(selectionPayload());
+      } else if (i.customId === "wish_pick") {
+        const card = matches[Number(i.values[0])];
+
+        if (!card) {
+          throw new Error("Invalid card selection");
+        }
+
+        const text = await changeWishlist(
+          col,
+          ctx.user.id,
+          sub,
+          card
+        );
+
+        await i.editReply({
+          content: text,
+          embeds: [],
           components: []
         });
-      }
 
-      catch (error) {
-        // Message may have been deleted.
+        collector.stop("selected");
       }
+    } catch (error) {
+      await componentError(i, error);
+    } finally {
+      if (acquired) busy = false;
     }
-  );
+  });
+
+  expire(msg, collector);
 }
 
-
-// ==========================================
-// ADD / REMOVE
-// ==========================================
-
-async function addOrRemoveWishlist(
-  ctx,
-  sub,
-  filters
-) {
-  const db =
-    await connectDB();
-
-  const wishCol =
-    db.collection(
-      "wishlists"
-    );
-
-  const userId =
-    ctx.user.id;
-
-
-  const name =
-    String(
-      filters?.name || ""
-    ).trim();
-
-
-  const appearance =
-    String(
-      filters?.appearance || ""
-    ).trim();
-
-
-  const season =
-    filters?.season ??
-    null;
-
-
-  // ========================================
-  // VALIDATION
-  // ========================================
-
-  if (
-    !name &&
-    !appearance
-  ) {
-    return reply(
-      ctx,
-
-      "❌ Give at least `n:` or `a:`.\n" +
-
-      `Example: \`@GrootX wishlist ${sub} ` +
-      `n:spider-man s:0 a:spider-man (2002)\``
-    );
+async function runSlash(interaction) {
+  if (!interaction.deferred && !interaction.replied) {
+    await interaction.deferReply();
   }
-
-
-  if (
-    season !== null &&
-    season !== 0 &&
-    season !== 1
-  ) {
-    return reply(
-      ctx,
-
-      "❌ `s:` must be `0` or `1`."
-    );
-  }
-
-
-  // ========================================
-  // GET WISHLIST
-  // ========================================
-
-  let data =
-    await wishCol.findOne({
-      userId
-    });
-
-
-  if (!data) {
-    data = {
-      userId,
-      cards: []
-    };
-
-
-    await wishCol.insertOne(
-      data
-    );
-  }
-
-
-  data.cards =
-    Array.isArray(
-      data.cards
-    )
-      ? data.cards
-      : [];
-
-
-  // ========================================
-  // SEARCH
-  // ========================================
-
-  /*
-   * IMPORTANT:
-   *
-   * findCards() searches the COMPLETE
-   * S0/S1 database first.
-   *
-   * n:
-   * s:
-   * a:
-   *
-   * are applied BEFORE we ever use
-   * Discord's 25-option limit.
-   */
-
-  const matches =
-    findCards({
-      name,
-      season,
-      appearance
-    });
-
-
-  if (
-    !matches.length
-  ) {
-    const used = [];
-
-
-    if (name) {
-      used.push(
-        `n: **${name}**`
-      );
-    }
-
-
-    if (
-      season === 0 ||
-      season === 1
-    ) {
-      used.push(
-        `s: **${season}**`
-      );
-    }
-
-
-    if (appearance) {
-      used.push(
-        `a: **${appearance}**`
-      );
-    }
-
-
-    return reply(
-      ctx,
-
-      "❌ No cards found matching:\n" +
-
-      used
-        .map(
-          value =>
-            `• ${value}`
-        )
-        .join("\n")
-    );
-  }
-
-
-  // ========================================
-  // HANDLE EXACT CARD
-  // ========================================
-
-  async function handleCard(
-    card
-  ) {
-    const cardSeason =
-      Number(
-        card.season ??
-        0
-      );
-
-
-    const fresh =
-      await wishCol.findOne({
-        userId
-      }) || {
-        userId,
-        cards: []
-      };
-
-
-    fresh.cards =
-      Array.isArray(
-        fresh.cards
-      )
-        ? fresh.cards
-        : [];
-
-
-    const key =
-      `${cardSeason}:` +
-      `${String(card.id)}`;
-
-
-    const existingKeys =
-      fresh.cards.map(
-        wishlistKey
-      );
-
-
-    // ======================================
-    // ADD
-    // ======================================
-
-    if (
-      sub === "add"
-    ) {
-      if (
-        existingKeys.includes(
-          key
-        )
-      ) {
-        return send(
-          ctx,
-
-          `❌ ${getSeasonEmoji(cardSeason)} ` +
-          `**${card.name}** ` +
-          `• ${card.appearance || card.show || "Unknown"} ` +
-          `• Season ${cardSeason} ` +
-          `is already in your wishlist.`
-        );
-      }
-
-
-      await wishCol.updateOne(
-        {
-          userId
-        },
-
-        {
-          $push: {
-            cards: {
-              cardId:
-                card.id,
-
-              season:
-                cardSeason
-            }
-          }
-        },
-
-        {
-          upsert:
-            true
-        }
-      );
-
-
-      return send(
-        ctx,
-
-        `💫 Added ` +
-        `${getSeasonEmoji(cardSeason)} ` +
-        `${getTierEmoji(getRarity(card))} ` +
-        `**${card.name}** ` +
-        `• **${card.appearance || card.show || "Unknown"}** ` +
-        `• **Season ${cardSeason}** ` +
-        `to your wishlist.`
-      );
-    }
-
-
-    // ======================================
-    // REMOVE
-    // ======================================
-
-    if (
-      sub === "remove"
-    ) {
-      if (
-        !existingKeys.includes(
-          key
-        )
-      ) {
-        return send(
-          ctx,
-
-          `❌ ${getSeasonEmoji(cardSeason)} ` +
-          `**${card.name}** ` +
-          `from Season ${cardSeason} ` +
-          `is not in your wishlist.`
-        );
-      }
-
-
-      const originalEntry =
-        fresh.cards.find(
-          entry =>
-            wishlistKey(
-              entry
-            ) === key
-        );
-
-
-      await wishCol.updateOne(
-        {
-          userId
-        },
-
-        {
-          $pull: {
-            cards:
-              originalEntry
-          }
-        }
-      );
-
-
-      return send(
-        ctx,
-
-        `🗑️ Removed ` +
-        `${getSeasonEmoji(cardSeason)} ` +
-        `**${card.name}** ` +
-        `• **${card.appearance || card.show || "Unknown"}** ` +
-        `• **Season ${cardSeason}** ` +
-        `from your wishlist.`
-      );
-    }
-  }
-
-
-  // ========================================
-  // ONLY ONE MATCH
-  // ========================================
-
-  if (
-    matches.length === 1
-  ) {
-    return handleCard(
-      matches[0]
-    );
-  }
-
-
-  // ========================================
-  // MULTIPLE MATCHES
-  // ========================================
-
-  /*
-   * Discord only allows 25 select-menu
-   * options.
-   *
-   * BUT filtering has already happened.
-   *
-   * Example:
-   *
-   * n:spider-man
-   * s:1
-   * a:no way home
-   *
-   * searches everything FIRST.
-   */
-
-  const visibleMatches =
-    matches.slice(
-      0,
-      25
-    );
-
-
-  const options =
-    visibleMatches.map(
-      (card, index) => ({
-        label:
-          `${card.name} • S${card.season}`
-            .slice(
-              0,
-              100
-            ),
-
-        description:
-          (
-            `${getRarity(card)} • ` +
-            `${card.appearance || card.show || "Unknown"}`
-          ).slice(
-            0,
-            100
-          ),
-
-        value:
-          String(
-            index
-          ),
-
-        emoji:
-          getSeasonEmoji(
-            card.season
-          )
-      })
-    );
-
-
-  const embed =
-    new EmbedBuilder()
-
-      .setColor(
-        0xffc107
-      )
-
-      .setTitle(
-        "🔎 Multiple Cards Found"
-      )
-
-      .setDescription(
-        "Select the exact card you want.\n" +
-
-        "0️⃣ = Season 0 • 1️⃣ = Season 1\n\n" +
-
-        `Found **${matches.length}** match(es).`
-      )
-
-      .setFooter({
-        text:
-          matches.length > 25
-            ? (
-              "Showing best 25 matches. " +
-              "Use n:, s: or a: to narrow the search."
-            )
-            : (
-              "Selection expires in 2 minutes."
-            )
-      });
-
-
-  const row =
-    new ActionRowBuilder()
-      .addComponents(
-
-        new StringSelectMenuBuilder()
-
-          .setCustomId(
-            "wish_card_select"
-          )
-
-          .setPlaceholder(
-            "Choose exact card"
-          )
-
-          .addOptions(
-            options
-          )
-      );
-
-
-  const msg =
-    await reply(
-      ctx,
-
-      {
-        embeds: [
-          embed
-        ],
-
-        components: [
-          row
-        ]
-      }
-    );
-
-
-  const collector =
-    msg.createMessageComponentCollector({
-      time:
-        120000
-    });
-
-
-  collector.on(
-    "collect",
-
-    async interaction => {
-
-      if (
-        interaction.user.id !==
-        userId
-      ) {
-        return interaction.reply({
-          content:
-            "❌ This is not your wishlist selection.",
-
-          ephemeral:
-            true
-        });
-      }
-
-
-      const selectedIndex =
-        Number.parseInt(
-          interaction.values[0],
-          10
-        );
-
-
-      const selectedCard =
-        visibleMatches[
-          selectedIndex
-        ];
-
-
-      if (
-        !selectedCard
-      ) {
-        return interaction.reply({
-          content:
-            "❌ Selected card not found.",
-
-          ephemeral:
-            true
-        });
-      }
-
-
-      collector.stop(
-        "selected"
-      );
-
-
-      await interaction
-        .update({
-          embeds: [],
-
-          components: [],
-
-          content:
-            `✅ Selected ` +
-            `${getSeasonEmoji(selectedCard.season)} ` +
-            `**${selectedCard.name}** ` +
-            `• ${selectedCard.appearance || selectedCard.show || "Unknown"} ` +
-            `• Season ${selectedCard.season}.`
-        })
-        .catch(
-          () => {}
-        );
-
-
-      return handleCard(
-        selectedCard
-      );
-    }
-  );
-
-
-  collector.on(
-    "end",
-
-    async (
-      _,
-      reason
-    ) => {
-
-      if (
-        reason !==
-        "selected"
-      ) {
-        await msg
-          .edit({
-            content:
-              "⌛ Wishlist selection timed out.",
-
-            embeds: [],
-
-            components: []
-          })
-          .catch(
-            () => {}
-          );
-      }
-    }
-  );
-}
-// ==========================================
-// PREFIX / MENTION FILTER PARSER
-// ==========================================
-
-function parseWishlistFilters(args) {
-  const text =
-    args
-      .join(" ")
-      .trim();
-
-  const filters = {
-    name: "",
-    season: null,
-    appearance: ""
-  };
-
-  /*
-   * Supported examples:
-   *
-   * n:spider-man
-   *
-   * s:0
-   *
-   * a:spider-man (2002)
-   *
-   * n:spider-man s:0 a:spider-man (2002)
-   *
-   * Values can contain spaces.
-   *
-   * a:the amazing spider-man 2
-   *
-   * will continue until another
-   * n:, s: or a: property appears.
-   */
-
-  const regex =
-    /(?:^|\s)(n|s|a):/gi;
-
-  const properties = [];
-
-  let match;
-
-  while (
-    (match = regex.exec(text)) !== null
-  ) {
-    properties.push({
-      key:
-        match[1]
-          .toLowerCase(),
-
-      start:
-        match.index,
-
-      valueStart:
-        regex.lastIndex
-    });
-  }
-
-  for (
-    let i = 0;
-    i < properties.length;
-    i++
-  ) {
-    const current =
-      properties[i];
-
-    const next =
-      properties[i + 1];
-
-    const value =
-      text
-        .slice(
-          current.valueStart,
-
-          next
-            ? next.start
-            : text.length
-        )
-        .trim();
-
-
-    // ======================================
-    // n: NAME
-    // ======================================
-
-    if (
-      current.key === "n"
-    ) {
-      filters.name =
-        value;
-    }
-
-
-    // ======================================
-    // a: APPEARANCE
-    // ======================================
-
-    else if (
-      current.key === "a"
-    ) {
-      filters.appearance =
-        value;
-    }
-
-
-    // ======================================
-    // s: SEASON
-    // ======================================
-
-    else if (
-      current.key === "s"
-    ) {
-      const v =
-        value
-          .toLowerCase();
-
-
-      if (
-        v === "0" ||
-        v === "s0" ||
-        v === "season0"
-      ) {
-        filters.season =
-          0;
-      }
-
-
-      else if (
-        v === "1" ||
-        v === "s1" ||
-        v === "season1"
-      ) {
-        filters.season =
-          1;
-      }
-
-
-      else if (value) {
-        filters.season =
-          NaN;
-      }
-    }
-  }
-
-
-  return filters;
-}
-
-
-// ==========================================
-// PREFIX / @GROOTX COMMAND
-// ==========================================
-
-async function runPrefix(
-  message,
-  args
-) {
-  const user =
-    message.author;
-
-
-  const sub =
-    args[0]
-      ?.toLowerCase();
-
-
-  const ctx = {
-    message,
-    user
-  };
-
-
-  // ========================================
-  // VIEW OWN WISHLIST
-  // ========================================
-
-  if (!sub) {
-    return showWishlist(
-      ctx,
-      message.author
-    );
-  }
-
-
-  // ========================================
-  // VIEW ANOTHER USER
-  // ========================================
-
-  /*
-   * Do NOT use:
-   *
-   * message.mentions.users.size > 0
-   *
-   * for add/remove.
-   *
-   * When the bot is invoked using:
-   *
-   * @GrootX wishlist add ...
-   *
-   * the message contains the bot mention.
-   *
-   * We don't want that mention to make the
-   * command think we're trying to view a
-   * user's wishlist.
-   */
-
-  if (
-    ![
-      "add",
-      "remove"
-    ].includes(sub) &&
-    message.mentions.users.size > 0
-  ) {
-    /*
-     * Find a mentioned user that isn't
-     * the bot itself.
-     */
-
-    const targetUser =
-      message.mentions.users.find(
-        mentionedUser =>
-          mentionedUser.id !==
-          message.client.user.id
-      );
-
-
-    if (targetUser) {
-      return showWishlist(
-        ctx,
-        targetUser
-      );
-    }
-  }
-
-
-  // ========================================
-  // ADD / REMOVE
-  // ========================================
-
-  if (
-    [
-      "add",
-      "remove"
-    ].includes(sub)
-  ) {
-    // Remove add/remove from args.
-
-    args.shift();
-
-
-    const filters =
-      parseWishlistFilters(
-        args
-      );
-
-
-    return addOrRemoveWishlist(
-      ctx,
-      sub,
-      filters
-    );
-  }
-
-
-  // ========================================
-  // HELP / INVALID COMMAND
-  // ========================================
-
-  return reply(
-    ctx,
-
-    "❌ Wishlist commands:\n\n" +
-
-    "**View:**\n" +
-
-    "`@GrootX wishlist`\n" +
-
-    "`@GrootX wishlist @user`\n\n" +
-
-    "**Add:**\n" +
-
-    "`@GrootX wishlist add n:spider-man`\n" +
-
-    "`@GrootX wishlist add n:spider-man s:0`\n" +
-
-    "`@GrootX wishlist add a:spider-man (2002)`\n" +
-
-    "`@GrootX wishlist add s:0 a:spider-man (2002)`\n" +
-
-    "`@GrootX wishlist add n:spider-man s:0 a:spider-man (2002)`\n\n" +
-
-    "**Remove:**\n" +
-
-    "`@GrootX wishlist remove n:spider-man`\n" +
-
-    "`@GrootX wishlist remove n:spider-man s:0 a:spider-man (2002)`"
-  );
-}
-
-
-// ==========================================
-// SLASH COMMAND HANDLER
-// ==========================================
-
-async function runSlash(
-  interaction
-) {
-  const sub =
-    interaction.options
-      .getSubcommand();
-
 
   const ctx = {
     interaction,
-
-    user:
-      interaction.user
+    user: interaction.user
   };
 
+  try {
+    const sub = interaction.options.getSubcommand(false) || "view";
 
-  // ========================================
-  // /wishlist view
-  // ========================================
+    if (sub === "view") {
+      return await showWishlist(
+        ctx,
+        interaction.options.getUser("user") || interaction.user
+      );
+    }
 
-  if (
-    sub === "view"
-  ) {
-    const targetUser =
-      interaction.options
-        .getUser(
-          "user"
-        ) ||
-      interaction.user;
+    const s = interaction.options.getString("s");
 
+    return await addOrRemove(ctx, sub, {
+      name: interaction.options.getString("n") || "",
+      season: s === null ? null : Number(s),
+      appearance: interaction.options.getString("a") || ""
+    });
+  } catch (error) {
+    console.error("[WISHLIST] Slash error:", error);
 
-    return showWishlist(
+    return reply(
       ctx,
-      targetUser
-    );
-  }
-
-
-  // ========================================
-  // /wishlist add
-  // /wishlist remove
-  // ========================================
-
-  if (
-    sub === "add" ||
-    sub === "remove"
-  ) {
-    // n:
-    const name =
-      interaction.options
-        .getString(
-          "n"
-        ) || "";
-
-
-    // s:
-    const seasonValue =
-      interaction.options
-        .getString(
-          "s"
-        );
-
-
-    // a:
-    const appearance =
-      interaction.options
-        .getString(
-          "a"
-        ) || "";
-
-
-    const season =
-      seasonValue === null
-        ? null
-        : Number(
-            seasonValue
-          );
-
-
-    return addOrRemoveWishlist(
-      ctx,
-      sub,
-      {
-        name,
-        season,
-        appearance
-      }
+      "❌ Wishlist could not be processed. Please try again."
     );
   }
 }
 
+async function execute(message, args = []) {
+  if (
+    typeof message.isChatInputCommand === "function" &&
+    message.isChatInputCommand()
+  ) {
+    return runSlash(message);
+  }
 
-// ==========================================
-// SLASH N / S / A OPTIONS
-// ==========================================
+  const ctx = {
+    message,
+    user: message.author
+  };
 
-function addWishlistFilterOptions(
-  sub
-) {
+  try {
+    const sub = args[0]?.toLowerCase();
+
+    if (["add", "remove"].includes(sub)) {
+      return await addOrRemove(
+        ctx,
+        sub,
+        parseFilters(args.slice(1))
+      );
+    }
+
+    const target = message.mentions?.users?.find(
+      u => u.id !== message.client.user.id
+    );
+
+    if (!sub || sub === "view" || target) {
+      return await showWishlist(ctx, target || message.author);
+    }
+
+    return reply(
+      ctx,
+      "Use `wishlist`, `wishlist @user`, or " +
+      "`wishlist add/remove n:spider-man s:0 " +
+      "a:spider-man (2002)`. Only n: is required."
+    );
+  } catch (error) {
+    console.error("[WISHLIST] Prefix error:", error);
+
+    return reply(
+      ctx,
+      "❌ Wishlist could not be processed. Please try again."
+    );
+  }
+}
+
+function filterOptions(sub) {
   return sub
-
-    // ======================================
-    // n
-    // ======================================
-
-    .addStringOption(
-      option =>
-        option
-
-          .setName(
-            "n"
-          )
-
-          .setDescription(
-            "Card / character name"
-          )
-
-          .setRequired(
-            false
-          )
+    .addStringOption(o =>
+      o.setName("n")
+        .setDescription("Card or character name (required)")
+        .setRequired(true)
     )
-
-
-    // ======================================
-    // s
-    // ======================================
-
-    .addStringOption(
-      option =>
-        option
-
-          .setName(
-            "s"
-          )
-
-          .setDescription(
-            "Card season"
-          )
-
-          .setRequired(
-            false
-          )
-
-          .addChoices(
-            {
-              name:
-                "0️⃣ Season 0",
-
-              value:
-                "0"
-            },
-
-            {
-              name:
-                "1️⃣ Season 1",
-
-              value:
-                "1"
-            }
-          )
+    .addStringOption(o =>
+      o.setName("s")
+        .setDescription("Optional season filter")
+        .addChoices(
+          { name: "Season 0", value: "0" },
+          { name: "Season 1", value: "1" }
+        )
     )
-
-
-    // ======================================
-    // a
-    // ======================================
-
-    .addStringOption(
-      option =>
-        option
-
-          .setName(
-            "a"
-          )
-
-          .setDescription(
-            "Appearance / series"
-          )
-
-          .setRequired(
-            false
-          )
+    .addStringOption(o =>
+      o.setName("a")
+        .setDescription(
+          "Optional appearance, series, or Halloween 2026"
+        )
     );
 }
-
-
-// ==========================================
-// EXPORT
-// ==========================================
 
 module.exports = {
-  name:
-    "wishlist",
+  name: "wishlist",
+  aliases: ["wish"],
 
-
-  aliases: [
-    "wish"
-  ],
-
-
-  // ========================================
-  // SLASH COMMAND DATA
-  // ========================================
-
-  data:
-    new SlashCommandBuilder()
-
-      .setName(
-        "wishlist"
+  data: new SlashCommandBuilder()
+    .setName("wishlist")
+    .setDescription(
+      "View or manage your wishlist (15 cards maximum)"
+    )
+    .addSubcommand(s =>
+      s.setName("view")
+        .setDescription("View a user's wishlist")
+        .addUserOption(o =>
+          o.setName("user")
+            .setDescription("Optional user")
+        )
+    )
+    .addSubcommand(s =>
+      filterOptions(
+        s.setName("add")
+          .setDescription("Add a card to your wishlist")
       )
-
-      .setDescription(
-        "View or manage your wishlist"
+    )
+    .addSubcommand(s =>
+      filterOptions(
+        s.setName("remove")
+          .setDescription("Remove a card from your wishlist")
       )
+    ),
 
-
-      // ====================================
-      // VIEW
-      // ====================================
-
-      .addSubcommand(
-        sub =>
-          sub
-
-            .setName(
-              "view"
-            )
-
-            .setDescription(
-              "View your or another user's wishlist"
-            )
-
-            .addUserOption(
-              option =>
-                option
-
-                  .setName(
-                    "user"
-                  )
-
-                  .setDescription(
-                    "User whose wishlist you want to view"
-                  )
-
-                  .setRequired(
-                    false
-                  )
-            )
-      )
-
-
-      // ====================================
-      // ADD
-      // ====================================
-
-      .addSubcommand(
-        sub => {
-
-          sub
-            .setName(
-              "add"
-            )
-
-            .setDescription(
-              "Add a card to your wishlist"
-            );
-
-
-          return addWishlistFilterOptions(
-            sub
-          );
-        }
-      )
-
-
-      // ====================================
-      // REMOVE
-      // ====================================
-
-      .addSubcommand(
-        sub => {
-
-          sub
-            .setName(
-              "remove"
-            )
-
-            .setDescription(
-              "Remove a card from your wishlist"
-            );
-
-
-          return addWishlistFilterOptions(
-            sub
-          );
-        }
-      ),
-
-
-  // ========================================
-  // PREFIX / MENTION EXECUTE
-  // ========================================
-
-  async execute(
-    message,
-    args
-  ) {
-    return runPrefix(
-      message,
-      args
-    );
-  },
-
-
-  // ========================================
-  // SLASH EXECUTE
-  // ========================================
-
-  async slashExecute(
-    interaction
-  ) {
-    return runSlash(
-      interaction
-    );
-  }
+  execute,
+  executeSlash: runSlash,
+  slashExecute: runSlash,
+  slash: runSlash,
+  run: execute
 };

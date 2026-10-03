@@ -1,292 +1,545 @@
-const season0Cards = require("../data/cards");
-const season1Cards = require("../data/season1");
-
 const {
   ActionRowBuilder,
   AttachmentBuilder,
   ButtonBuilder,
   ButtonStyle,
-  EmbedBuilder
+  EmbedBuilder,
+  StringSelectMenuBuilder,
+  SlashCommandBuilder
 } = require("discord.js");
 
+const season0Cards = require("../data/cards");
+const season1Cards = require("../data/season1");
+
 const renderInfo = require("../utils/Inforender");
+const renderCard = require("../utils/renderCard");
+
+const SEASON_EMOJIS = [
+  "<:Season0:1555956910560256082>",
+  "<:Season1:1555956879576793130>"
+];
+
+const toArray = data =>
+  Array.isArray(data) ? data : data?.cards || [];
+
+const databases = [
+  toArray(season0Cards),
+  toArray(season1Cards)
+];
+
+const textKey = value =>
+  String(value || "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]/gu, "");
+
+const appearance = card =>
+  card.appearance || card.show || "Unknown";
+
+const halloween = card =>
+  card.event === "halloween2026";
+
+const colors = {
+  common: 0xcd7f32,
+  uncommon: 0xc0c0c0,
+  rare: 0xffd700,
+  epic: 0x8000ff,
+  legendary: 0xe53935
+};
+
+function searchGroups(query, requestedSeason = null) {
+  const groups = new Map();
+
+  for (const [season, cards] of databases.entries()) {
+    for (const card of cards) {
+      // Keep appearances, rarities and event variants distinct.
+      // Matching S0/S1 cards share one result.
+      const base = [
+        textKey(card.name),
+        textKey(appearance(card)),
+        textKey(card.tier),
+        textKey(card.event)
+      ].join("|");
+
+      let key = base;
+      let suffix = 0;
+
+      while (groups.get(key)?.cards[season]) {
+        key = `${base}|${++suffix}`;
+      }
+
+      if (!groups.has(key)) {
+        groups.set(key, {
+          cards: {},
+          name: card.name
+        });
+      }
+
+      groups.get(key).cards[season] = card;
+    }
+  }
+
+  const q = textKey(query);
+
+  return [...groups.values()]
+    .filter(group => {
+      if (
+        requestedSeason !== null &&
+        !group.cards[requestedSeason]
+      ) {
+        return false;
+      }
+
+      return Object.values(group.cards).some(card =>
+        [
+          card.name,
+          ...(Array.isArray(card.aka) ? card.aka : [])
+        ].some(name => textKey(name).includes(q))
+      );
+    })
+    .sort((a, b) =>
+      Number(textKey(b.name) === q) -
+        Number(textKey(a.name) === q) ||
+      String(a.name).localeCompare(String(b.name))
+    );
+}
+
+async function execute(message, args = []) {
+  const slash =
+    typeof message.isChatInputCommand === "function" &&
+    message.isChatInputCommand();
+
+  const user = slash ? message.user : message.author;
+
+  if (slash && !message.deferred && !message.replied) {
+    await message.deferReply();
+  }
+
+  const reply = payload => {
+    if (typeof payload === "string") {
+      payload = { content: payload };
+    }
+
+    if (!slash) return message.reply(payload);
+
+    return message.deferred
+      ? message.editReply(payload)
+      : message.followUp(payload);
+  };
+
+  try {
+    const seasonArg = slash
+      ? message.options.getString("s")
+      : args
+          .find(argument => /^s:[01]$/i.test(argument))
+          ?.slice(2);
+
+    const requestedSeason =
+      seasonArg == null ? null : Number(seasonArg);
+
+    const query = slash
+      ? message.options.getString("name", true)
+      : args
+          .filter(argument => !/^s:[01]$/i.test(argument))
+          .join(" ")
+          .trim();
+
+    if (!textKey(query)) {
+      return reply(
+        "❌ Provide a name. Example: `info spider-man`."
+      );
+    }
+
+    const groups = searchGroups(query, requestedSeason);
+
+    if (!groups.length) {
+      return reply("❌ No matching cards found.");
+    }
+
+    let page = 0;
+    let selected = groups.length === 1 ? 0 : null;
+    let season = 0;
+    let busy = false;
+
+    const pageSize = 15;
+    const pageCount = Math.ceil(groups.length / pageSize);
+    const cache = new Map();
+
+    // Open S0 first unless S1 was explicitly requested.
+    // S1-only cards open S1 automatically.
+    const initialSeason = group =>
+      requestedSeason ?? (group.cards[0] ? 0 : 1);
+
+    if (selected !== null) {
+      season = initialSeason(groups[selected]);
+    }
+
+    const button = (id, label, disabled = false) =>
+      new ButtonBuilder()
+        .setCustomId(id)
+        .setLabel(label)
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(disabled);
+
+    function menuPayload() {
+      const current = groups.slice(
+        page * pageSize,
+        (page + 1) * pageSize
+      );
+
+      const embed = new EmbedBuilder()
+        .setColor(0x00aeff)
+        .setTitle("🔎 Choose a card")
+        .setDescription(
+          current
+            .map((group, index) => {
+              const card = group.cards[0] || group.cards[1];
+
+              const availableSeasons = Object.keys(group.cards)
+                .map(value => SEASON_EMOJIS[Number(value)])
+                .join(" ");
+
+              return (
+                `**${page * pageSize + index + 1}. ` +
+                `${card.name}** • ${appearance(card)}\n` +
+                `└ ${
+                  halloween(card)
+                    ? "🎃 Halloween"
+                    : card.tier || "Unknown"
+                } • ${availableSeasons}`
+              );
+            })
+            .join("\n\n")
+        )
+        .setFooter({
+          text:
+            `Page ${page + 1}/${pageCount} • ` +
+            `${groups.length} variants • Choose below`
+        });
+
+      const select = new StringSelectMenuBuilder()
+        .setCustomId("info_pick")
+        .setPlaceholder("Choose a character variant")
+        .addOptions(
+          current.map((group, index) => {
+            const card = group.cards[0] || group.cards[1];
+
+            return {
+              label: String(card.name).slice(0, 100),
+              description: (
+                `${appearance(card)} • ` +
+                `${
+                  halloween(card)
+                    ? "Halloween"
+                    : card.tier || "Unknown"
+                }`
+              ).slice(0, 100),
+              value: String(page * pageSize + index)
+            };
+          })
+        );
+
+      return {
+        content: slash
+          ? null
+          : "Choose below, or reply with the card's number.",
+        embeds: [embed],
+        attachments: [],
+        files: [],
+        components: [
+          new ActionRowBuilder().addComponents(select),
+
+          new ActionRowBuilder().addComponents(
+            button("info_prev", "Previous", page === 0),
+            button(
+              "info_next",
+              "Next",
+              page === pageCount - 1
+            )
+          )
+        ]
+      };
+    }
+
+    async function cardPayload() {
+      const group = groups[selected];
+      const card = group.cards[season];
+      const key = `${selected}:${season}`;
+
+      if (!cache.has(key)) {
+        const data = {
+          ...card,
+          season
+        };
+
+        const buffer = halloween(card)
+          ? await renderCard(
+              data,
+              "?",
+              {
+                season,
+                event: card.event
+              }
+            )
+          : await renderInfo(data, season);
+
+        cache.set(key, buffer);
+
+        if (cache.size > 4) {
+          cache.delete(cache.keys().next().value);
+        }
+      }
+
+      const imageName = `info-s${season}.png`;
+
+      const embed = new EmbedBuilder()
+        .setColor(
+          halloween(card)
+            ? 0xff8c00
+            : colors[String(card.tier).toLowerCase()] ||
+              0xffffff
+        )
+        .setTitle(`${SEASON_EMOJIS[season]} ${card.name}`)
+        .setDescription(
+          `✨ **AKA:** ${
+            Array.isArray(card.aka) && card.aka.length
+              ? card.aka.join(", ")
+              : "None"
+          }`
+        )
+        .addFields(
+          {
+            name: "🎬 Appearance",
+            value: String(appearance(card)),
+            inline: true
+          },
+          {
+            name: "⭐ Tier",
+            value: halloween(card)
+              ? "🎃 Halloween"
+              : String(card.tier || "Unknown"),
+            inline: true
+          },
+          {
+            name: "🆔 Card ID",
+            value: String(card.id),
+            inline: true
+          },
+          {
+            name: "🗓️ Season",
+            value:
+              `${SEASON_EMOJIS[season]} Season ${season}`,
+            inline: true
+          }
+        )
+        .setImage(`attachment://${imageName}`)
+        .setFooter({
+          text:
+            "GrootX • Switch between available seasons below"
+        });
+
+      const row = new ActionRowBuilder().addComponents(
+        ...[0, 1].map(value =>
+          button(
+            `info_season_${value}`,
+            `Season ${value}`,
+            value === season || !group.cards[value]
+          )
+            .setEmoji(SEASON_EMOJIS[value])
+            .setStyle(
+              value === season
+                ? ButtonStyle.Primary
+                : ButtonStyle.Secondary
+            )
+        )
+      );
+
+      if (groups.length > 1) {
+        row.addComponents(
+          button("info_back", "Back to results")
+        );
+      }
+
+      return {
+        content: null,
+        embeds: [embed],
+        attachments: [],
+        files: [
+          new AttachmentBuilder(cache.get(key), {
+            name: imageName
+          })
+        ],
+        components: [row]
+      };
+    }
+
+    const payload = () =>
+      selected === null ? menuPayload() : cardPayload();
+
+    const sent = await reply(await payload());
+
+    const collector = sent.createMessageComponentCollector({
+      time: 180000
+    });
+
+    collector.on("collect", async interaction => {
+      if (interaction.user.id !== user.id) {
+        return interaction.reply({
+          content: "❌ Open your own info menu.",
+          ephemeral: true
+        });
+      }
+
+      let acquired = false;
+
+      try {
+        // Acknowledge before rendering the selected card.
+        await interaction.deferUpdate();
+
+        if (busy || collector.ended) return;
+
+        busy = true;
+        acquired = true;
+
+        if (interaction.customId === "info_prev") {
+          page = Math.max(0, page - 1);
+        } else if (interaction.customId === "info_next") {
+          page = Math.min(pageCount - 1, page + 1);
+        } else if (interaction.customId === "info_pick") {
+          selected = Number(interaction.values[0]);
+          season = initialSeason(groups[selected]);
+        } else if (interaction.customId === "info_back") {
+          selected = null;
+        } else if (
+          interaction.customId.startsWith("info_season_")
+        ) {
+          const next = Number(
+            interaction.customId.slice(-1)
+          );
+
+          if (
+            selected === null ||
+            !groups[selected].cards[next]
+          ) {
+            return;
+          }
+
+          season = next;
+        }
+
+        const nextPayload = await payload();
+
+        if (!collector.ended) {
+          await interaction.editReply(nextPayload);
+        }
+      } catch (error) {
+        console.error("[INFO] Menu/render error:", error);
+
+        await interaction.followUp({
+          content:
+            "❌ Could not render that card. Check its " +
+            "image/frame files and try again.",
+          ephemeral: true
+        }).catch(() => {});
+      } finally {
+        if (acquired) busy = false;
+      }
+    });
+
+    let replies;
+
+    if (!slash && groups.length > 1) {
+      replies = message.channel.createMessageCollector({
+        time: 180000,
+        filter: response =>
+          response.author.id === user.id &&
+          /^\d+$/.test(response.content.trim()) &&
+          (
+            !response.reference?.messageId ||
+            response.reference.messageId === sent.id
+          )
+      });
+
+      replies.on("collect", async response => {
+        const choice =
+          Number(response.content.trim()) - 1;
+
+        if (
+          busy ||
+          selected !== null ||
+          collector.ended ||
+          choice < 0 ||
+          choice >= groups.length
+        ) {
+          return;
+        }
+
+        busy = true;
+
+        try {
+          selected = choice;
+          season = initialSeason(groups[selected]);
+
+          const next = await cardPayload();
+
+          if (!collector.ended) {
+            await sent.edit(next);
+          }
+        } catch (error) {
+          console.error(
+            "[INFO] Number selection:",
+            error
+          );
+        } finally {
+          busy = false;
+        }
+      });
+    }
+
+    collector.on("end", () => {
+      replies?.stop();
+
+      sent
+        .edit({ components: [] })
+        .catch(() => {});
+    });
+  } catch (error) {
+    console.error("[INFO]", error);
+
+    return reply({
+      content:
+        "❌ Could not load card info. Please try again."
+    });
+  }
+}
 
 module.exports = {
   name: "info",
   aliases: ["i"],
 
-  async execute(message, args) {
-    if (!args.length) {
-      return message.reply("❌ Please provide a card name.");
-    }
-
-    const seasonArg = args.find(arg => /^s:(?:0|1)$/i.test(arg));
-    const selectedSeason = seasonArg ? Number(seasonArg.slice(2)) : null;
-    const query = args
-      .filter(arg => !/^s:(?:0|1)$/i.test(arg))
-      .join(" ")
-      .trim()
-      .toLowerCase();
-
-    if (!query) {
-      return message.reply(
-        "❌ Please provide a card name. Example: `info s:1 spider-man`"
-      );
-    }
-
-    const results = [
-      ...(
-        selectedSeason === 1
-          ? []
-          : searchCards(season0Cards, query).map(card => ({
-              card,
-              season: 0
-            }))
-      ),
-      ...(
-        selectedSeason === 0
-          ? []
-          : searchCards(season1Cards, query).map(card => ({
-              card,
-              season: 1
-            }))
-      )
-    ];
-
-    if (results.length === 0) {
-      return message.reply("❌ No cards found.");
-    }
-
-    if (results.length === 1) {
-      return sendCard(
-        message,
-        results[0].card,
-        results[0].season
-      );
-    }
-
-    let response = "## Multiple cards found:\n\n";
-
-    results.forEach(({ card, season }, index) => {
-      response +=
-        `${index + 1}. ${card.name} • ${card.appearance} • S${season}\n`;
-    });
-
-    response += "\nReply with the number of the card.";
-
-    await message.reply(response);
-
-    const collector = message.channel.createMessageCollector({
-      filter: reply => reply.author.id === message.author.id,
-      time: 30000,
-      max: 1
-    });
-
-    collector.on("collect", async reply => {
-      const choice = Number.parseInt(reply.content, 10);
-
-      if (
-        Number.isNaN(choice) ||
-        choice < 1 ||
-        choice > results.length
-      ) {
-        return message.reply("❌ Invalid selection.");
-      }
-
-      return sendCard(
-        message,
-        results[choice - 1].card,
-        results[choice - 1].season
-      );
-    });
-  }
-};
-
-function searchCards(database, query) {
-  return database.filter(card => {
-    const nameMatch = card.name
-      ?.toLowerCase()
-      .includes(query);
-
-    const akaMatch = card.aka?.some(alias =>
-      alias.toLowerCase().includes(query)
-    );
-
-    return nameMatch || akaMatch;
-  });
-}
-
-function getSeasonDatabase(season) {
-  return season === 1
-    ? season1Cards
-    : season0Cards;
-}
-
-function buildSeasonRow(activeSeason, disabled = false) {
-  return new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId("info_season_0")
-      .setLabel("Season 0")
-      .setEmoji("0️⃣")
-      .setStyle(
-        activeSeason === 0
-          ? ButtonStyle.Primary
-          : ButtonStyle.Secondary
-      )
-      .setDisabled(disabled || activeSeason === 0),
-
-    new ButtonBuilder()
-      .setCustomId("info_season_1")
-      .setLabel("Season 1")
-      .setEmoji("1️⃣")
-      .setStyle(
-        activeSeason === 1
-          ? ButtonStyle.Primary
-          : ButtonStyle.Secondary
-      )
-      .setDisabled(disabled || activeSeason === 1)
-  );
-}
-
-async function buildCardResponse(card, season) {
-  const seasonCard = {
-    ...card,
-    season
-  };
-
-  const buffer = await renderInfo(seasonCard, season);
-  const imageName = `info-card-s${season}.png`;
-
-  const attachment = new AttachmentBuilder(buffer, {
-    name: imageName
-  });
-
-  const embed = new EmbedBuilder()
-    .setColor(getColor(card.tier))
-    .setAuthor({
-      name: "Marvel Heroes Database"
-    })
-    .setTitle(card.name)
+  data: new SlashCommandBuilder()
+    .setName("info")
     .setDescription(
-      `✨ **AKA:** ${
-        card.aka?.length
-          ? card.aka.join(", ")
-          : "None"
-      }`
+      "Search character cards and switch seasons."
     )
-    .addFields(
-      {
-        name: "🎬 Appearance",
-        value: card.appearance || "Unknown",
-        inline: true
-      },
-      {
-        name: "⭐ Tier",
-        value:
-          card.tier.charAt(0).toUpperCase() +
-          card.tier.slice(1),
-        inline: true
-      },
-      {
-        name: "🆔 Card ID",
-        value: `${card.id}`,
-        inline: true
-      },
-      {
-        name: "🗓️ Season",
-        value: `Season ${season}`,
-        inline: true
-      }
+    .addStringOption(option =>
+      option
+        .setName("name")
+        .setDescription("Character name")
+        .setRequired(true)
     )
-    .setImage(`attachment://${imageName}`)
-    .setFooter({
-      text: `GrootX • Season ${season}`
-    })
-    .setTimestamp();
+    .addStringOption(option =>
+      option
+        .setName("s")
+        .setDescription("Optional starting season")
+        .addChoices(
+          { name: "Season 0", value: "0" },
+          { name: "Season 1", value: "1" }
+        )
+    ),
 
-  return {
-    embeds: [embed],
-    files: [attachment],
-    components: [buildSeasonRow(season)]
-  };
-}
-
-async function sendCard(message, initialCard, initialSeason) {
-  let activeSeason = initialSeason;
-
-  const response = await buildCardResponse(
-    initialCard,
-    activeSeason
-  );
-
-  const sentMessage = await message.reply(response);
-
-  const collector = sentMessage.createMessageComponentCollector({
-    filter: interaction =>
-      interaction.user.id === message.author.id &&
-      interaction.customId.startsWith("info_season_"),
-    time: 60000
-  });
-
-  collector.on("collect", async interaction => {
-    const selectedSeason = Number(
-      interaction.customId.split("_").pop()
-    );
-
-    const database = getSeasonDatabase(selectedSeason);
-
-    const selectedCard = database.find(card =>
-      String(card.name).toLowerCase() ===
-        String(initialCard.name).toLowerCase() &&
-      String(card.appearance).toLowerCase() ===
-        String(initialCard.appearance).toLowerCase()
-    );
-
-    if (!selectedCard) {
-      return interaction.reply({
-        content:
-          `❌ This card is not available in Season ${selectedSeason}.`,
-        ephemeral: true
-      });
-    }
-
-    activeSeason = selectedSeason;
-
-    const updatedResponse = await buildCardResponse(
-      selectedCard,
-      activeSeason
-    );
-
-    await interaction.update({
-      ...updatedResponse,
-      attachments: []
-    });
-  });
-
-  collector.on("end", async () => {
-    await sentMessage
-      .edit({
-        components: [buildSeasonRow(activeSeason, true)]
-      })
-      .catch(() => {});
-  });
-}
-
-function getColor(tier) {
-  if (!tier) return 0xffffff;
-
-  switch (tier.toLowerCase()) {
-    case "common":
-      return 0xcd7f32;
-    case "uncommon":
-      return 0xc0c0c0;
-    case "rare":
-      return 0xffd700;
-    case "epic":
-      return 0x8000ff;
-    case "legendary":
-      return 0xe53935;
-    default:
-      return 0xffffff;
-  }
-}
+  execute,
+  executeSlash: execute,
+  slashExecute: execute,
+  slash: execute,
+  run: execute
+};
