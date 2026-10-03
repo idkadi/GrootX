@@ -1,149 +1,244 @@
-const connectDB = require("../database");
+const {
+  EmbedBuilder,
+  SlashCommandBuilder
+} = require('discord.js');
 
-module.exports = {
-  name: "trade",
+const connectDB = require('../database');
 
-  async execute(message) {
-    const target =
-      message.mentions.users.first();
+// Prevent overlapping trade starts within this bot process.
+const starting = new Set();
+
+function passIsActive(pass) {
+  if (!pass) return false;
+
+  let expiry;
+
+  if (pass.expiresAt instanceof Date) {
+    expiry = pass.expiresAt.getTime();
+  } else if (typeof pass.expiresAt === 'number') {
+    expiry = pass.expiresAt;
+  } else if (/^\d+$/.test(String(pass.expiresAt || ''))) {
+    expiry = Number(pass.expiresAt);
+  } else {
+    expiry = Date.parse(pass.expiresAt);
+  }
+
+  return Number.isFinite(expiry) && expiry > Date.now();
+}
+
+async function execute(source, args = []) {
+  const slash =
+    typeof source.isChatInputCommand === 'function' &&
+    source.isChatInputCommand();
+
+  const author = slash ? source.user : source.author;
+
+  const reply = payload => {
+    if (typeof payload === 'string') {
+      payload = { content: payload };
+    }
+
+    payload.allowedMentions = {
+      parse: [],
+      repliedUser: false
+    };
+
+    return slash
+      ? source.editReply(payload)
+      : source.reply(payload);
+  };
+
+  if (slash && !source.deferred && !source.replied) {
+    await source.deferReply();
+  }
+
+  let locked = false;
+  let target;
+
+  try {
+    if (slash) {
+      target = source.options.getUser('user', true);
+    } else {
+      // Avoid selecting GrootX itself from a command mention.
+      const requested = String(args[0] || '')
+        .replace(/^<@!?|>$/g, '');
+
+      if (/^\d{17,20}$/.test(requested)) {
+        target =
+          source.mentions.users.get(requested) ||
+          await source.client.users
+            .fetch(requested)
+            .catch(() => null);
+      } else {
+        target = source.mentions.users.find(
+          user => user.id !== source.client.user.id
+        );
+      }
+    }
 
     if (!target) {
-      return message.reply(
-        "❌ Mention a user to trade with."
+      return await reply(
+        '❌ Use `!trade @user`, mention GrootX with ' +
+        '`trade @user`, or `/trade user:@user`.'
+      );
+    }
+
+    if (target.id === author.id) {
+      return await reply(
+        '❌ You cannot trade with yourself.'
+      );
+    }
+
+    if (target.bot) {
+      return await reply(
+        '❌ You cannot trade with a bot.'
       );
     }
 
     if (
-      target.id === message.author.id
+      starting.has(author.id) ||
+      starting.has(target.id)
     ) {
-      return message.reply(
-        "❌ You cannot trade with yourself."
+      return await reply(
+        '⏳ A trade is already being started for one of you.'
       );
     }
 
-    const db =
-      await connectDB();
+    starting.add(author.id);
+    starting.add(target.id);
+    locked = true;
 
-    const tradesCol =
-      db.collection("trades");
+    const db = await connectDB();
 
-    const tradePassesCol =
-      db.collection("tradePasses");
+    const trades = db.collection('trades');
+    const passes = db.collection('tradePasses');
 
-    const authorPass =
-      await tradePassesCol.findOne({
-        userId: message.author.id
-      });
+    const [authorPass, targetPass] = await Promise.all([
+      passes.findOne({ userId: author.id }),
+      passes.findOne({ userId: target.id })
+    ]);
 
-    const targetPass =
-      await tradePassesCol.findOne({
-        userId: target.id
-      });
-
-    if (
-      !authorPass ||
-      authorPass.expiresAt <= Date.now()
-    ) {
-
-      return message.reply(
-        "❌ You need an active Trade Voucher."
+    if (!passIsActive(authorPass)) {
+      return await reply(
+        '❌ You need an active Trade Voucher.'
       );
-
     }
 
-    if (
-      !targetPass ||
-      targetPass.expiresAt <= Date.now()
-    ) {
-
-      return message.reply(
-        "❌ That user does not have an active Trade Voucher."
+    if (!passIsActive(targetPass)) {
+      return await reply(
+        '❌ That user needs an active Trade Voucher.'
       );
-
     }
 
-    const alreadyTrading =
-      await tradesCol.findOne({
+    const existingTrade = await trades.findOne({
+      users: {
+        $in: [author.id, target.id]
+      }
+    });
 
-        users: {
-          $in: [
-            message.author.id,
-            target.id
-          ]
-        }
-
-      });
-
-    if (alreadyTrading) {
-
-      return message.reply(
-
-        "❌ One of the users is already in a trade."
-
+    if (existingTrade) {
+      return await reply(
+        '❌ One of you is already in a trade. ' +
+        'Finish or cancel it first.'
       );
-
     }
 
-    const tradeId =
-      `${message.author.id}_${target.id}`;
+    const tradeId = `${author.id}_${target.id}`;
 
-    await tradesCol.insertOne({
-
+    // Preserve the format used by the existing offer commands.
+    await trades.insertOne({
       tradeId,
 
       users: [
-        message.author.id,
+        author.id,
         target.id
       ],
 
       offers: {
-
-        [message.author.id]: {
-
+        [author.id]: {
           cards: [],
           coins: 0,
           items: {}
-
         },
 
         [target.id]: {
-
           cards: [],
           coins: 0,
           items: {}
-
         }
-
       },
 
       confirmed: {
+        [author.id]: false,
+        [target.id]: false
+      },
 
-        [message.author.id]:
-          false,
-
-        [target.id]:
-          false
-
-      }
-
+      createdAt: new Date()
     });
 
-    message.reply(
+    const embed = new EmbedBuilder()
+      .setColor(0x57f287)
+      .setTitle('🤝 Trade Started')
+      .setDescription(
+        `<@${author.id}> ↔ <@${target.id}>\n\n` +
+        'Build your offers, review them, then both confirm.'
+      )
+      .addFields({
+        name: 'Trade commands',
+        value:
+          '`!addcard <code>`\n' +
+          '`!addcoins <amount>`\n' +
+          '`!additem <item> <amount>`\n' +
+          '`!confirmtrade`\n' +
+          '`!canceltrade`'
+      })
+      .setFooter({
+        text:
+          'Offers are handled by your addcard, addcoins, ' +
+          'additem, and confirmtrade commands.'
+      });
 
-      `🤝 Trade started between ` +
+    try {
+      return await reply({
+        embeds: [embed]
+      });
+    } catch (error) {
+      // Keep the saved trade intact if Discord delivery fails.
+      console.error(
+        '[TRADE] Started but reply failed:',
+        error
+      );
+    }
+  } catch (error) {
+    console.error('[TRADE]', error);
 
-      `${message.author} and ${target}.\n\n` +
-
-      `Use:\n` +
-
-     "`!addcard code`\n" +
-"`!addcoins amount`\n" +
-"`!additem item amount`\n" +
-"`!confirmtrade`\n" +
-"`!canceltrade`"
-
-    );
-
+    await reply(
+      '❌ Could not start the trade. Please try again.'
+    ).catch(() => {});
+  } finally {
+    if (locked) {
+      starting.delete(author.id);
+      starting.delete(target.id);
+    }
   }
+}
 
+module.exports = {
+  name: 'trade',
+
+  data: new SlashCommandBuilder()
+    .setName('trade')
+    .setDescription('Start a trade with another user.')
+    .addUserOption(option =>
+      option
+        .setName('user')
+        .setDescription('Who to trade with')
+        .setRequired(true)
+    ),
+
+  execute,
+  executeSlash: execute,
+  slashExecute: execute,
+  slash: execute,
+  run: execute
 };
