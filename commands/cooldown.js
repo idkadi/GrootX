@@ -5,77 +5,142 @@ const {
 
 const connectDB = require("../database");
 
-async function runCooldown(user, replyTarget) {
-  const db = await connectDB();
-  const cooldownsCol = db.collection("cooldowns");
+async function runCooldown(user, target) {
+  const isSlash =
+    typeof target.isChatInputCommand === "function" &&
+    target.isChatInputCommand();
 
-  const userId = user.id;
-  const now = Date.now();
-
-  function getDiscordTimestamp(timestamp, cooldownTime) {
-    const endTime = Math.floor((timestamp + cooldownTime) / 1000);
-    return `<t:${endTime}:R>`;
+  if (isSlash && !target.deferred && !target.replied) {
+    await target.deferReply();
   }
 
-  async function getCooldownText(type, cooldownTime) {
-    const doc = await cooldownsCol.findOne({
-      type,
-      userId
-    });
+  const reply = payload =>
+    isSlash
+      ? target.editReply(payload)
+      : target.reply(payload);
 
-    const timestamp = doc?.timestamp;
+  try {
+    const db = await connectDB();
+    const userId = user.id;
+    const now = Date.now();
+    const cooldowns = db.collection("cooldowns");
 
-    if (timestamp && now - timestamp < cooldownTime) {
-      return getDiscordTimestamp(timestamp, cooldownTime);
-    }
+    const [
+      effect,
+      drop,
+      pickup,
+      daily,
+      weekly,
+      legacyWeekly,
+      vote
+    ] = await Promise.all([
+      db.collection("stoneeffects").findOne({ userId }),
 
-    return "✅ Ready";
-  }
+      cooldowns.findOne({
+        userId,
+        type: "drop"
+      }),
 
-  async function getDailyCooldownText() {
-    const dailyDoc = await db.collection("daily").findOne({
-      userId
-    });
+      cooldowns.findOne({
+        userId,
+        type: "pickup"
+      }),
 
-    const timestamp = dailyDoc?.timestamp;
-    const cooldownTime = 24 * 60 * 60 * 1000;
+      db.collection("daily").findOne({ userId }),
 
-    if (timestamp && now - timestamp < cooldownTime) {
-      return getDiscordTimestamp(timestamp, cooldownTime);
-    }
+      db.collection("weekly").findOne({ userId }),
 
-    return "✅ Ready";
-  }
+      cooldowns.findOne({
+        userId,
+        type: "weekly"
+      }),
 
-  const dropText = await getCooldownText("drop", 8 * 60 * 1000);
-  const pickupText = await getCooldownText("pickup", 4 * 60 * 1000);
-  const dailyText = await getDailyCooldownText();
-  const weeklyText = await getCooldownText("weekly", 7 * 24 * 60 * 60 * 1000);
-  const voteText = await getCooldownText("vote", 12 * 60 * 60 * 1000);
-
-  const embed = new EmbedBuilder()
-    .setColor("#00D4FF")
-    .setTitle("⌛ COOLDOWNS")
-    .setDescription(
-`🎴 **Drop:** ${dropText}
-
-🎯 **Claim:** ${pickupText}
-
-🎁 **Daily:** ${dailyText}
-
-📦 **Weekly:** ${weeklyText}
-
-🗳️ **Vote:** ${voteText}`
-    )
-    .setThumbnail(
-      user.displayAvatarURL({
-        dynamic: true
+      cooldowns.findOne({
+        userId,
+        type: "vote"
       })
-    );
+    ]);
 
-  await replyTarget.reply({
-    embeds: [embed]
-  });
+    const timeActive = Number(effect?.timeUntil) > now;
+
+    const dropDuration =
+      (timeActive ? 6 : 12) * 60 * 1000;
+
+    const claimDuration =
+      (timeActive ? 2 : 4) * 60 * 1000;
+
+    function cooldownText(doc, duration) {
+      const timestamp = doc?.timestamp instanceof Date
+        ? doc.timestamp.getTime()
+        : Number(doc?.timestamp);
+
+      if (
+        !Number.isFinite(timestamp) ||
+        timestamp <= 0
+      ) {
+        return "✅ Ready";
+      }
+
+      const end = timestamp + duration;
+
+      return end > now
+        ? `<t:${Math.ceil(end / 1000)}:R>`
+        : "✅ Ready";
+    }
+
+    const embed = new EmbedBuilder()
+      .setColor("#00D4FF")
+      .setTitle("⌛ COOLDOWNS")
+      .setDescription(
+        [
+          `🎴 **Drop:** ${
+            cooldownText(drop, dropDuration)
+          }`,
+
+          `🎯 **Claim:** ${
+            cooldownText(pickup, claimDuration)
+          }`,
+
+          `🎁 **Daily:** ${
+            cooldownText(
+              daily,
+              24 * 60 * 60 * 1000
+            )
+          }`,
+
+          `📦 **Weekly:** ${
+            cooldownText(
+              weekly || legacyWeekly,
+              7 * 24 * 60 * 60 * 1000
+            )
+          }`,
+
+          `🗳️ **Vote:** ${
+            cooldownText(
+              vote,
+              12 * 60 * 60 * 1000
+            )
+          }`
+        ].join("\n\n")
+      )
+      .setThumbnail(user.displayAvatarURL())
+      .setFooter({
+        text: timeActive
+          ? "⏳ Time Stone active • Drop: 6 min • Claim: 2 min"
+          : "Drop: 12 min • Claim: 4 min • Auto drops: every 90 min"
+      });
+
+    return await reply({
+      embeds: [embed]
+    });
+  } catch (error) {
+    console.error("[COOLDOWN]", error);
+
+    return reply({
+      content:
+        "❌ Could not load cooldowns. Please try again."
+    }).catch(() => {});
+  }
 }
 
 module.exports = {
@@ -86,11 +151,28 @@ module.exports = {
     .setName("cooldown")
     .setDescription("View your command cooldowns"),
 
-  async execute(message) {
-    return runCooldown(message.author, message);
+  async execute(context) {
+    const isSlash =
+      typeof context.isChatInputCommand === "function" &&
+      context.isChatInputCommand();
+
+    return runCooldown(
+      isSlash ? context.user : context.author,
+      context
+    );
   },
 
   async slashExecute(interaction) {
-    return runCooldown(interaction.user, interaction);
+    return runCooldown(
+      interaction.user,
+      interaction
+    );
+  },
+
+  async executeSlash(interaction) {
+    return runCooldown(
+      interaction.user,
+      interaction
+    );
   }
 };

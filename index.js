@@ -657,7 +657,7 @@ async function startReminderChecker(client) {
               type: "drop"
             });
 
-          cooldownTime = 8 * 60 * 1000;
+          cooldownTime = 12 * 60 * 1000;
         } else if (reminder.type === "pickup") {
           cooldownDoc = await cooldownsCol
             .findOne({
@@ -1527,6 +1527,21 @@ async function startTopggWebhook(client) {
         }
       );
 
+      // Candy is stored in inventory, matching drop/store commands.
+      const halloweenActive =
+        now >= Date.parse("2026-10-03T00:00:00+05:30") &&
+        now < Date.parse("2026-11-01T00:00:00+05:30");
+
+      const candyReward = halloweenActive ? 500 : 0;
+
+      if (candyReward > 0) {
+        await db.collection("inventory").updateOne(
+          { userId },
+          { $inc: { "items.groot_candy": candyReward } },
+          { upsert: true }
+        );
+      }
+
       await voteStreaksCol.updateOne(
         { userId },
         {
@@ -1548,7 +1563,13 @@ async function startTopggWebhook(client) {
         await user.send(
           "🗳️ Thanks for voting for **GrootX**!\n\n" +
           `${COIN_EMOJI} **+700 Coins**\n` +
-          `${CHIP_EMOJI} **+1 Ultron Chip**\n\n` +
+          `${CHIP_EMOJI} **+1 Ultron Chip**\n` +
+          (
+            candyReward > 0
+              ? `<:grootcandy:1555950722816675870> **+${candyReward} Groot Candy**\n`
+              : ""
+          ) +
+          "\n" +
           `🔥 **Vote Streak:** ${
             resetStreak ? 0 : streak
           }/30\n` +

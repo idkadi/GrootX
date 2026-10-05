@@ -3,11 +3,6 @@ const path = require('path');
 const { randomInt } = require('crypto');
 
 const {
-  createCanvas,
-  loadImage
-} = require('canvas');
-
-const {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
@@ -15,10 +10,11 @@ const {
 } = require('discord.js');
 
 const cards = require('../data/season1');
-const renderCard = require('../utils/renderCard');
+const createDropImage = require('../utils/createDropImage');
 const connectDB = require('../database');
 
 const SEASON = 1;
+const AUTO_DROP_INTERVAL = 90 * 60 * 1000;
 const HALLOWEEN_EVENT = 'halloween2026';
 
 const START = Date.parse(
@@ -215,57 +211,14 @@ async function assignSerials(db, selected) {
 }
 
 async function renderDrop(selected, serials) {
-  const width = 360;
-  const height = Math.round(width * 1492 / 1054);
-
-  const canvas = createCanvas(
-    width * selected.length,
-    height + 50
+  // Same renderer and metadata as the main drop command.
+  return createDropImage(
+    selected.map((card, index) => ({
+      ...card,
+      season: SEASON,
+      serial: serials[index]
+    }))
   );
-
-  const ctx = canvas.getContext('2d');
-
-  ctx.fillStyle = '#10151d';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // Sequential rendering limits memory usage.
-  for (let index = 0; index < selected.length; index++) {
-    const card = {
-      ...selected[index],
-      season: SEASON
-    };
-
-    const buffer = await renderCard(
-      card,
-      serials[index],
-      {
-        season: SEASON,
-        event: card.event
-      }
-    );
-
-    const image = await loadImage(buffer);
-
-    ctx.drawImage(
-      image,
-      index * width,
-      0,
-      width,
-      height
-    );
-
-    ctx.fillStyle = '#ffffff';
-    ctx.textAlign = 'center';
-    ctx.font = 'bold 23px sans-serif';
-
-    ctx.fillText(
-      `${index + 1} • #${serials[index]}`,
-      index * width + width / 2,
-      height + 32
-    );
-  }
-
-  return canvas.toBuffer('image/png');
 }
 
 function wishlistSeason(entry) {
@@ -676,7 +629,7 @@ async function postDrop(
           }
         );
 
-        // No dropper exists for auto drops.
+        // Auto drops have no dropper.
         // Candy goes to successful claimers instead.
         candy =
           activeEvent(now) && Math.random() < 0.15
@@ -849,13 +802,9 @@ module.exports = client => {
     }
   };
 
-  const startup = setTimeout(() => {
-    void run();
-  }, 5000);
-
   const interval = setInterval(() => {
     void run();
-  }, 30 * 60 * 1000);
+  }, AUTO_DROP_INTERVAL);
 
   const control = {
     run,
@@ -863,7 +812,6 @@ module.exports = client => {
     stop() {
       stopped = true;
 
-      clearTimeout(startup);
       clearInterval(interval);
 
       runningClients.delete(client);
@@ -873,7 +821,7 @@ module.exports = client => {
   runningClients.set(client, control);
 
   console.log(
-    '[AutoDrop] S1/Halloween system started.'
+    '[AutoDrop] S1/Halloween system started. Next drop in 90 minutes.'
   );
 
   return control;

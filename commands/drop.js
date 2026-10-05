@@ -10,7 +10,8 @@ const HALLOWEEN_END = Date.parse("2026-11-01T00:00:00+05:30");
 const {
   ActionRowBuilder,
   ButtonBuilder,
-  ButtonStyle
+  ButtonStyle,
+  SlashCommandBuilder
 } = require("discord.js");
 
 const createDropImage = require("../utils/createDropImage");
@@ -281,7 +282,42 @@ module.exports = {
   name: "drop",
   aliases: ["d"],
 
+  data: new SlashCommandBuilder()
+    .setName("drop")
+    .setDescription("Drop cards for everyone to claim.")
+    .setDMPermission(false),
+
+  async executeSlash(interaction) {
+    return module.exports.execute(interaction);
+  },
+
   async execute(message) {
+    // Acknowledge slash commands before database work and rendering.
+    if (
+      typeof message.isChatInputCommand === "function" &&
+      message.isChatInputCommand()
+    ) {
+      const interaction = message;
+
+      if (!interaction.deferred && !interaction.replied) {
+        await interaction.deferReply();
+      }
+
+      message = {
+        author: interaction.user,
+
+        reply: async payload => {
+          await interaction.editReply(
+            typeof payload === "string"
+              ? { content: payload }
+              : payload
+          );
+
+          return interaction.fetchReply();
+        }
+      };
+    }
+
     console.log("[DROP] ✅ Drop command reached");
 
     try {
@@ -306,7 +342,7 @@ module.exports = {
         userId
       });
 
-      let cooldownTime = 8 * 60 * 1000;
+      let cooldownTime = 12 * 60 * 1000;
 
       if (
         stoneEffect?.timeUntil &&
@@ -446,6 +482,7 @@ module.exports = {
           "[DROP] ❌ createDropImage failed:",
           error
         );
+
         throw error;
       }
 
@@ -552,6 +589,8 @@ module.exports = {
             });
           }
 
+          await interaction.deferUpdate();
+
           attemptedBy[index].add(claimerId);
 
           const claimerEffect =
@@ -575,9 +614,7 @@ module.exports = {
             claimerId !== userId &&
             !claimerPowerActive
           ) {
-            return interaction
-              .deferUpdate()
-              .catch(() => {});
+            return;
           }
 
           const pickupCooldown =
@@ -619,7 +656,7 @@ module.exports = {
                 (remaining % 60000) / 1000
               );
 
-              return interaction.reply({
+              return interaction.followUp({
                 content:
                   `❌ You can claim again in ${minutes}m ${seconds}s.`,
                 ephemeral: true
@@ -635,7 +672,7 @@ module.exports = {
           }
 
           if (claimedUsers.has(claimerId)) {
-            return interaction.reply({
+            return interaction.followUp({
               content:
                 "❌ You already claimed a card from this drop.",
               ephemeral: true
@@ -643,7 +680,7 @@ module.exports = {
           }
 
           if (claimedCards[index]) {
-            return interaction.reply({
+            return interaction.followUp({
               content: "❌ This card was already claimed.",
               ephemeral: true
             });
@@ -693,7 +730,7 @@ module.exports = {
             .setDisabled(true)
             .setStyle(ButtonStyle.Secondary);
 
-          await interaction.update({
+          await interaction.editReply({
             components: [row]
           });
 

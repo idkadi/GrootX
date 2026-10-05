@@ -1,229 +1,410 @@
-const cards = require("../data/cards");
+const season0 = require('../data/cards');
+const season1 = require('../data/season1');
 
 const {
   EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
-  ButtonStyle
-} = require("discord.js");
+  ButtonStyle,
+  SlashCommandBuilder
+} = require('discord.js');
 
-const connectDB = require("../database");
+const connectDB = require('../database');
 
 const rarityEmojis = {
-  common: "<:common:1504510702956839033>",
-  uncommon: "<:uncommon:1504510929210052698>",
-  rare: "<:rare:1504510606718275764>",
-  epic: "<:epic:1504510771214680175>",
-  legendary: "<:legendary:1504511435974377552>"
+  common: '<:common:1504510702956839033>',
+  uncommon: '<:uncommon:1504510929210052698>',
+  rare: '<:rare:1504510606718275764>',
+  epic: '<:epic:1504510771214680175>',
+  legendary: '<:legendary:1504511435974377552>'
 };
 
 const CARDS_PER_PAGE = 10;
 
-module.exports = {
-  name: "search",
-  aliases: ["s"],
+const normalize = value =>
+  String(value ?? '').trim().toLowerCase();
 
-  async execute(message, args) {
-    if (!args.length) {
-      return message.reply(
-        "❌ Provide a search.\n\n" +
-        "**Examples:**\n" +
-        "`!search n: iron man`\n" +
-        "`!search s: daredevil`\n" +
-        "`!search t: spider`\n" +
-        "`!search t:untag`"
-      );
-    }
+const compact = value =>
+  normalize(value).replace(/\s+/g, '');
 
-    const fullQuery = args.join(" ");
-    const userId = message.author.id;
+const safe = value =>
+  String(value ?? '')
+    .replace(/[`*_~|\\]/g, '')
+    .slice(0, 100);
 
-    let searchType;
-    let searchValue;
+function seasonOf(value) {
+  if (value == null || value === '') return 0;
 
-    if (fullQuery.toLowerCase().startsWith("n:")) {
-      searchType = "name";
-      searchValue = fullQuery.slice(2).trim().toLowerCase();
-    } else if (fullQuery.toLowerCase().startsWith("s:")) {
-      searchType = "show";
-      searchValue = fullQuery.slice(2).trim().toLowerCase();
-    } else if (fullQuery.toLowerCase().startsWith("t:")) {
-      searchType = "tag";
-      searchValue = fullQuery.slice(2).trim().toLowerCase();
-    } else {
-      return message.reply(
-        "❌ Invalid search type.\n\n" +
-        "**Use:**\n" +
-        "`n:` = name\n" +
-        "`s:` = series\n" +
-        "`t:` = tag"
-      );
+  const match = normalize(value).match(
+    /^(?:s|season\s*)?(\d+)$/
+  );
+
+  return match ? Number(match[1]) : null;
+}
+
+function eventName(value) {
+  if (compact(value) === 'halloween2026') {
+    return 'Halloween 26';
+  }
+
+  return String(value || '');
+}
+
+const catalogs = new Map([
+  [0, season0],
+  [1, season1]
+]);
+
+function resolveCard(entry) {
+  const season = seasonOf(entry.season);
+  const pool = catalogs.get(season) || [];
+
+  const matches = pool.filter(
+    card => Number(card.id) === Number(entry.cardId)
+  );
+
+  const card = entry.event
+    ? matches.find(
+        card =>
+          normalize(card.event) === normalize(entry.event)
+      )
+    : matches.find(card => !card.event) || matches[0];
+
+  // Keep owned cards visible when their catalog data is missing.
+  return {
+    entry,
+    season,
+    card: card || {
+      name:
+        entry.name ||
+        entry.cardName ||
+        `Unknown card ${entry.cardId}`,
+      tier: entry.tier,
+      show: entry.show || entry.appearance,
+      event: entry.event
+    },
+    missing: !card
+  };
+}
+
+const data = new SlashCommandBuilder()
+  .setName('search')
+  .setDescription('Search your cards across seasons and events.')
+  .addStringOption(option =>
+    option
+      .setName('type')
+      .setDescription('Search by name, series, or tag.')
+      .setRequired(true)
+      .addChoices(
+        { name: 'Name', value: 'name' },
+        { name: 'Series / Event', value: 'show' },
+        { name: 'Tag', value: 'tag' }
+      )
+  )
+  .addStringOption(option =>
+    option
+      .setName('query')
+      .setDescription(
+        'Search text; use untag for untagged cards.'
+      )
+      .setRequired(true)
+      .setMaxLength(100)
+  )
+  .addIntegerOption(option =>
+    option
+      .setName('season')
+      .setDescription('Optional season filter: 0, 1, etc.')
+      .setMinValue(0)
+  );
+
+async function run(
+  context,
+  searchType,
+  searchValue,
+  filterSeason = null
+) {
+  const isSlash =
+    typeof context.isChatInputCommand === 'function' &&
+    context.isChatInputCommand();
+
+  if (isSlash && !context.deferred && !context.replied) {
+    await context.deferReply();
+  }
+
+  const userId = (
+    isSlash ? context.user : context.author
+  ).id;
+
+  const reply = async payload => {
+    if (!isSlash) return context.reply(payload);
+
+    await context.editReply(
+      typeof payload === 'string'
+        ? { content: payload }
+        : payload
+    );
+
+    return context.fetchReply();
+  };
+
+  try {
+    searchValue = normalize(searchValue);
+
+    if (!searchValue) {
+      return reply('❌ Enter a search value.');
     }
 
     const db = await connectDB();
 
-    const collectionsCol = db.collection("collections");
-    const cardTagsCol = db.collection("cardtags");
+    const [owned, tags] = await Promise.all([
+      db.collection('collections')
+        .find({ userId })
+        .toArray(),
 
-    const userCollection = await collectionsCol
-      .find({ userId })
-      .toArray();
+      db.collection('cardtags')
+        .find({ userId })
+        .toArray()
+    ]);
 
-    const userCardTags = await cardTagsCol
-      .find({ userId })
-      .toArray();
+    const tagMap = new Map(
+      tags.map(tag => [normalize(tag.code), tag])
+    );
 
-    const tagMap = {};
-
-    for (const tag of userCardTags) {
-      tagMap[String(tag.code).toLowerCase()] = {
-        tagName: tag.tagName,
-        emoji: tag.emoji
+    const tagFor = entry =>
+      tagMap.get(normalize(entry.code)) || {
+        tagName:
+          typeof entry.tag === 'string'
+            ? entry.tag
+            : entry.tag?.tagName,
+        emoji: entry.tag?.emoji
       };
-    }
 
-    const matchingCards = userCollection.filter(entry => {
-      const card = cards.find(
-        c => Number(c.id) === Number(entry.cardId)
-      );
-
-      if (!card) return false;
-
-      if (searchType === "name") {
-        return card.name.toLowerCase().includes(searchValue);
-      }
-
-      if (searchType === "show") {
-        const series = (card.show || card.appearance || "")
-          .toLowerCase()
-          .replace(/\s+/g, "");
-
-        return series.includes(
-          searchValue.replace(/\s+/g, "")
-        );
-      }
-
-      if (searchType === "tag") {
-        const savedTag =
-          tagMap[String(entry.code).toLowerCase()];
-
-        if (searchValue === "untag") {
-          return !savedTag || !savedTag.tagName;
+    const results = owned
+      .map(resolveCard)
+      .filter(item => {
+        if (
+          filterSeason !== null &&
+          item.season !== filterSeason
+        ) {
+          return false;
         }
 
-        return (
-          savedTag &&
-          savedTag.tagName &&
-          savedTag.tagName.toLowerCase() === searchValue
-        );
-      }
+        const { card, entry } = item;
 
-      return false;
-    });
+        if (searchType === 'name') {
+          return normalize(card.name).includes(searchValue);
+        }
 
-    if (matchingCards.length === 0) {
-      return message.reply(
-        searchType === "tag" && searchValue === "untag"
-          ? "❌ No untagged cards found."
-          : `❌ No cards found for:\n\`${searchValue}\``
+        if (searchType === 'show') {
+          const event = entry.event || card.event;
+
+          // Event cards use the event itself as their series.
+          const series = event
+            ? eventName(event)
+            : card.show || card.appearance || '';
+
+          return (
+            compact(series).includes(compact(searchValue)) ||
+            (
+              event &&
+              compact(event).includes(compact(searchValue))
+            )
+          );
+        }
+
+        const tag = normalize(tagFor(entry).tagName);
+
+        return searchValue === 'untag'
+          ? !tag
+          : tag === searchValue;
+      });
+
+    if (!results.length) {
+      return reply(
+        '❌ No matching cards found in your collection.'
       );
     }
 
     let page = 0;
 
     const totalPages = Math.ceil(
-      matchingCards.length / CARDS_PER_PAGE
+      results.length / CARDS_PER_PAGE
     );
 
-    function createEmbed() {
-      const start = page * CARDS_PER_PAGE;
-      const end = start + CARDS_PER_PAGE;
+    const createEmbed = () => {
+      const lines = results
+        .slice(
+          page * CARDS_PER_PAGE,
+          (page + 1) * CARDS_PER_PAGE
+        )
+        .map(({ entry, card, season, missing }) => {
+          const event = entry.event || card.event;
 
-      const currentCards = matchingCards.slice(start, end);
+          const series = event
+            ? eventName(event)
+            : card.show || card.appearance || 'Unknown series';
 
-      const results = currentCards.map(entry => {
-        const card = cards.find(
-          c => Number(c.id) === Number(entry.cardId)
-        );
+          const tier = event
+            ? '🎃'
+            : rarityEmojis[normalize(card.tier)] || '🎴';
 
-        const emoji = rarityEmojis[card.tier] || "🎴";
+          const tag = tagFor(entry);
 
-        const savedTag =
-          tagMap[String(entry.code).toLowerCase()];
-
-        const tagText = savedTag?.emoji
-          ? `${savedTag.emoji} • `
-          : "";
-
-        return (
-          `🔹 ${tagText}` +
-          `\`${entry.code}\` • ` +
-          `${emoji} ` +
-          `#${entry.serial} ` +
-          `**${card.name}** ` +
-          `• ${card.show || card.appearance}`
-        );
-      });
+          return (
+            `${tag.emoji ? `${safe(tag.emoji)} ` : ''}` +
+            `\`${safe(entry.code)}\` • ${tier} ` +
+            `#${safe(entry.serial ?? '?')} ` +
+            `**${safe(card.name)}**\n` +
+            `↳ **${
+              season === null ? 'Unknown season' : `S${season}`
+            }** • ${safe(series)}` +
+            `${missing ? ' • Catalog unavailable' : ''}`
+          );
+        });
 
       return new EmbedBuilder()
         .setColor(0x00aeff)
-        .setTitle("🔎 Search Results")
+        .setTitle('🔎 Search Results')
         .setDescription(
-          `Search:\n\`${searchValue}\`\n\n` +
-          results.join("\n")
+          `Search: \`${safe(searchValue)}\` • ` +
+          `${
+            filterSeason === null
+              ? 'All seasons'
+              : `S${filterSeason}`
+          }\n\n` +
+          lines.join('\n\n')
         )
         .setFooter({
           text:
             `Page ${page + 1}/${totalPages} • ` +
-            `${matchingCards.length} card(s) found`
-        })
-        .setTimestamp();
-    }
+            `${results.length} card(s) found`
+        });
+    };
 
-    function getButtons() {
-      return new ActionRowBuilder().addComponents(
+    const buttons = (disabled = false) =>
+      new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-          .setCustomId("search_prev")
-          .setLabel("⬅️")
+          .setCustomId('search_prev')
+          .setLabel('⬅️')
           .setStyle(ButtonStyle.Secondary)
-          .setDisabled(page === 0),
+          .setDisabled(disabled || page === 0),
 
         new ButtonBuilder()
-          .setCustomId("search_next")
-          .setLabel("➡️")
+          .setCustomId('search_next')
+          .setLabel('➡️')
           .setStyle(ButtonStyle.Secondary)
-          .setDisabled(page === totalPages - 1)
+          .setDisabled(
+            disabled || page === totalPages - 1
+          )
       );
-    }
 
-    const msg = await message.reply({
+    const msg = await reply({
       embeds: [createEmbed()],
-      components: totalPages > 1 ? [getButtons()] : []
+      components: totalPages > 1 ? [buttons()] : [],
+      allowedMentions: { parse: [] }
     });
 
     if (totalPages <= 1) return;
 
     const collector = msg.createMessageComponentCollector({
-      time: 60000
+      time: 60000,
+
+      filter: interaction =>
+        ['search_prev', 'search_next'].includes(
+          interaction.customId
+        )
     });
 
-    collector.on("collect", async interaction => {
-      collector.resetTimer();
+    collector.on('collect', async interaction => {
+      try {
+        if (interaction.user.id !== userId) {
+          return await interaction.reply({
+            content: '❌ This is not your search menu.',
+            ephemeral: true
+          });
+        }
 
-      if (interaction.user.id !== message.author.id) {
-        return interaction.reply({
-          content: "❌ This is not your search menu.",
-          ephemeral: true
+        await interaction.deferUpdate();
+        collector.resetTimer();
+
+        page = Math.max(
+          0,
+          Math.min(
+            totalPages - 1,
+            page + (
+              interaction.customId === 'search_next'
+                ? 1
+                : -1
+            )
+          )
+        );
+
+        await interaction.editReply({
+          embeds: [createEmbed()],
+          components: [buttons()]
         });
+      } catch (error) {
+        console.error('[SEARCH] Pagination:', error);
       }
-
-      if (interaction.customId === "search_next") page++;
-      if (interaction.customId === "search_prev") page--;
-
-      await interaction.update({
-        embeds: [createEmbed()],
-        components: [getButtons()]
-      });
     });
+
+    collector.on('end', () => {
+      void msg.edit({
+        components: [buttons(true)]
+      }).catch(() => {});
+    });
+  } catch (error) {
+    console.error('[SEARCH]', error);
+
+    return reply(
+      '❌ Search failed. Please try again.'
+    ).catch(() => {});
+  }
+}
+
+module.exports = {
+  name: 'search',
+  aliases: ['s'],
+  data,
+
+  async executeSlash(interaction) {
+    return run(
+      interaction,
+      interaction.options.getString('type'),
+      interaction.options.getString('query'),
+      interaction.options.getInteger('season') ?? null
+    );
+  },
+
+  async execute(context, args = []) {
+    if (
+      typeof context.isChatInputCommand === 'function' &&
+      context.isChatInputCommand()
+    ) {
+      return module.exports.executeSlash(context);
+    }
+
+    const match = args
+      .join(' ')
+      .trim()
+      .match(/^([nst]):\s*(.+)$/i);
+
+    if (!match) {
+      return context.reply(
+        '❌ Use `search n:iron man`, ' +
+        '`search s:halloween 26`, ' +
+        'or `search t:untag`.'
+      );
+    }
+
+    return run(
+      context,
+      {
+        n: 'name',
+        s: 'show',
+        t: 'tag'
+      }[match[1].toLowerCase()],
+      match[2]
+    );
   }
 };
