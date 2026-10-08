@@ -7764,7 +7764,7 @@ module.exports = [
   aka: [],
   appearance: "Halloween 2026",
   tier: "legendary",
-  rawImage: "raw/halloween/agatha26.png",
+  rawImage: "raw/halloween/agathahlw26.png",
   event: "halloween2026"
 },
 
@@ -8195,7 +8195,7 @@ module.exports = [
   aka: [],
   appearance: "Halloween 2026",
   tier: "legendary",
-  rawImage: "raw/halloween/zombiethor26.png",
+  rawImage: "raw/halloween/zombiethor.png",
   event: "halloween2026"
 },
 
