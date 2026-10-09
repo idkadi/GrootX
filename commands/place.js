@@ -1,122 +1,312 @@
-const cardsData = require("../data/cards.js");
-const connectDB = require("../database");
+const fs = require("fs");
+const path = require("path");
+const { SlashCommandBuilder } = require("discord.js");
 
-function getCardsArray() {
-  if (Array.isArray(cardsData)) return cardsData;
-  if (Array.isArray(cardsData.cards)) return cardsData.cards;
-  return [];
-}
+const connectDB = require("../database");
+const season0Cards = require("../data/cards");
+const season1Cards = require("../data/season1");
+
+const asCards = data =>
+  Array.isArray(data) ? data : data.cards || [];
+
+const eventKey = value =>
+  String(value || "").trim().toLowerCase();
+
+const escapeRegex = value =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 module.exports = {
   name: "place",
   aliases: ["albumadd"],
 
-  async execute(message, args) {
+  data: new SlashCommandBuilder()
+    .setName("place")
+    .setDescription("Place an owned card in an album slot.")
+    .addStringOption(option =>
+      option
+        .setName("album")
+        .setDescription("Album name")
+        .setRequired(true)
+    )
+    .addIntegerOption(option =>
+      option
+        .setName("page")
+        .setDescription("Page number")
+        .setMinValue(1)
+        .setRequired(true)
+    )
+    .addIntegerOption(option =>
+      option
+        .setName("slot")
+        .setDescription("Slot number")
+        .setMinValue(1)
+        .setRequired(true)
+    )
+    .addStringOption(option =>
+      option
+        .setName("code")
+        .setDescription("Owned card code")
+        .setRequired(true)
+    ),
 
-    // Supports album names with spaces
-    if (args.length < 4) {
-      return message.reply(
-        "❌ Use: `!place <album name> <page> <slot> <card code>`\nExample: `!place The Avengers 1 2 abc123`"
-      );
-    }
+  async execute(message, args = []) {
+    const slash =
+      typeof message.isChatInputCommand === "function" &&
+      message.isChatInputCommand();
 
-    const code = args.pop().toLowerCase();
-    const slotArg = args.pop();
-    const pageArg = args.pop();
-    const albumName = args.join(" ");
+    const user = slash ? message.user : message.author;
 
-    const pageNumber = parseInt(pageArg);
-    const slotNumber = parseInt(slotArg);
-
-    if (
-      !albumName ||
-      isNaN(pageNumber) ||
-      isNaN(slotNumber) ||
-      !code
-    ) {
-      return message.reply(
-        "❌ Use: `!place <album name> <page> <slot> <card code>`"
-      );
-    }
-
-    const db = await connectDB();
-
-    const albumsCol = db.collection("albums");
-    const collectionsCol = db.collection("collections");
-
-    const userId = message.author.id;
-
-    const allCards = getCardsArray();
-
-    const album = await albumsCol.findOne({
-      userId,
-      name: {
-        $regex: `^${albumName}$`,
-        $options: "i"
+    const reply = payload => {
+      if (typeof payload === "string") {
+        payload = { content: payload };
       }
-    });
 
-    if (!album) {
-      return message.reply(
-        `❌ Album **${albumName}** not found.`
-      );
-    }
+      payload.allowedMentions = {
+        parse: [],
+        repliedUser: false
+      };
 
-    const page = album.pages?.[pageNumber - 1];
-
-    if (!page) {
-      return message.reply(
-        "❌ That page does not exist."
-      );
-    }
-
-    if (!page.layout) {
-      return message.reply(
-        "❌ This page has no layout."
-      );
-    }
-
-    const ownedCard = await collectionsCol.findOne({
-      userId,
-      code
-    });
-
-    if (!ownedCard) {
-      return message.reply(
-        `❌ You don't own card code **${code}**.`
-      );
-    }
-
-    const cardInfo = allCards.find(
-      c => Number(c.id) === Number(ownedCard.cardId)
-    );
-
-    if (!cardInfo) {
-      return message.reply(
-        "❌ Card data not found."
-      );
-    }
-
-    if (!Array.isArray(page.slots)) {
-      page.slots = [];
-    }
-
-    page.slots[slotNumber - 1] = {
-      cardId: ownedCard.cardId,
-      code: ownedCard.code
+      return slash
+        ? message.editReply(payload)
+        : message.reply(payload);
     };
 
-    await albumsCol.updateOne(
-      { _id: album._id },
-      {
-        $set: {
-          pages: album.pages
-        }
+    try {
+      if (
+        slash &&
+        !message.deferred &&
+        !message.replied
+      ) {
+        await message.deferReply();
       }
-    );
 
-    return message.reply(
-      `✅ Placed **${cardInfo.name}** (${ownedCard.code}) in **${album.name}** • Page **${pageNumber}** • Slot **${slotNumber}**`
-    );
+      if (!slash && args.length < 4) {
+        return await reply(
+          "❌ Use: `!place <album name> <page> <slot> <card code>`\n" +
+          "Example: `!place The Avengers 1 2 abc123`"
+        );
+      }
+
+      const albumName = (
+        slash
+          ? message.options.getString("album", true)
+          : args.slice(0, -3).join(" ")
+      ).trim();
+
+      const pageNumber = slash
+        ? message.options.getInteger("page", true)
+        : Number(args[args.length - 3]);
+
+      const slotNumber = slash
+        ? message.options.getInteger("slot", true)
+        : Number(args[args.length - 2]);
+
+      const code = String(
+        slash
+          ? message.options.getString("code", true)
+          : args[args.length - 1]
+      ).trim().toLowerCase();
+
+      if (
+        !albumName ||
+        !code ||
+        !Number.isSafeInteger(pageNumber) ||
+        pageNumber < 1 ||
+        !Number.isSafeInteger(slotNumber) ||
+        slotNumber < 1
+      ) {
+        return await reply(
+          "❌ Enter an album name, positive whole " +
+          "page/slot numbers, and a card code."
+        );
+      }
+
+      const db = await connectDB();
+      const albums = db.collection("albums");
+
+      const album = await albums.findOne({
+        userId: user.id,
+        name: {
+          $regex: `^${escapeRegex(albumName)}$`,
+          $options: "i"
+        }
+      });
+
+      if (!album) {
+        return await reply("❌ Album not found.");
+      }
+
+      const page = album.pages?.[pageNumber - 1];
+
+      if (!page) {
+        return await reply("❌ That page does not exist.");
+      }
+
+      if (page.layout == null) {
+        return await reply("❌ This page has no layout.");
+      }
+
+      const layouts = JSON.parse(
+        fs.readFileSync(
+          path.join(
+            __dirname,
+            "../data/layouts/slots.json"
+          ),
+          "utf8"
+        )
+      );
+
+      const positions = layouts[String(page.layout)];
+
+      if (!Array.isArray(positions)) {
+        return await reply(
+          "❌ This page's layout is unavailable."
+        );
+      }
+
+      if (slotNumber > positions.length) {
+        return await reply(
+          `❌ This layout has ${positions.length} slots. ` +
+          `Choose 1–${positions.length}.`
+        );
+      }
+
+      const owned = await db
+        .collection("collections")
+        .findOne({
+          userId: user.id,
+          code
+        });
+
+      if (!owned) {
+        return await reply(
+          `❌ You don't own card code **${code}**.`
+        );
+      }
+
+      const value = String(
+        owned.season ?? owned.cardSeason ?? 0
+      ).toLowerCase();
+
+      if (!["0", "s0", "1", "s1"].includes(value)) {
+        return await reply(
+          "❌ This card has an unsupported season."
+        );
+      }
+
+      const season =
+        value === "1" || value === "s1" ? 1 : 0;
+
+      const catalog = asCards(
+        season === 1 ? season1Cards : season0Cards
+      );
+
+      const candidates = catalog.filter(card =>
+        String(card.id) === String(owned.cardId)
+      );
+
+      let card = candidates.find(entry =>
+        eventKey(entry.event) === eventKey(owned.event)
+      );
+
+      if (
+        !card &&
+        !owned.event &&
+        candidates.length === 1
+      ) {
+        card = candidates[0];
+      }
+
+      if (!card) {
+        return await reply(
+          "❌ Card data is missing or ambiguous. " +
+          "Please report its code."
+        );
+      }
+
+      const slotData = {
+        cardId: owned.cardId,
+        code: owned.code,
+        season,
+        event: owned.event || card.event || null
+      };
+
+      // viewalbum reads the equipped frame live from collections.
+      // Save the exact owned card identity instead of a frame snapshot.
+      const pagePath = `pages.${pageNumber - 1}`;
+      const slotPath = `${pagePath}.slots.${slotNumber - 1}`;
+
+      const query = {
+        _id: album._id,
+        userId: user.id,
+        [`${pagePath}.layout`]: page.layout
+      };
+
+      const update = Array.isArray(page.slots)
+        ? {
+            $set: {
+              [slotPath]: slotData
+            }
+          }
+        : {
+            $set: {
+              [`${pagePath}.slots`]: Array.from(
+                { length: slotNumber },
+                (_, index) =>
+                  index === slotNumber - 1
+                    ? slotData
+                    : null
+              )
+            }
+          };
+
+      // Protect initialization from concurrent changes.
+      if (!Array.isArray(page.slots)) {
+        query[`${pagePath}.slots`] =
+          page.slots === undefined
+            ? { $exists: false }
+            : page.slots;
+      }
+
+      const result = await albums.updateOne(
+        query,
+        update
+      );
+
+      if (!result.matchedCount) {
+        return await reply(
+          "❌ This page changed while placing your card. " +
+          "Please try again."
+        );
+      }
+
+      return await reply(
+        `✅ Placed **${card.name}** (${owned.code}) ` +
+        `in **${album.name}** • Page **${pageNumber}** ` +
+        `• Slot **${slotNumber}**`
+      );
+    } catch (error) {
+      console.error("[place]", error);
+
+      const payload = {
+        content:
+          "❌ Could not place your card. Please try again."
+      };
+
+      if (
+        slash &&
+        !message.deferred &&
+        !message.replied
+      ) {
+        await message.reply(payload).catch(() => {});
+      } else {
+        await reply(payload).catch(() => {});
+      }
+    }
   }
 };
+
+module.exports.executeSlash = module.exports.execute;
+module.exports.slashExecute = module.exports.execute;
+module.exports.slash = module.exports.execute;
+module.exports.run = module.exports.execute;

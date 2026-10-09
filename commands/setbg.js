@@ -3,672 +3,405 @@ const path = require("path");
 const {
   EmbedBuilder,
   ActionRowBuilder,
- ButtonBuilder,
+  ButtonBuilder,
   ButtonStyle,
-  AttachmentBuilder
+  AttachmentBuilder,
+  SlashCommandBuilder
 } = require("discord.js");
 
-const connectDB =
-  require("../database");
+const connectDB = require("../database");
+const backgrounds = require("../data/backgrounds.js");
 
-const backgrounds = [
+function buttons() {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId("bg_prev")
+      .setEmoji("⬅️")
+      .setStyle(ButtonStyle.Secondary),
 
-  {
-    id: 0,
-    name: "Simple White",
-    file: "whitebg.jpeg",
-    free: true
-  },
+    new ButtonBuilder()
+      .setCustomId("bg_select")
+      .setLabel("Select")
+      .setEmoji("✅")
+      .setStyle(ButtonStyle.Success),
 
-  {
-    id: 1,
-    name: "Spider-man 1",
-    file: "spidermanbg.jpeg",
-    free: false
-  },
-
-  {
-    id: 2,
-    name: "Loki",
-    file: "lokibg.jpeg",
-    free: false
-  },
-
-  {
-    id: 3,
-    name: "Punisher",
-    file: "punisherbg.jpeg",
-    free: false
-  },
-
-  {
-    id: 4,
-    name: "Fantastic Four",
-    file: "fantastic4bg.jpeg",
-    free: false
-  },
-
-  {
-    id: 5,
-    name: "Daredevil",
-    file: "daredevilbg.jpeg",
-    free: false
-  },
-
-    {
-    id: 6,
-    name: "Deadpool",
-    file: "deadpoolbg.jpeg",
-    free: false
-  },
-
-  {
-    id: 7,
-    name: "Iron Man",
-    file: "ironmanbg.jpeg",
-    free: false
-  },
-
-  {
-    id: 8,
-    name: "Civil War",
-    file: "civilwarbg.jpeg",
-    free: false
-  },
-
-  {
-    id: 9,
-    name: "MoonKnight",
-    file: "moonknightbg.jpeg",
-    free: false
-  },
-
-  {
-    id: 10,
-    name: "The Amazing Spider-man",
-    file: "tasmbg.jpeg",
-    free: false
-  },
-
-   {
-    id: 11,
-    name: "Venom",
-    file: "venombg.jpeg",
-    free: false
-  },
-
-   {
-    id: 12,
-    name: "Thor : Love and Thunder",
-    file: "loveandthunderbg.jpeg",
-    free: false
-
-  },
-
-   {
-    id: 13,
-    name: "Ms. Marvel",
-    file: "msmarvelbg.jpeg",
-    free: false
-  },
-
-   {
-    id: 14,
-    name: "She Hulk",
-    file: "shehulkbg.jpeg",
-     free: false
-  },
-
-    {
-    id: 15,
-    name: "Dr. Strange : Multiverse of Madness",
-    file: "multiversebg.jpeg",
-     free: false
-  },
-
-    {
-    id: 16,
-    name: "Avengers : Endgame",
-    file: "endgamebg.jpeg",
-     free: false
-  },
-
-   {
-    id: 17,
-    name: "Venom Last Dance",
-    file: "lastdancebg.jpeg",
-    free: false
-  },
-
-   {
-    id: 18,
-    name: "Miguel O'Hara",
-    file: "2099bg.jpeg",
-    free: false
-  },
-
-    {
-    id: 19,
-    name: "Guardians of Galaxy",
-    file: "gotgbg.jpeg",
-    free: false
-  },
-
-   {
-    id: 20,
-    name: "Spider-Verse",
-    file: "spiderversebg.jpeg",
-    free: false
-  },
-
-   {
-    id: 21,
-    name: "Thunderbolts",
-    file: "thunderboltsbg.jpeg",
-    free: false
-  },
-
-   {
-    id: 22,
-    name: "Marvel Pets",
-    file: "petsbg.jpeg",
-     free: false
-  },
-
-   {
-    id: 23,
-    name: "Captain America",
-    file: "captainamericabg.jpeg",
-     free: false
-  },
-
-    {
-    id: 24,
-    name: "Homecoming",
-    file: "homecomingbg.jpeg",
-     free: false
-  },
-
-   {
-    id: 25,
-    name: "Dr. Strange",
-    file: "drstrangebg.jpeg",
-     free: false
-  },
-
-
-
-];
-
-function makeButtons() {
-
-  return new ActionRowBuilder()
-    .addComponents(
-
-      new ButtonBuilder()
-        .setCustomId("bg_prev")
-        .setEmoji("⬅️")
-        .setStyle(ButtonStyle.Secondary),
-
-      new ButtonBuilder()
-        .setCustomId("bg_select")
-        .setEmoji("✅")
-        .setLabel("Select")
-        .setStyle(ButtonStyle.Success),
-
-      new ButtonBuilder()
-        .setCustomId("bg_next")
-        .setEmoji("➡️")
-        .setStyle(ButtonStyle.Secondary)
-
-    );
-
+    new ButtonBuilder()
+      .setCustomId("bg_next")
+      .setEmoji("➡️")
+      .setStyle(ButtonStyle.Secondary)
+  );
 }
 
-function makeEmbed(
+function ownsBackground(user, bg) {
+  return (
+    bg.free === true ||
+    Number(bg.id) === 0 ||
+    (
+      Array.isArray(user?.backgrounds) &&
+      user.backgrounds.some(
+        id => String(id) === String(bg.id)
+      )
+    )
+  );
+}
+
+function preview(
   bg,
-  albumName,
-  pageNumber,
+  album,
+  page,
   index,
-  total
+  total,
+  selected = false
 ) {
-
-  return new EmbedBuilder()
-
-    .setColor(0x00aeff)
-
+  const embed = new EmbedBuilder()
+    .setColor(selected ? 0x00ff99 : 0x00aeff)
     .setTitle(
-      "🖼️ Choose Album Background"
+      selected
+        ? "✅ Background Selected"
+        : "🖼️ Choose Album Background"
     )
-
     .setDescription(
-
-      `Album: **${albumName}**\n` +
-
-      `Page: **${pageNumber}**\n\n` +
-
-      `Background **${index + 1}/${total}**\n` +
-
-      `**${bg.name}**\n\n` +
-
-      "Use ⬅️ ➡️ to browse.\n" +
-
-      "Press ✅ to select."
-
+      `Album: **${album}**\nPage: **${page}**\n\n` +
+      (
+        selected
+          ? `Selected Background:\n**${bg.name}**`
+          : `Background **${index + 1}/${total}**\n` +
+            `**${bg.name}**\n\n` +
+            "Use ⬅️ ➡️ to browse. Press ✅ to select."
+      )
     )
+    .setImage(`attachment://${bg.file}`);
 
-    .setImage(
-      `attachment://${bg.file}`
-    );
+  return {
+    embeds: [embed],
 
+    files: [
+      new AttachmentBuilder(
+        path.join(
+          __dirname,
+          "../images/backgrounds",
+          bg.file
+        ),
+        { name: bg.file }
+      )
+    ],
+
+    components: selected ? [] : [buttons()],
+
+    allowedMentions: {
+      parse: [],
+      repliedUser: false
+    }
+  };
 }
 
 module.exports = {
-
   name: "setbg",
   aliases: ["background", "setbackground"],
 
-  async execute(message, args) {
+  data: new SlashCommandBuilder()
+    .setName("setbg")
+    .setDescription(
+      "Choose an owned background for an album page."
+    )
+    .addStringOption(option =>
+      option
+        .setName("album")
+        .setDescription("Album name")
+        .setRequired(true)
+    )
+    .addIntegerOption(option =>
+      option
+        .setName("page")
+        .setDescription("Page number")
+        .setMinValue(1)
+        .setRequired(true)
+    ),
 
-    const pageNumber =
-      parseInt(
-        args[args.length - 1]
+  async execute(message, args = []) {
+    const slash =
+      typeof message.isChatInputCommand === "function" &&
+      message.isChatInputCommand();
+
+    const user = slash ? message.user : message.author;
+
+    const reply = payload => {
+      if (typeof payload === "string") {
+        payload = { content: payload };
+      }
+
+      return slash
+        ? message.editReply(payload)
+        : message.reply(payload);
+    };
+
+    try {
+      if (
+        slash &&
+        !message.deferred &&
+        !message.replied
+      ) {
+        await message.deferReply();
+      }
+
+      const albumName = (
+        slash
+          ? message.options.getString("album", true)
+          : args.slice(0, -1).join(" ")
+      ).trim();
+
+      const pageNumber = slash
+        ? message.options.getInteger("page", true)
+        : Number(args[args.length - 1]);
+
+      if (
+        !albumName ||
+        !Number.isSafeInteger(pageNumber) ||
+        pageNumber < 1
+      ) {
+        return await reply(
+          "❌ Use: `!setbg <album name> <page number>` " +
+          "with a positive whole page number."
+        );
+      }
+
+      const db = await connectDB();
+      const albums = db.collection("albums");
+      const users = db.collection("users");
+
+      const escaped = albumName.replace(
+        /[.*+?^${}()|[\]\\]/g,
+        "\\$&"
       );
 
-    const albumName =
-      args.slice(0, -1).join(" ");
-
-    if (
-      !albumName ||
-      isNaN(pageNumber)
-    ) {
-
-      return message.reply(
-
-        "❌ Use: `!setbg <album name> <page number>`"
-
-      );
-
-    }
-
-    const db =
-      await connectDB();
-
-    const albumsCol =
-      db.collection("albums");
-
-    const usersCol =
-      db.collection("users");
-
-    const userId =
-      message.author.id;
-
-    const album =
-      await albumsCol.findOne({
-
-        userId,
-
+      const album = await albums.findOne({
+        userId: user.id,
         name: {
-          $regex:
-            `^${albumName}$`,
+          $regex: `^${escaped}$`,
           $options: "i"
         }
-
       });
 
-    if (!album) {
+      if (!album) {
+        return await reply("❌ Album not found.");
+      }
 
-      return message.reply(
-        "❌ Album not found."
-      );
+      if (!album.pages?.[pageNumber - 1]) {
+        return await reply(
+          "❌ That page does not exist."
+        );
+      }
 
-    }
-
-    if (
-      !album.pages ||
-      !album.pages[pageNumber - 1]
-    ) {
-
-      return message.reply(
-        "❌ That page does not exist."
-      );
-
-    }
-
-    let userDoc =
-      await usersCol.findOne({
-        userId
+      const userDoc = await users.findOne({
+        userId: user.id
       });
 
-    if (!userDoc) {
-
-      await usersCol.insertOne({
-
-        userId,
-
-        backgrounds: []
-
-      });
-
-      userDoc = {
-
-        userId,
-
-        backgrounds: []
-
-      };
-
-    }
-
-    if (
-      !Array.isArray(
-        userDoc.backgrounds
-      )
-    ) {
-
-      userDoc.backgrounds = [];
-
-    }
-
-    const ownedBackgrounds =
-      backgrounds.filter(bg =>
-
-        bg.free ||
-
-        userDoc.backgrounds.includes(
-          bg.id
-        )
-
+      const owned = backgrounds.filter(
+        bg => ownsBackground(userDoc, bg)
       );
 
-    if (
-      ownedBackgrounds.length === 0
-    ) {
+      if (!owned.length) {
+        return await reply(
+          "❌ You don't own any backgrounds."
+        );
+      }
 
-      return message.reply(
-
-        "❌ You don't own any backgrounds."
-
-      );
-
-    }
-
-    let index = 0;
-
-    let bg =
-      ownedBackgrounds[index];
-
-    const file =
-      new AttachmentBuilder(
-
-        `./images/backgrounds/${bg.file}`
-
-      );
-
-    const msg =
-      await message.reply({
-
-        embeds: [
-
-          makeEmbed(
-
-            bg,
-
-            album.name,
-
-            pageNumber,
-
-            index,
-
-            ownedBackgrounds.length
-
+      let index = Math.max(
+        0,
+        owned.findIndex(bg =>
+          Number(bg.id) ===
+          Number(
+            album.pages[pageNumber - 1].background ?? 0
           )
-
-        ],
-
-        files: [file],
-
-        components: [
-          makeButtons()
-        ]
-
-      });
-
-    const collector =
-      msg.createMessageComponentCollector({
-        time: 60000
-      });
-
-    collector.on(
-      "collect",
-
-      async interaction => {
-
-        if (
-          interaction.user.id !==
-          message.author.id
-        ) {
-
-          return interaction.reply({
-
-            content:
-              "❌ This menu is not for you.",
-
-            ephemeral: true
-
-          });
-
-        }
-
-        if (
-          interaction.customId ===
-          "bg_prev"
-        ) {
-
-          index--;
-
-          if (index < 0) {
-
-            index =
-              ownedBackgrounds.length - 1;
-
-          }
-
-        }
-
-        if (
-          interaction.customId ===
-          "bg_next"
-        ) {
-
-          index++;
-
-          if (
-            index >=
-            ownedBackgrounds.length
-          ) {
-
-            index = 0;
-
-          }
-
-        }
-
-        if (
-          interaction.customId ===
-          "bg_select"
-        ) {
-
-          const selected =
-            ownedBackgrounds[index];
-
-          const freshAlbum =
-            await albumsCol.findOne({
-
-              userId,
-
-              name: {
-                $regex:
-                  `^${albumName}$`,
-                $options: "i"
-              }
-
-            });
-
-          if (!freshAlbum) {
-
-            return interaction.reply({
-
-              content:
-                "❌ Album not found.",
-
-              ephemeral: true
-
-            });
-
-          }
-
-          freshAlbum
-            .pages[pageNumber - 1]
-            .background =
-              selected.id;
-
-          freshAlbum
-            .pages[pageNumber - 1]
-            .backgroundFile =
-              selected.file;
-
-          await albumsCol.updateOne(
-
-            {
-              _id:
-                freshAlbum._id
-            },
-
-            {
-              $set: {
-                pages:
-                  freshAlbum.pages
-              }
-            }
-
-          );
-
-          collector.stop(
-            "selected"
-          );
-
-          const selectedFile =
-            new AttachmentBuilder(
-
-              `./images/backgrounds/${selected.file}`
-
-            );
-
-          const selectedEmbed =
-            new EmbedBuilder()
-
-              .setColor(0x00ff99)
-
-              .setTitle(
-                "✅ Background Selected"
-              )
-
-              .setDescription(
-
-                `Album: **${freshAlbum.name}**\n` +
-
-                `Page: **${pageNumber}**\n\n` +
-
-                `Selected Background:\n` +
-
-                `**${selected.name}**`
-
-              )
-
-              .setImage(
-                `attachment://${selected.file}`
-              );
-
-          return interaction.update({
-
-            embeds: [
-              selectedEmbed
-            ],
-
-            files: [
-              selectedFile
-            ],
-
-            components: []
-
-          });
-
-        }
-
-        bg =
-          ownedBackgrounds[index];
-
-        const newFile =
-          new AttachmentBuilder(
-
-            `./images/backgrounds/${bg.file}`
-
-          );
-
-        return interaction.update({
-
-          embeds: [
-
-            makeEmbed(
-
-              bg,
-
-              album.name,
-
-              pageNumber,
-
-              index,
-
-              ownedBackgrounds.length
-
-            )
-
-          ],
-
-          files: [
-            newFile
-          ],
-
-          components: [
-            makeButtons()
-          ]
-
+        )
+      );
+
+      const msg = await reply(
+        preview(
+          owned[index],
+          album.name,
+          pageNumber,
+          index,
+          owned.length
+        )
+      );
+
+      const collector =
+        msg.createMessageComponentCollector({
+          time: 60000
         });
 
-      }
+      let busy = false;
 
-    );
-
-    collector.on(
-      "end",
-
-      async (_, reason) => {
-
+      collector.on("collect", async interaction => {
         if (
-          reason === "selected"
-        ) return;
+          !["bg_prev", "bg_next", "bg_select"].includes(
+            interaction.customId
+          )
+        ) {
+          return;
+        }
 
+        if (interaction.user.id !== user.id) {
+          return interaction.reply({
+            content: "❌ This menu is not for you.",
+            ephemeral: true
+          }).catch(() => {});
+        }
+
+        try {
+          // Acknowledge before database access or file uploads.
+          await interaction.deferUpdate();
+        } catch (error) {
+          console.error(
+            "[setbg] Button acknowledgement:",
+            error
+          );
+          return;
+        }
+
+        if (busy || collector.ended) return;
+        busy = true;
+
+        try {
+          if (interaction.customId === "bg_select") {
+            const selected = owned[index];
+
+            // Verify ownership again at selection time.
+            const currentUser = await users.findOne({
+              userId: user.id
+            });
+
+            if (!ownsBackground(currentUser, selected)) {
+              return await interaction.followUp({
+                content:
+                  "❌ You no longer own this background.",
+                ephemeral: true
+              });
+            }
+
+            const pagePath =
+              `pages.${pageNumber - 1}`;
+
+            // Change only background fields.
+            // Preserve placed cards and other album pages.
+            const result = await albums.updateOne(
+              {
+                _id: album._id,
+                userId: user.id,
+                [pagePath]: {
+                  $type: "object"
+                }
+              },
+              {
+                $set: {
+                  [`${pagePath}.background`]:
+                    selected.id,
+
+                  [`${pagePath}.backgroundFile`]:
+                    selected.file
+                }
+              }
+            );
+
+            if (!result.matchedCount) {
+              await msg.edit({
+                content:
+                  "❌ Album or page no longer exists.",
+                embeds: [],
+                attachments: [],
+                components: []
+              });
+
+              collector.stop("missing");
+              return;
+            }
+
+            await msg.edit({
+              content: null,
+              attachments: [],
+
+              ...preview(
+                selected,
+                album.name,
+                pageNumber,
+                index,
+                owned.length,
+                true
+              )
+            });
+
+            collector.stop("selected");
+            return;
+          }
+
+          index = (
+            index +
+            (
+              interaction.customId === "bg_next"
+                ? 1
+                : -1
+            ) +
+            owned.length
+          ) % owned.length;
+
+          await msg.edit({
+            content: null,
+            attachments: [],
+
+            ...preview(
+              owned[index],
+              album.name,
+              pageNumber,
+              index,
+              owned.length
+            )
+          });
+        } catch (error) {
+          console.error(
+            "[setbg] Menu update:",
+            error
+          );
+
+          await interaction.followUp({
+            content:
+              "❌ Could not update the background menu. " +
+              "Please try again.",
+            ephemeral: true
+          }).catch(() => {});
+        } finally {
+          busy = false;
+        }
+      });
+
+      collector.on("end", async () => {
         await msg.edit({
-
           components: []
-
         }).catch(() => {});
+      });
+    } catch (error) {
+      console.error("[setbg]", error);
 
+      const payload = {
+        content:
+          "❌ Could not load backgrounds. " +
+          "Please check the bot logs and try again."
+      };
+
+      if (
+        slash &&
+        !message.deferred &&
+        !message.replied
+      ) {
+        await message.reply(payload).catch(() => {});
+      } else {
+        await reply(payload).catch(() => {});
       }
-
-    );
-
+    }
   }
-
 };
+
+module.exports.executeSlash = module.exports.execute;
+module.exports.slashExecute = module.exports.execute;
+module.exports.slash = module.exports.execute;
+module.exports.run = module.exports.execute;

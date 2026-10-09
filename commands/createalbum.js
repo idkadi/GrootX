@@ -1,142 +1,190 @@
-const connectDB =
-  require("../database");
+const { SlashCommandBuilder } = require("discord.js");
+const { randomUUID } = require("crypto");
+const connectDB = require("../database");
 
 module.exports = {
-
   name: "createalbum",
 
-  async execute(message, args) {
+  data: new SlashCommandBuilder()
+    .setName("createalbum")
+    .setDescription("Use an Album item to create a new album.")
+    .addStringOption(option =>
+      option
+        .setName("name")
+        .setDescription("Name of your new album")
+        .setMinLength(1)
+        .setMaxLength(100)
+        .setRequired(true)
+    ),
 
-    if (!args.length) {
+  async execute(message, args = []) {
+    const slash =
+      typeof message.isChatInputCommand === "function" &&
+      message.isChatInputCommand();
 
-      return message.reply(
+    const user = slash ? message.user : message.author;
 
-        "❌ Provide an album name.\n\n" +
-
-        "Example:\n" +
-
-        "`!createalbum Iron-Man`"
-
-      );
-
-    }
-
-    const albumName =
-      args.join(" ");
-
-    const db =
-      await connectDB();
-
-    const inventoryCol =
-      db.collection("inventory");
-
-    const albumsCol =
-      db.collection("albums");
-
-    const userId =
-      message.author.id;
-
-    let inventoryDoc =
-      await inventoryCol.findOne({
-        userId
-      });
-
-    if (!inventoryDoc) {
-
-      await inventoryCol.insertOne({
-
-        userId,
-
-        items: {}
-
-      });
-
-      inventoryDoc = {
-
-        userId,
-
-        items: {}
-
-      };
-
-    }
-
-    const items =
-      inventoryDoc.items || {};
-
-    if (
-      (items.album || 0) < 1
-    ) {
-
-      return message.reply(
-
-        "❌ You need an Album item.\n\n" +
-
-        "Buy one using:\n" +
-
-        "`!buy album`"
-
-      );
-
-    }
-
-    const existing =
-      await albumsCol.findOne({
-
-        userId,
-
-        name: {
-          $regex:
-            `^${albumName}$`,
-          $options: "i"
-        }
-
-      });
-
-    if (existing) {
-
-      return message.reply(
-
-        "❌ You already have an album with this name."
-
-      );
-
-    }
-
-    await inventoryCol.updateOne(
-
-      { userId },
-
-      {
-        $inc: {
-          "items.album": -1
-        }
+    const reply = payload => {
+      if (typeof payload === "string") {
+        payload = { content: payload };
       }
 
-    );
+      payload.allowedMentions = {
+        parse: [],
+        repliedUser: false
+      };
 
-    await albumsCol.insertOne({
+      return slash
+        ? message.editReply(payload)
+        : message.reply(payload);
+    };
 
-      userId,
+    try {
+      if (
+        slash &&
+        !message.deferred &&
+        !message.replied
+      ) {
+        await message.deferReply();
+      }
 
-      id:
-        Date.now().toString(),
+      const albumName = (
+        slash
+          ? message.options.getString("name", true)
+          : args.join(" ")
+      ).trim();
 
-      name:
-        albumName,
+      if (!albumName) {
+        return await reply(
+          "❌ Provide an album name.\n" +
+          "Example: `!createalbum Iron-Man`"
+        );
+      }
 
-      pages: []
+      if (albumName.length > 100) {
+        return await reply(
+          "❌ Album names can contain at most 100 characters."
+        );
+      }
 
-    });
+      const db = await connectDB();
+      const inventory = db.collection("inventory");
+      const albums = db.collection("albums");
+      const userId = user.id;
 
-    message.reply(
+      const escapedName = albumName.replace(
+        /[.*+?^${}()|[\]\\]/g,
+        "\\$&"
+      );
 
-      `📘 Created album ` +
+      const existing = await albums.findOne({
+        userId,
+        name: {
+          $regex: `^${escapedName}$`,
+          $options: "i"
+        }
+      });
 
-      `**${albumName}**`
+      if (existing) {
+        return await reply(
+          "❌ You already have an album with this name."
+        );
+      }
 
-    );
+      // Require an available item in the same update that consumes it.
+      const consumed = await inventory.updateOne(
+        {
+          userId,
+          "items.album": { $gte: 1 }
+        },
+        {
+          $inc: { "items.album": -1 }
+        }
+      );
 
+      if (!consumed.modifiedCount) {
+        return await reply(
+          "❌ You need an Album item.\n" +
+          "Buy one using `!buy album`."
+        );
+      }
+
+      try {
+        await albums.insertOne({
+          userId,
+          id: randomUUID(),
+          name: albumName,
+          pages: []
+        });
+      } catch (error) {
+        // Restore the consumed item if album creation fails.
+        try {
+          const refund = await inventory.updateOne(
+            { userId },
+            {
+              $inc: { "items.album": 1 }
+            }
+          );
+
+          if (!refund.matchedCount) {
+            throw new Error(
+              "Inventory document missing during refund."
+            );
+          }
+        } catch (refundError) {
+          console.error(
+            "[createalbum] Item refund failed:",
+            {
+              userId,
+              error: refundError
+            }
+          );
+
+          await reply(
+            "❌ Album creation failed and your Album item " +
+            "could not be restored automatically. " +
+            "Please contact the bot owner."
+          );
+          return;
+        }
+
+        console.error(
+          "[createalbum] Creation failed; item restored:",
+          error
+        );
+
+        return await reply(
+          "❌ Could not create the album. " +
+          "Your Album item was restored. Please try again."
+        );
+      }
+
+      return await reply(
+        `📘 Created album **${albumName}**.\n` +
+        `Use \`!addpage ${albumName}\` to add a page.`
+      );
+    } catch (error) {
+      console.error("[createalbum]", error);
+
+      const payload = {
+        content:
+          "❌ Could not complete the command. Please try again."
+      };
+
+      if (
+        slash &&
+        !message.deferred &&
+        !message.replied
+      ) {
+        await message.reply(payload).catch(() => {});
+      } else {
+        await reply(payload).catch(() => {});
+      }
+    }
   }
-
 };
+
+module.exports.executeSlash = module.exports.execute;
+module.exports.slashExecute = module.exports.execute;
+module.exports.slash = module.exports.execute;
+module.exports.run = module.exports.execute;
