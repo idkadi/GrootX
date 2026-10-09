@@ -2,47 +2,37 @@ const fs = require("fs");
 const path = require("path");
 const { SlashCommandBuilder } = require("discord.js");
 const connectDB = require("../database");
+const frames = require("../data/frames");
 
-const asCards = data =>
-  Array.isArray(data) ? data : data?.cards || [];
+class FrameError extends Error {}
 
-const eventKey = value =>
-  String(value || "").trim().toLowerCase();
-
-const escapeRegex = value =>
-  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const emptyFrame = {
+  $or: [
+    { frameId: { $exists: false } },
+    { frameId: null },
+    { frameId: "" }
+  ]
+};
 
 module.exports = {
-  name: "place",
-  aliases: ["albumadd"],
+  name: "placeframe",
+  aliases: ["putframe", "applyframe"],
 
   data: new SlashCommandBuilder()
-    .setName("place")
-    .setDescription("Place an owned card in an album slot.")
-    .addStringOption(option =>
-      option
-        .setName("album")
-        .setDescription("Album name")
-        .setRequired(true)
-    )
-    .addIntegerOption(option =>
-      option
-        .setName("page")
-        .setDescription("Page number")
-        .setMinValue(1)
-        .setRequired(true)
-    )
-    .addIntegerOption(option =>
-      option
-        .setName("slot")
-        .setDescription("Slot number")
-        .setMinValue(1)
-        .setRequired(true)
+    .setName("placeframe")
+    .setDescription(
+      "Apply an unused custom frame to an owned card."
     )
     .addStringOption(option =>
       option
-        .setName("code")
+        .setName("cardcode")
         .setDescription("Owned card code")
+        .setRequired(true)
+    )
+    .addStringOption(option =>
+      option
+        .setName("framecode")
+        .setDescription("Purchased 6-character frame code")
         .setRequired(true)
     ),
 
@@ -51,16 +41,17 @@ module.exports = {
       typeof message.isChatInputCommand === "function" &&
       message.isChatInputCommand();
 
-    const user = slash ? message.user : message.author;
+    const userId = (
+      slash ? message.user : message.author
+    ).id;
 
-    const reply = payload => {
-      if (typeof payload === "string") {
-        payload = { content: payload };
-      }
-
-      payload.allowedMentions = {
-        parse: [],
-        repliedUser: false
+    const reply = content => {
+      const payload = {
+        content,
+        allowedMentions: {
+          parse: [],
+          repliedUser: false
+        }
       };
 
       return slash
@@ -68,251 +59,219 @@ module.exports = {
         : message.reply(payload);
     };
 
+    let session;
+
     try {
       if (slash && !message.deferred && !message.replied) {
         await message.deferReply();
       }
 
-      if (!slash && args.length < 4) {
+      if (!slash && args.length !== 2) {
         return await reply(
-          "❌ Use: `!place <album name> <page> <slot> <card code>`\n" +
-          "Example: `!place The Avengers 1 2 abc123`"
+          "❌ Use: `!placeframe <cardcode> <framecode>`\n" +
+          "Example: `!placeframe abc123 XYZ789`"
         );
       }
 
-      const albumName = (
+      const cardCode = String(
         slash
-          ? message.options.getString("album", true)
-          : args.slice(0, -3).join(" ")
-      ).trim();
-
-      const pageNumber = slash
-        ? message.options.getInteger("page", true)
-        : Number(args[args.length - 3]);
-
-      const slotNumber = slash
-        ? message.options.getInteger("slot", true)
-        : Number(args[args.length - 2]);
-
-      const code = String(
-        slash
-          ? message.options.getString("code", true)
-          : args[args.length - 1]
+          ? message.options.getString("cardcode", true)
+          : args[0]
       ).trim().toLowerCase();
 
+      const frameCode = String(
+        slash
+          ? message.options.getString("framecode", true)
+          : args[1]
+      ).trim().toUpperCase();
+
       if (
-        !albumName ||
-        !code ||
-        !Number.isSafeInteger(pageNumber) ||
-        pageNumber < 1 ||
-        !Number.isSafeInteger(slotNumber) ||
-        slotNumber < 1
+        !cardCode ||
+        !/^[A-Z0-9]{6}$/.test(frameCode)
       ) {
         return await reply(
-          "❌ Enter an album name, positive whole " +
-          "page/slot numbers, and a card code."
+          "❌ Enter a card code and a valid " +
+          "6-character frame code."
         );
       }
 
       const db = await connectDB();
-      const albums = db.collection("albums");
 
-      const album = await albums.findOne({
-        userId: user.id,
-        name: {
-          $regex: `^${escapeRegex(albumName)}$`,
-          $options: "i"
-        }
-      });
-
-      if (!album) {
-        return await reply("❌ Album not found.");
-      }
-
-      const page = album.pages?.[pageNumber - 1];
-
-      if (!page) {
-        return await reply("❌ That page does not exist.");
-      }
-
-      if (page.layout == null) {
-        return await reply("❌ This page has no layout.");
-      }
-
-      const layouts = JSON.parse(
-        fs.readFileSync(
-          path.join(__dirname, "../data/layouts/slots.json"),
-          "utf8"
-        )
-      );
-
-      const positions = layouts[String(page.layout)];
-
-      if (!Array.isArray(positions)) {
-        return await reply(
-          "❌ This page's layout is unavailable."
+      // Use the MongoClient that owns this database.
+      if (
+        !db.client ||
+        typeof db.client.startSession !== "function"
+      ) {
+        throw new Error(
+          "database.js must return a MongoDB Db " +
+          "with its client available for sessions."
         );
       }
 
-      if (slotNumber > positions.length) {
-        return await reply(
-          `❌ This layout has ${positions.length} slots. ` +
-          `Choose 1–${positions.length}.`
-        );
-      }
+      session = db.client.startSession();
 
-      const owned = await db
-        .collection("collections")
-        .findOne({
-          userId: user.id,
-          code
-        });
+      // Consume the frame and equip the card together.
+      // If either update fails, both are rolled back.
+      await session.withTransaction(
+        async () => {
+          const cards = db.collection("collections");
+          const inventory = db.collection("frameInventory");
 
-      if (!owned) {
-        return await reply(
-          `❌ You don't own card code **${code}**.`
-        );
-      }
+          const owned = await cards.findOne(
+            {
+              userId,
+              code: cardCode
+            },
+            { session }
+          );
 
-      const value = String(
-        owned.season ?? owned.cardSeason ?? 0
-      ).trim().toLowerCase();
-
-      if (!/^s?\d+$/.test(value)) {
-        return await reply(
-          "❌ This card has an invalid season."
-        );
-      }
-
-      const season = Number(value.replace(/^s/, ""));
-
-      if (!Number.isSafeInteger(season)) {
-        return await reply(
-          "❌ This card has an invalid season."
-        );
-      }
-
-      const catalogPath = path.join(
-        __dirname,
-        "../data",
-        season === 0 ? "cards.js" : `season${season}.js`
-      );
-
-      if (!fs.existsSync(catalogPath)) {
-        return await reply(
-          `❌ The S${season} card catalog is unavailable.`
-        );
-      }
-
-      const catalog = asCards(require(catalogPath));
-
-      if (!Array.isArray(catalog)) {
-        return await reply(
-          "❌ This season's card catalog is invalid."
-        );
-      }
-
-      const candidates = catalog.filter(card =>
-        card.id != null &&
-        owned.cardId != null &&
-        String(card.id) === String(owned.cardId)
-      );
-
-      const matches = candidates.filter(entry =>
-        eventKey(entry.event) === eventKey(owned.event)
-      );
-
-      const card =
-        matches.length === 1
-          ? matches[0]
-          : !eventKey(owned.event) && candidates.length === 1
-            ? candidates[0]
-            : null;
-
-      if (!card) {
-        return await reply(
-          "❌ Card data is missing or ambiguous. " +
-          "Please report its code."
-        );
-      }
-
-      const slotData = {
-        cardId: owned.cardId,
-        code: owned.code,
-        season,
-        event: owned.event || card.event || null
-      };
-
-      // viewalbum reads the equipped frame live from collections.
-      // Store the owned card identity instead of a frame snapshot.
-      const pagePath = `pages.${pageNumber - 1}`;
-      const slotPath = `${pagePath}.slots.${slotNumber - 1}`;
-
-      const query = {
-        _id: album._id,
-        userId: user.id,
-        [`${pagePath}.layout`]: page.layout
-      };
-
-      const update = Array.isArray(page.slots)
-        ? {
-            $set: {
-              [slotPath]: slotData
-            }
+          if (!owned) {
+            throw new FrameError(
+              "❌ You don't own that card code."
+            );
           }
-        : {
-            $set: {
-              [`${pagePath}.slots`]: Array.from(
-                { length: slotNumber },
-                (_, index) =>
-                  index === slotNumber - 1
-                    ? slotData
-                    : null
+
+          if (
+            owned.frameId != null &&
+            String(owned.frameId) !== ""
+          ) {
+            throw new FrameError(
+              "❌ This card already has a custom frame. " +
+              "Your unused frame was not consumed."
+            );
+          }
+
+          const item = await inventory.findOne(
+            {
+              userId,
+              code: frameCode
+            },
+            { session }
+          );
+
+          if (!item) {
+            throw new FrameError(
+              "❌ You don't own that frame code."
+            );
+          }
+
+          if (item.used !== false) {
+            throw new FrameError(
+              "❌ This frame code is already used " +
+              "or unavailable."
+            );
+          }
+
+          const matches = Array.isArray(frames)
+            ? frames.filter(frame =>
+                frame.id != null &&
+                item.frameId != null &&
+                String(frame.id) === String(item.frameId)
               )
-            }
-          };
+            : [];
 
-      // Protect initialization from concurrent changes.
-      if (!Array.isArray(page.slots)) {
-        query[`${pagePath}.slots`] =
-          page.slots === undefined
-            ? { $exists: false }
-            : page.slots;
-      }
+          if (matches.length !== 1) {
+            throw new FrameError(
+              "❌ This frame's catalog entry is " +
+              "missing or ambiguous."
+            );
+          }
 
-      const result = await albums.updateOne(
-        query,
-        update
+          const frame = matches[0];
+
+          if (
+            typeof frame.image !== "string" ||
+            !fs.existsSync(
+              path.resolve(__dirname, "..", frame.image)
+            )
+          ) {
+            throw new FrameError(
+              "❌ This frame's image is unavailable. " +
+              "Your frame was not consumed."
+            );
+          }
+
+          const consumed = await inventory.updateOne(
+            {
+              _id: item._id,
+              userId,
+              used: false
+            },
+            {
+              $set: {
+                used: true,
+                usedAt: Date.now(),
+                cardCode: owned.code
+              }
+            },
+            { session }
+          );
+
+          if (!consumed.matchedCount) {
+            throw new FrameError(
+              "❌ This frame changed. Please try again."
+            );
+          }
+
+          // Works with all seasons and events because
+          // the exact owned card is identified by its code.
+          const applied = await cards.updateOne(
+            {
+              _id: owned._id,
+              userId,
+              ...emptyFrame
+            },
+            {
+              $set: {
+                frameId: frame.id
+              }
+            },
+            { session }
+          );
+
+          if (!applied.matchedCount) {
+            throw new FrameError(
+              "❌ This card changed. Please try again."
+            );
+          }
+        },
+        {
+          readConcern: { level: "snapshot" },
+          writeConcern: { w: "majority" }
+        }
       );
 
-      if (!result.matchedCount) {
-        return await reply(
-          "❌ This page changed while placing your card. " +
-          "Please try again."
-        );
-      }
-
-      return await reply(
-        `✅ Placed **${card.name}** (${owned.code}) ` +
-        `in **${album.name}** • Page **${pageNumber}** ` +
-        `• Slot **${slotNumber}**`
+      await reply(
+        `✅ Applied frame \`${frameCode}\` ` +
+        `to card \`${cardCode}\`.\n` +
+        `Use \`!view ${cardCode}\` to see it. ` +
+        "Newly generated album and trade previews " +
+        "will also show it with the updated renderer."
       );
     } catch (error) {
-      console.error("[place]", error);
+      console.error("[placeframe]", error);
 
-      const payload = {
-        content:
-          "❌ Could not place your card. Please try again."
-      };
+      const content =
+        error instanceof FrameError
+          ? error.message
+          : "❌ Could not finish applying the frame. " +
+            "Check the card and frame inventory before retrying.";
 
       if (
         slash &&
         !message.deferred &&
         !message.replied
       ) {
-        await message.reply(payload).catch(() => {});
+        await message.reply({
+          content,
+          allowedMentions: { parse: [] }
+        }).catch(() => {});
       } else {
-        await reply(payload).catch(() => {});
+        await reply(content).catch(() => {});
+      }
+    } finally {
+      if (session) {
+        await session.endSession().catch(() => {});
       }
     }
   }
