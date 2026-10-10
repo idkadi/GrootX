@@ -395,7 +395,7 @@ async function renderCard(
     ctx.shadowColor = "rgba(0, 0, 0, 0.85)";
     ctx.shadowBlur = 4;
 
-    let serialFontSize = 40;
+    let serialFontSize = 46;
 
     while (serialFontSize > 18) {
       ctx.font = `700 ${serialFontSize}px Oswald`;
