@@ -33,7 +33,6 @@ async function renderCard(
     throw new Error(`Invalid card season: ${seasonValue}`);
   }
 
-  // Ownership is authoritative when supplied.
   const frameId = ownedCard
     ? ownedCard.frameId
     : card.frameId;
@@ -79,7 +78,7 @@ async function renderCard(
     "halloween26"
   ].includes(eventKey);
 
-  // Original S0 style.
+  // Original S0 frame style.
   if (season === 0 && !equippedFrame && !isHalloween) {
     const W = 1054;
     const H = 1492;
@@ -105,14 +104,15 @@ async function renderCard(
       );
     }
 
-    const imagePath = path.join(
-      __dirname,
-      "..",
-      "images",
-      card.rawImage
+    const rawImage = await loadImage(
+      path.join(
+        __dirname,
+        "..",
+        "images",
+        card.rawImage
+      )
     );
 
-    const rawImage = await loadImage(imagePath);
     const canvas = createCanvas(W, H);
     const ctx = canvas.getContext("2d");
 
@@ -189,13 +189,10 @@ async function renderCard(
     const imageW = rawImage.width * imageScale;
     const imageH = rawImage.height * imageScale;
 
-    const imageX = innerX + (innerW - imageW) / 2;
-    const imageY = innerY + (innerH - imageH) / 2;
-
     ctx.drawImage(
       rawImage,
-      imageX,
-      imageY,
+      innerX + (innerW - imageW) / 2,
+      innerY + (innerH - imageH) / 2,
       imageW,
       imageH
     );
@@ -210,9 +207,6 @@ async function renderCard(
     ctx.fillStyle = "#FFFFFF";
     ctx.textAlign = "left";
     ctx.textBaseline = "alphabetic";
-
-    ctx.font = "700 40px Oswald";
-    ctx.fillText(`#${serial ?? "?"}`, 70, 1285);
 
     const cardName = String(
       card.name || "UNKNOWN"
@@ -230,7 +224,7 @@ async function renderCard(
       nameFontSize -= 2;
     } while (nameFontSize > 42);
 
-    ctx.fillText(cardName, 70, 1368);
+    ctx.fillText(cardName, 70, 1290, 900);
 
     const appearance = String(
       card.appearance || card.show || ""
@@ -248,13 +242,16 @@ async function renderCard(
       appearanceFontSize -= 1;
     } while (appearanceFontSize > 26);
 
-    ctx.fillText(appearance, 70, 1428);
+    ctx.fillText(appearance, 70, 1362, 900);
+
+    ctx.font = "700 40px Oswald";
+    ctx.fillText(`#${serial ?? "?"}`, 70, 1430, 900);
+
     ctx.restore();
 
     return canvas.toBuffer("image/png");
   }
 
-  // Frame overlays for newer seasons, events and custom frames.
   const W = 1054;
   const H = 1492;
 
@@ -267,14 +264,14 @@ async function renderCard(
     );
   }
 
-  const imagePath = path.join(
-    __dirname,
-    "..",
-    "images",
-    card.rawImage
+  const rawImage = await loadImage(
+    path.join(
+      __dirname,
+      "..",
+      "images",
+      card.rawImage
+    )
   );
-
-  const rawImage = await loadImage(imagePath);
 
   const scale = Math.max(
     W / rawImage.width,
@@ -292,7 +289,7 @@ async function renderCard(
     drawH
   );
 
-  // Equipped frame → event frame → default tier frame.
+  // Equipped frame → event frame → tier frame.
   let framePath = equippedFrame
     ? path.join(
         __dirname,
@@ -328,7 +325,7 @@ async function renderCard(
   const frameImage = await loadImage(framePath);
   ctx.drawImage(frameImage, 0, 0, W, H);
 
-  // Text areas exclude dividers, side decorations and stars.
+  // Individual safe text areas for the supplied frames.
   const layouts = {
     common: {
       x: 170,
@@ -398,7 +395,6 @@ async function renderCard(
   const defaultLayout =
     layouts[layoutKey] || layouts.common;
 
-  // Optional custom-frame text layout from data/frames.
   const layout = {
     ...defaultLayout,
     ...(equippedFrame?.textLayout || {})
@@ -408,7 +404,7 @@ async function renderCard(
     card.name || "UNKNOWN"
   ).trim().toUpperCase();
 
-  const appearance = String(
+  const movie = String(
     card.appearance ||
     card.show ||
     card.movie ||
@@ -467,7 +463,11 @@ async function renderCard(
         lines.length <= maxLines &&
         lines.length * lineHeight <= height
       ) {
-        return { lines, size, lineHeight };
+        return {
+          lines,
+          size,
+          lineHeight
+        };
       }
     }
 
@@ -495,11 +495,29 @@ async function renderCard(
   ctx.fillStyle = layout.color;
 
   const panelHeight = layout.bottom - layout.top;
-  const gap = appearance ? 10 : 0;
 
-  const nameHeight = appearance
-    ? panelHeight * 0.54
-    : panelHeight;
+  // Reserve serial space before fitting name and movie.
+  const serialBlock = fitLines(
+    `#${serial ?? "?"}`,
+    36,
+    22,
+    1,
+    layout.width,
+    44
+  );
+
+  const serialGap = 8;
+
+  const contentHeight =
+    panelHeight -
+    serialBlock.lineHeight -
+    serialGap;
+
+  const movieGap = movie ? 8 : 0;
+
+  const nameHeight = movie
+    ? contentHeight * 0.56
+    : contentHeight;
 
   const nameBlock = fitLines(
     name,
@@ -511,24 +529,27 @@ async function renderCard(
   );
 
   const movieBlock = fitLines(
-    appearance,
+    movie,
     layout.detail,
     24,
     2,
     layout.width,
-    panelHeight - nameHeight - gap
+    contentHeight - nameHeight - movieGap
   );
 
   const totalHeight =
     nameBlock.lines.length * nameBlock.lineHeight +
     movieBlock.lines.length * movieBlock.lineHeight +
-    gap;
+    movieGap +
+    serialGap +
+    serialBlock.lineHeight;
 
   let y =
     layout.top +
     (panelHeight - totalHeight) / 2;
 
-  // Name first, then movie.
+  // 1. Name
+  // 2. Movie
   for (const block of [nameBlock, movieBlock]) {
     ctx.font = `700 ${block.size}px Oswald`;
 
@@ -552,38 +573,23 @@ async function renderCard(
       y += block.lineHeight;
     }
 
-    if (block === nameBlock) y += gap;
+    if (block === nameBlock) {
+      y += movieGap;
+    }
   }
+
+  // 3. Serial — centered directly below the movie.
+  ctx.font = `700 ${serialBlock.size}px Oswald`;
+  ctx.shadowColor = "rgba(0,0,0,0.9)";
+  ctx.shadowBlur = 3;
+
+  ctx.fillText(
+    serialBlock.lines[0],
+    layout.x + layout.width / 2,
+    y + serialGap + serialBlock.lineHeight / 2
+  );
 
   ctx.restore();
-
-  // Serial below the movie, beside the stars.
-  if (season === 1) {
-    const serialText = `#${serial ?? "?"}`;
-
-    ctx.save();
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillStyle = "#FFFFFF";
-    ctx.shadowColor = "rgba(0,0,0,0.85)";
-    ctx.shadowBlur = 4;
-
-    let serialFontSize = 40;
-
-    while (serialFontSize > 18) {
-      ctx.font = `700 ${serialFontSize}px Oswald`;
-
-      if (ctx.measureText(serialText).width <= 190) {
-        break;
-      }
-
-      serialFontSize--;
-    }
-
-    ctx.font = `700 ${serialFontSize}px Oswald`;
-    ctx.fillText(serialText, 800, 1355, 190);
-    ctx.restore();
-  }
 
   return canvas.toBuffer("image/png");
 }
