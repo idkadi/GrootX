@@ -34,7 +34,6 @@ async function renderCard(
   }
 
   // Ownership is authoritative when supplied.
-  // The fallback supports callers passing a merged owned card.
   const frameId = ownedCard
     ? ownedCard.frameId
     : card.frameId;
@@ -65,8 +64,23 @@ async function renderCard(
     );
   }
 
-  // S0 without a custom frame keeps its original style.
-  if (season === 0 && !equippedFrame) {
+  const eventKey = String(
+    ownedCard?.event ||
+    card.event ||
+    card.series ||
+    ""
+  )
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+
+  const isHalloween = [
+    "halloween2026",
+    "halloween26"
+  ].includes(eventKey);
+
+  // Original S0 style.
+  if (season === 0 && !equippedFrame && !isHalloween) {
     const W = 1054;
     const H = 1492;
 
@@ -240,7 +254,7 @@ async function renderCard(
     return canvas.toBuffer("image/png");
   }
 
-  // S1, plus S0 cards with equipped custom frames.
+  // Frame overlays for newer seasons, events and custom frames.
   const W = 1054;
   const H = 1492;
 
@@ -278,10 +292,7 @@ async function renderCard(
     drawH
   );
 
-  // Priority:
-  // 1. Equipped custom frame
-  // 2. Event frame
-  // 3. Default tier frame
+  // Equipped frame → event frame → default tier frame.
   let framePath = equippedFrame
     ? path.join(
         __dirname,
@@ -290,11 +301,7 @@ async function renderCard(
       )
     : null;
 
-  const event = String(
-    ownedCard?.event || card.event || ""
-  ).trim().toLowerCase();
-
-  if (!framePath && event === "halloween2026") {
+  if (!framePath && isHalloween) {
     framePath = path.join(
       __dirname,
       "..",
@@ -321,70 +328,236 @@ async function renderCard(
   const frameImage = await loadImage(framePath);
   ctx.drawImage(frameImage, 0, 0, W, H);
 
-  const cardName = String(
-    card.name || "UNKNOWN"
-  ).toUpperCase();
-
-  ctx.save();
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillStyle = "#FFFFFF";
-
-  const tier = String(card.tier || "common")
-    .trim()
-    .toLowerCase();
-
-  const isHalloweenFrame =
-    !equippedFrame && event === "halloween2026";
-
-  const isS1EpicFrame =
-    season === 1 &&
-    !equippedFrame &&
-    !isHalloweenFrame &&
-    tier === "epic";
-
-  const textOffsetY = isS1EpicFrame ? 22 : 0;
-
-  let nameFontSize = isHalloweenFrame ? 84 : 72;
-
-  do {
-    ctx.font = `700 ${nameFontSize}px Oswald`;
-
-    if (ctx.measureText(cardName).width <= 780) {
-      break;
+  // Text areas exclude dividers, side decorations and stars.
+  const layouts = {
+    common: {
+      x: 170,
+      width: 714,
+      top: 1110,
+      bottom: 1300,
+      name: 68,
+      detail: 38,
+      color: "#FFFFFF"
+    },
+    uncommon: {
+      x: 170,
+      width: 714,
+      top: 1110,
+      bottom: 1300,
+      name: 68,
+      detail: 38,
+      color: "#FFFFFF"
+    },
+    rare: {
+      x: 180,
+      width: 694,
+      top: 1110,
+      bottom: 1295,
+      name: 68,
+      detail: 38,
+      color: "#FFFFFF"
+    },
+    epic: {
+      x: 175,
+      width: 704,
+      top: 1140,
+      bottom: 1310,
+      name: 66,
+      detail: 36,
+      color: "#FFFFFF"
+    },
+    legendary: {
+      x: 185,
+      width: 684,
+      top: 1120,
+      bottom: 1295,
+      name: 68,
+      detail: 38,
+      color: "#FFFFFF"
+    },
+    halloween: {
+      x: 205,
+      width: 644,
+      top: 1140,
+      bottom: 1340,
+      name: 74,
+      detail: 42,
+      color: "#FFFFFF"
     }
+  };
 
-    nameFontSize -= 2;
-  } while (nameFontSize > 42);
+  const tier = String(
+    card.tier || "common"
+  ).trim().toLowerCase();
 
-  ctx.fillText(cardName, W / 2, 1175 + textOffsetY);
-  ctx.restore();
+  const layoutKey =
+    !equippedFrame && isHalloween
+      ? "halloween"
+      : tier;
+
+  const defaultLayout =
+    layouts[layoutKey] || layouts.common;
+
+  // Optional custom-frame text layout from data/frames.
+  const layout = {
+    ...defaultLayout,
+    ...(equippedFrame?.textLayout || {})
+  };
+
+  const name = String(
+    card.name || "UNKNOWN"
+  ).trim().toUpperCase();
 
   const appearance = String(
-    card.appearance || card.show || ""
-  ).toUpperCase();
+    card.appearance ||
+    card.show ||
+    card.movie ||
+    ""
+  ).trim().toUpperCase();
+
+  function fitLines(
+    text,
+    maxSize,
+    minSize,
+    maxLines,
+    width,
+    height
+  ) {
+    if (!text) {
+      return {
+        lines: [],
+        size: maxSize,
+        lineHeight: 0
+      };
+    }
+
+    const words = text.split(/\s+/);
+
+    for (let size = maxSize; size >= minSize; size--) {
+      ctx.font = `700 ${size}px Oswald`;
+
+      const lines = [];
+      let line = "";
+      let valid = true;
+
+      for (const word of words) {
+        if (ctx.measureText(word).width > width) {
+          valid = false;
+          break;
+        }
+
+        const candidate = line
+          ? `${line} ${word}`
+          : word;
+
+        if (ctx.measureText(candidate).width > width) {
+          lines.push(line);
+          line = word;
+        } else {
+          line = candidate;
+        }
+      }
+
+      if (line) lines.push(line);
+
+      const lineHeight = size * 1.22;
+
+      if (
+        valid &&
+        lines.length <= maxLines &&
+        lines.length * lineHeight <= height
+      ) {
+        return { lines, size, lineHeight };
+      }
+    }
+
+    ctx.font = `700 ${minSize}px Oswald`;
+
+    let shortened = text;
+
+    while (
+      shortened &&
+      ctx.measureText(shortened + "…").width > width
+    ) {
+      shortened = shortened.slice(0, -1);
+    }
+
+    return {
+      lines: [shortened + "…"],
+      size: minSize,
+      lineHeight: minSize * 1.22
+    };
+  }
 
   ctx.save();
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillStyle = "#FFFFFF";
+  ctx.fillStyle = layout.color;
 
-  let appearanceFontSize = isHalloweenFrame ? 46 : 38;
+  const panelHeight = layout.bottom - layout.top;
+  const gap = appearance ? 10 : 0;
 
-  do {
-    ctx.font = `700 ${appearanceFontSize}px Oswald`;
+  const nameHeight = appearance
+    ? panelHeight * 0.54
+    : panelHeight;
 
-    if (ctx.measureText(appearance).width <= 760) {
-      break;
+  const nameBlock = fitLines(
+    name,
+    layout.name,
+    30,
+    2,
+    layout.width,
+    nameHeight
+  );
+
+  const movieBlock = fitLines(
+    appearance,
+    layout.detail,
+    24,
+    2,
+    layout.width,
+    panelHeight - nameHeight - gap
+  );
+
+  const totalHeight =
+    nameBlock.lines.length * nameBlock.lineHeight +
+    movieBlock.lines.length * movieBlock.lineHeight +
+    gap;
+
+  let y =
+    layout.top +
+    (panelHeight - totalHeight) / 2;
+
+  // Name first, then movie.
+  for (const block of [nameBlock, movieBlock]) {
+    ctx.font = `700 ${block.size}px Oswald`;
+
+    const glowName =
+      block === nameBlock &&
+      (tier === "legendary" || isHalloween);
+
+    ctx.shadowColor = glowName
+      ? "rgba(255,255,255,0.95)"
+      : "rgba(0,0,0,0.9)";
+
+    ctx.shadowBlur = glowName ? 14 : 3;
+
+    for (const line of block.lines) {
+      ctx.fillText(
+        line,
+        layout.x + layout.width / 2,
+        y + block.lineHeight / 2
+      );
+
+      y += block.lineHeight;
     }
 
-    appearanceFontSize -= 1;
-  } while (appearanceFontSize > 25);
+    if (block === nameBlock) y += gap;
+  }
 
-  ctx.fillText(appearance, W / 2, 1255 + textOffsetY);
   ctx.restore();
 
-  // Serial beside the stars on all Season 1 cards.
+  // Serial below the movie, beside the stars.
   if (season === 1) {
     const serialText = `#${serial ?? "?"}`;
 
@@ -392,10 +565,10 @@ async function renderCard(
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = "#FFFFFF";
-    ctx.shadowColor = "rgba(0, 0, 0, 0.85)";
+    ctx.shadowColor = "rgba(0,0,0,0.85)";
     ctx.shadowBlur = 4;
 
-    let serialFontSize = 46;
+    let serialFontSize = 40;
 
     while (serialFontSize > 18) {
       ctx.font = `700 ${serialFontSize}px Oswald`;
