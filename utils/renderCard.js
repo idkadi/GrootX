@@ -34,6 +34,7 @@ async function renderCard(
   }
 
   // Ownership is authoritative when supplied.
+  // The fallback supports callers passing a merged owned card.
   const frameId = ownedCard
     ? ownedCard.frameId
     : card.frameId;
@@ -239,7 +240,7 @@ async function renderCard(
     return canvas.toBuffer("image/png");
   }
 
-  // S1, future seasons, and S0 with an equipped frame.
+  // S1, plus S0 cards with equipped custom frames.
   const W = 1054;
   const H = 1492;
 
@@ -277,8 +278,10 @@ async function renderCard(
     drawH
   );
 
-  // Frame priority:
-  // Equipped frame → Event frame → Default tier frame.
+  // Priority:
+  // 1. Equipped custom frame
+  // 2. Event frame
+  // 3. Default tier frame
   let framePath = equippedFrame
     ? path.join(
         __dirname,
@@ -322,13 +325,17 @@ async function renderCard(
     card.name || "UNKNOWN"
   ).toUpperCase();
 
-  const tier = String(
-    card.tier || "common"
-  ).trim().toLowerCase();
+  ctx.save();
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = "#FFFFFF";
+
+  const tier = String(card.tier || "common")
+    .trim()
+    .toLowerCase();
 
   const isHalloweenFrame =
-    !equippedFrame &&
-    event === "halloween2026";
+    !equippedFrame && event === "halloween2026";
 
   const isS1EpicFrame =
     season === 1 &&
@@ -336,13 +343,7 @@ async function renderCard(
     !isHalloweenFrame &&
     tier === "epic";
 
-  // Give default S1 Epic text more space below the frame line.
   const textOffsetY = isS1EpicFrame ? 22 : 0;
-
-  ctx.save();
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillStyle = "#FFFFFF";
 
   let nameFontSize = isHalloweenFrame ? 84 : 72;
 
@@ -356,12 +357,7 @@ async function renderCard(
     nameFontSize -= 2;
   } while (nameFontSize > 42);
 
-  ctx.fillText(
-    cardName,
-    W / 2,
-    1175 + textOffsetY
-  );
-
+  ctx.fillText(cardName, W / 2, 1175 + textOffsetY);
   ctx.restore();
 
   const appearance = String(
@@ -385,15 +381,10 @@ async function renderCard(
     appearanceFontSize -= 1;
   } while (appearanceFontSize > 25);
 
-  ctx.fillText(
-    appearance,
-    W / 2,
-    1255 + textOffsetY
-  );
-
+  ctx.fillText(appearance, W / 2, 1255 + textOffsetY);
   ctx.restore();
 
-  // Bottom-right serial beside the stars on all S1 cards.
+  // Serial beside the stars on all Season 1 cards.
   if (season === 1) {
     const serialText = `#${serial ?? "?"}`;
 
@@ -401,11 +392,10 @@ async function renderCard(
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = "#FFFFFF";
-
     ctx.shadowColor = "rgba(0, 0, 0, 0.85)";
     ctx.shadowBlur = 4;
 
-    let serialFontSize = 32;
+    let serialFontSize = 40;
 
     while (serialFontSize > 18) {
       ctx.font = `700 ${serialFontSize}px Oswald`;
@@ -418,14 +408,7 @@ async function renderCard(
     }
 
     ctx.font = `700 ${serialFontSize}px Oswald`;
-
-    ctx.fillText(
-      serialText,
-      850,
-      1380,
-      190
-    );
-
+    ctx.fillText(serialText, 800, 1355, 190);
     ctx.restore();
   }
 
