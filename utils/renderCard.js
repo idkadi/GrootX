@@ -364,14 +364,14 @@ async function renderCard(
       color: "#FFFFFF"
     },
     legendary: {
-      x: 185,
-      width: 684,
-      top: 1120,
-      bottom: 1295,
-      name: 68,
-      detail: 38,
-      color: "#FFFFFF"
-    },
+  x: 185,
+  width: 684,
+  top: 1140,
+  bottom: 1305,
+  name: 68,
+  detail: 38,
+  color: "#FFFFFF"
+}, 
     halloween: {
       x: 205,
       width: 644,
