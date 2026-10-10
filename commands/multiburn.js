@@ -1,268 +1,642 @@
-const cards = require("../data/cards");
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
 
 const {
-  EmbedBuilder
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  SlashCommandBuilder
 } = require("discord.js");
 
 const connectDB = require("../database");
+const { removeCardFromAlbums } = require("../utils/albumUtils");
 
-const {
-  removeCardFromAlbums
-} = require("../utils/albumUtils");
+const pendingMultiBurns = new Map();
 
-function random(min, max) {
-  return Math.floor(
-    Math.random() * (max - min + 1)
-  ) + min;
-}
+// S0 uses cards.js; future seasons use season2.js, season3.js, etc.
+function getCatalog(season) {
+  if (season === null) return [];
 
-function getRandomShard() {
-  const shards = [
-    "space_shard",
-    "mind_shard",
-    "reality_shard",
-    "power_shard",
-    "time_shard",
-    "soul_shard"
-  ];
+  const dataDir = path.join(__dirname, "../data");
+  const filename = season === 0
+    ? "cards.js"
+    : `season${season}.js`;
 
-  return shards[
-    Math.floor(Math.random() * shards.length)
-  ];
-}
+  const filePath = path.join(dataDir, filename);
 
-function getShardEmoji(shard) {
-  switch (shard) {
-    case "space_shard": return "<:spaceshards:1504767068480995429>";
-    case "mind_shard": return "<:mindsshards:1504767348517638195>";
-    case "reality_shard": return "<:realityshards:1504767197883531386>";
-    case "power_shard": return "<:powershards:1504767126462926949>";
-    case "time_shard": return "<:timeshards:1504766994074046525>";
-    case "soul_shard": return "<:soulshards:1504767256775757845>";
-    default: return "✨";
+  if (!fs.existsSync(filePath)) return [];
+
+  const catalog = require(filePath);
+
+  if (!Array.isArray(catalog)) {
+    throw new Error(`Invalid card catalog: ${filename}`);
   }
+
+  return catalog;
 }
 
-function formatShardName(shard) {
-  return shard
-    .replace("_shard", " Shard")
-    .split("_")
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
+function parseSeason(value) {
+  const match = String(value ?? 0)
+    .trim()
+    .toLowerCase()
+    .match(/^(?:s|season[ _-]*)?(\d+)$/);
+
+  if (!match) return null;
+
+  const season = Number(match[1]);
+
+  return Number.isSafeInteger(season) ? season : null;
+}
+
+const SEASONS = [
+  "<:Season0:1555956910560256082>",
+  "<:Season1:1555956879576793130>"
+];
+
+const REWARDS = {
+  common: [25, 50, 3, 5],
+  uncommon: [50, 100, 5, 8],
+  rare: [100, 200, 10, 15],
+  epic: [250, 500, 15, 25],
+  legendary: [1000, 1500, 50, 100]
+};
+
+const VIBRANIUM_EMOJI = "<:vibranium:1558406389284741150>";
+
+const VIBRANIUM_REWARDS = {
+  common: [100, 150],
+  uncommon: [250, 300],
+  rare: [300, 500],
+  epic: [750, 1000],
+  legendary: [1500, 2000]
+};
+
+const SHARDS = {
+  space_shard: "<:spaceshards:1504767068480995429>",
+  mind_shard: "<:mindsshards:1504767348517638195>",
+  reality_shard: "<:realityshards:1504767197883531386>",
+  power_shard: "<:powershards:1504767126462926949>",
+  time_shard: "<:timeshards:1504766994074046525>",
+  soul_shard: "<:soulshards:1504767256775757845>"
+};
+
+const clean = value =>
+  String(value || "").trim().toLowerCase();
+
+const random = (min, max) =>
+  crypto.randomInt(min, max + 1);
+
+function rewardFor(entry) {
+  const value = clean(
+    entry.season ?? entry.cardSeason ?? 0
+  );
+
+  const season = parseSeason(value);
+  const catalog = getCatalog(season);
+
+  const matches = catalog.filter(card =>
+    card.id != null &&
+    entry.cardId != null &&
+    String(card.id) === String(entry.cardId)
+  );
+
+  let card = matches.find(
+    card => clean(card.event) === clean(entry.event)
+  );
+
+  if (!card && !entry.event && matches.length === 1) {
+    card = matches[0];
+  }
+
+  const event = clean(entry.event || card?.event);
+
+  // Preserve existing Legendary coin/shard rewards for events.
+  const tier = event
+    ? "legendary"
+    : clean(card?.tier || entry.tier);
+
+  // Vibranium follows actual rarity, including event cards.
+  const actualTier = clean(card?.tier || entry.tier);
+
+  return {
+    range: REWARDS[tier],
+    vibraniumRange: VIBRANIUM_REWARDS[actualTier],
+    season,
+    event
+  };
 }
 
 module.exports = {
   name: "multiburn",
   aliases: ["mburn"],
 
-  async execute(message, args) {
-    if (!args.length) {
-      return message.reply(
-        "❌ Provide card codes.\n\n" +
-        "Example:\n" +
-        "`!multiburn q7mz2x a8n91p`"
-      );
-    }
+  data: new SlashCommandBuilder()
+    .setName("multiburn")
+    .setDescription(
+      "Burn selected cards for coins, shards and Vibranium."
+    )
+    .addStringOption(option =>
+      option
+        .setName("codes")
+        .setDescription(
+          "Card codes separated by spaces or commas (maximum 100)"
+        )
+        .setRequired(true)
+    ),
 
-    const codes = [...new Set(args.map(code => code.toLowerCase()))];
+  async execute(message, args = []) {
+    const slash =
+      typeof message.isChatInputCommand === "function" &&
+      message.isChatInputCommand();
 
-    const warningEmbed = new EmbedBuilder()
-      .setColor(0xff0000)
-      .setTitle("⚠️ Confirm Multi Burn")
-      .setDescription(
-        "React with 🔥 to confirm.\n\n" +
-        "Favorited cards will not be burned."
-      );
+    const userId = (slash ? message.user : message.author).id;
 
-    const warningMsg = await message.reply({
-      embeds: [warningEmbed]
-    });
+    const reply = payload => {
+      if (typeof payload === "string") {
+        payload = { content: payload };
+      }
 
-    await warningMsg.react("🔥");
+      payload.allowedMentions = {
+        parse: [],
+        repliedUser: false
+      };
 
-    const filter = (reaction, user) => {
-      return (
-        reaction.emoji.name === "🔥" &&
-        user.id === message.author.id
-      );
+      if (!slash) return message.reply(payload);
+      if (message.deferred) return message.editReply(payload);
+      if (message.replied) return message.followUp(payload);
+
+      return message.reply(payload);
     };
 
-    const collector = warningMsg.createReactionCollector({
-      filter,
-      max: 1,
-      time: 30000
-    });
+    const token = crypto.randomBytes(8).toString("hex");
 
-    collector.on("collect", async () => {
+    const release = () => {
+      if (pendingMultiBurns.get(userId) === token) {
+        pendingMultiBurns.delete(userId);
+      }
+    };
+
+    try {
+      if (slash && !message.deferred && !message.replied) {
+        await message.deferReply();
+      }
+
+      if (pendingMultiBurns.has(userId)) {
+        return await reply(
+          "⚠️ Confirm or cancel your pending multi burn first."
+        );
+      }
+
+      pendingMultiBurns.set(userId, token);
+
+      const input = slash
+        ? message.options.getString("codes", true)
+        : args.join(" ");
+
+      const codes = [...new Set(
+        input.toLowerCase().split(/[\s,]+/).filter(Boolean)
+      )];
+
+      if (!codes.length || codes.length > 100) {
+        release();
+
+        return await reply(
+          "❌ Provide 1–100 card codes separated by spaces or commas.\n" +
+          "Example: /multiburn codes:q7mz2x a8n91p"
+        );
+      }
+
       const db = await connectDB();
 
-      const collectionsCol = db.collection("collections");
-      const balancesCol = db.collection("balances");
-      const inventoryCol = db.collection("inventory");
+      if (!db.client?.startSession) {
+        release();
 
-      const userId = message.author.id;
-
-      let totalCoins = 0;
-      const totalShards = {};
-      const burnedCards = [];
-
-      for (const code of codes) {
-        const deleted = await collectionsCol.findOneAndDelete({
-          userId,
-          code,
-          favorite: { $ne: true }
-        });
-
-        const entry = deleted?.value || deleted;
-
-        if (!entry) continue;
-
-        const card = cards.find(
-          c => Number(c.id) === Number(entry.cardId)
-        );
-
-        if (!card) continue;
-
-        let coinsMin = 0;
-        let coinsMax = 0;
-        let shardMin = 0;
-        let shardMax = 0;
-
-        switch (card.tier) {
-          case "common":
-            coinsMin = 25;
-            coinsMax = 50;
-            shardMin = 3;
-            shardMax = 5;
-            break;
-
-          case "uncommon":
-            coinsMin = 50;
-            coinsMax = 100;
-            shardMin = 5;
-            shardMax = 8;
-            break;
-
-          case "rare":
-            coinsMin = 100;
-            coinsMax = 200;
-            shardMin = 10;
-            shardMax = 15;
-            break;
-
-          case "epic":
-            coinsMin = 250;
-            coinsMax = 500;
-            shardMin = 15;
-            shardMax = 25;
-            break;
-
-          case "legendary":
-            coinsMin = 1000;
-            coinsMax = 1500;
-            shardMin = 50;
-            shardMax = 100;
-            break;
-        }
-
-        const earnedCoins = random(coinsMin, coinsMax);
-        const earnedShards = random(shardMin, shardMax);
-        const shardType = getRandomShard();
-
-        totalCoins += earnedCoins;
-
-        if (!totalShards[shardType]) {
-          totalShards[shardType] = 0;
-        }
-
-        totalShards[shardType] += earnedShards;
-
-        await inventoryCol.updateOne(
-          { userId },
-          {
-            $inc: {
-              [`items.${shardType}`]: earnedShards
-            }
-          },
-          {
-            upsert: true
-          }
-        );
-
-        await removeCardFromAlbums(
-          db,
-          userId,
-          entry.code
-        );
-
-        burnedCards.push(
-          `🔥 ${card.name}\n` +
-          `└ ${entry.code}`
+        return await reply(
+          "❌ Safe burn transactions are unavailable. " +
+          "Nothing was burned."
         );
       }
 
-      if (burnedCards.length === 0) {
-        return message.reply(
-          "❌ No valid burnable cards found."
+      const col = db.collection("collections");
+
+      const all = await col.find({
+        userId,
+        code: { $in: codes }
+      }).toArray();
+
+      const eligible = all.filter(entry => {
+        const info = rewardFor(entry);
+
+        return (
+          !entry.favorite &&
+          info.range &&
+          info.vibraniumRange
+        );
+      });
+
+      if (!eligible.length) {
+        release();
+
+        return await reply(
+          "⭐ No eligible non-favorite cards found. " +
+          "Cards with unverifiable reward data are kept safe."
         );
       }
 
-      await balancesCol.updateOne(
-        { userId },
-        {
-          $inc: {
-            coins: totalCoins
-          }
-        },
-        {
-          upsert: true
+      const protectedCount = all.filter(
+        entry => entry.favorite
+      ).length;
+
+      const unknownCount =
+        all.length - eligible.length - protectedCount;
+
+      const missingCount = codes.length - all.length;
+
+      const totals = { event: 0 };
+      const seasonCounts = new Map();
+
+      let minCoins = 0;
+      let maxCoins = 0;
+      let minVibranium = 0;
+      let maxVibranium = 0;
+
+      for (const entry of eligible) {
+        const info = rewardFor(entry);
+
+        if (info.event) {
+          totals.event++;
+        } else {
+          seasonCounts.set(
+            info.season,
+            (seasonCounts.get(info.season) || 0) + 1
+          );
         }
+
+        minCoins += info.range[0];
+        maxCoins += info.range[1];
+
+        minVibranium += info.vibraniumRange[0];
+        maxVibranium += info.vibraniumRange[1];
+      }
+
+      const seasonSummary = [...seasonCounts.entries()]
+        .sort(([a], [b]) =>
+          (a ?? Infinity) - (b ?? Infinity)
+        )
+        .map(([season, count]) =>
+          season === null
+            ? `Unknown season: **${count}**`
+            : `${SEASONS[season] || "🗓️"} S${season}: **${count}**`
+        )
+        .join("\n");
+
+      const warning = new EmbedBuilder()
+        .setColor(0xff5555)
+        .setTitle("⚠️ Confirm Multi Burn")
+        .setDescription(
+          `Permanently burn **${eligible.length} cards**?\n\n` +
+          (seasonSummary ? `${seasonSummary}\n` : "") +
+          `🎃 Events: **${totals.event}** (Legendary rewards)\n\n` +
+          `⭐ Favorites protected: **${protectedCount}**\n` +
+          `Unverifiable cards skipped: **${unknownCount}**\n` +
+          `Not owned or not found: **${missingCount}**\n` +
+          `Coins: **${minCoins.toLocaleString()}–` +
+          `${maxCoins.toLocaleString()}**, plus shards.\n` +
+          `${VIBRANIUM_EMOJI} Vibranium: ` +
+          `**${minVibranium.toLocaleString()}–` +
+          `${maxVibranium.toLocaleString()}**.\n\n` +
+          "Only cards in this confirmation can be burned. " +
+          "This cannot be undone."
+        );
+
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`mburn_yes_${token}`)
+          .setLabel(
+            `Burn ${eligible.length} Cards`.slice(0, 80)
+          )
+          .setEmoji("🔥")
+          .setStyle(ButtonStyle.Danger),
+
+        new ButtonBuilder()
+          .setCustomId(`mburn_no_${token}`)
+          .setLabel("Cancel")
+          .setStyle(ButtonStyle.Secondary)
       );
 
-      const shardText = Object.entries(totalShards)
-        .map(([shard, amount]) => {
-          return (
-            `${getShardEmoji(shard)} ` +
-            `${formatShardName(shard)}\n` +
-            `└ x${amount}`
-          );
-        })
-        .join("\n\n");
+      let menu;
 
-      const resultEmbed = new EmbedBuilder()
-        .setColor(0xff5500)
-        .setTitle("🔥 Multi Burn Complete")
-        .addFields(
-          {
-            name: "🔥 Burned Cards",
-            value: burnedCards.join("\n\n"),
-            inline: false
-          },
-          {
-            name: "🪙 Coins Earned",
-            value: `${totalCoins}`,
-            inline: true
-          },
-          {
-            name: "✨ Shards Earned",
-            value: shardText || "None",
-            inline: false
-          }
-        )
-        .setTimestamp();
+      if (slash) {
+        await reply({
+          embeds: [warning],
+          components: [row]
+        });
 
-      await message.reply({
-        embeds: [resultEmbed]
-      });
-    });
-
-    collector.on("end", async collected => {
-      if (collected.size === 0) {
-        await warningMsg.edit({
-          content: "❌ Multi burn cancelled.",
-          embeds: []
-        }).catch(() => {});
+        menu = await message.fetchReply();
+      } else {
+        menu = await reply({
+          embeds: [warning],
+          components: [row]
+        });
       }
-    });
+
+      let processing = false;
+
+      // Freeze the exact confirmed cards.
+      const ids = eligible.map(entry => entry._id);
+
+      const confirmed = new Map(
+        eligible.map(entry => [String(entry._id), entry])
+      );
+
+      const collector = menu.createMessageComponentCollector({
+        time: 30000,
+        filter: interaction =>
+          [
+            `mburn_yes_${token}`,
+            `mburn_no_${token}`
+          ].includes(interaction.customId)
+      });
+
+      collector.on("collect", async interaction => {
+        let locked = false;
+        let committed = false;
+
+        try {
+          if (interaction.user.id !== userId) {
+            return await interaction.reply({
+              content: "❌ This is not your burn confirmation.",
+              ephemeral: true
+            });
+          }
+
+          if (processing) {
+            return await interaction.reply({
+              content: "⏳ This multi burn is processing.",
+              ephemeral: true
+            });
+          }
+
+          processing = true;
+          locked = true;
+
+          await interaction.deferUpdate();
+          collector.stop("processing");
+
+          if (interaction.customId === `mburn_no_${token}`) {
+            return await interaction.editReply({
+              content: "❌ Multi burn canceled.",
+              embeds: [],
+              components: []
+            });
+          }
+
+          let burned = [];
+          let totalCoins = 0;
+          let totalVibranium = 0;
+          let totalShards = {};
+
+          const session = db.client.startSession();
+
+          try {
+            await session.withTransaction(async () => {
+              // Reset totals if MongoDB retries the transaction.
+              burned = [];
+              totalCoins = 0;
+              totalVibranium = 0;
+              totalShards = {};
+
+              const fresh = await col.find(
+                {
+                  userId,
+                  _id: { $in: ids },
+                  favorite: { $ne: true }
+                },
+                { session }
+              ).toArray();
+
+              for (const entry of fresh) {
+                const original = confirmed.get(String(entry._id));
+
+                // Skip cards whose identity changed after confirmation.
+                if (
+                  !original ||
+                  entry.code !== original.code ||
+                  String(entry.cardId) !== String(original.cardId) ||
+                  clean(entry.season ?? entry.cardSeason ?? 0) !==
+                    clean(original.season ?? original.cardSeason ?? 0) ||
+                  clean(entry.event) !== clean(original.event) ||
+                  clean(entry.tier) !== clean(original.tier)
+                ) {
+                  continue;
+                }
+
+                const info = rewardFor(entry);
+
+                if (!info.range || !info.vibraniumRange) {
+                  continue;
+                }
+
+                const deletion = await col.deleteOne(
+                  {
+                    _id: entry._id,
+                    userId,
+                    favorite: { $ne: true }
+                  },
+                  { session }
+                );
+
+                if (!deletion.deletedCount) continue;
+
+                const range = info.range;
+                const types = Object.keys(SHARDS);
+
+                const type =
+                  types[random(0, types.length - 1)];
+
+                totalCoins += random(range[0], range[1]);
+
+                totalVibranium += random(
+                  info.vibraniumRange[0],
+                  info.vibraniumRange[1]
+                );
+
+                totalShards[type] =
+                  (totalShards[type] || 0) +
+                  random(range[2], range[3]);
+
+                burned.push(entry);
+              }
+
+              if (!burned.length) return;
+
+              await db.collection("balances").updateOne(
+                { userId },
+                {
+                  $inc: { coins: totalCoins }
+                },
+                { upsert: true, session }
+              );
+
+              const increment = Object.fromEntries(
+                Object.entries(totalShards).map(
+                  ([key, value]) => [
+                    `items.${key}`,
+                    value
+                  ]
+                )
+              );
+
+              increment["items.vibranium"] = totalVibranium;
+
+              await db.collection("inventory").updateOne(
+                { userId },
+                {
+                  $inc: increment
+                },
+                { upsert: true, session }
+              );
+
+              await db.collection("cardtags").deleteMany(
+                {
+                  userId,
+                  code: {
+                    $in: burned.map(entry => entry.code)
+                  }
+                },
+                { session }
+              );
+            });
+
+            committed = true;
+          } finally {
+            await session.endSession();
+          }
+
+          let cleanupFailures = 0;
+
+          for (const entry of burned) {
+            try {
+              await removeCardFromAlbums(
+                db,
+                userId,
+                entry.code
+              );
+            } catch (error) {
+              cleanupFailures++;
+
+              console.error(
+                `[MULTIBURN] Album cleanup ${entry.code}:`,
+                error
+              );
+            }
+          }
+
+          const shardText = Object.entries(totalShards)
+            .map(([type, amount]) => {
+              const name = type
+                .split("_")
+                .map(word =>
+                  word[0].toUpperCase() + word.slice(1)
+                )
+                .join(" ");
+
+              return `${SHARDS[type]} **${name}** ×${amount}`;
+            })
+            .join("\n");
+
+          const result = new EmbedBuilder()
+            .setColor(0xff5500)
+            .setTitle("🔥 Multi Burn Complete")
+            .addFields(
+              {
+                name: "🔥 Cards Burned",
+                value: String(burned.length),
+                inline: true
+              },
+              {
+                name: "🪙 Coins Earned",
+                value: totalCoins.toLocaleString(),
+                inline: true
+              },
+              {
+                name: "🛡️ Confirmation Cards Kept",
+                value: String(
+                  eligible.length - burned.length
+                ),
+                inline: true
+              },
+              {
+                name: `${VIBRANIUM_EMOJI} Vibranium Earned`,
+                value: totalVibranium.toLocaleString(),
+                inline: true
+              },
+              {
+                name: "✨ Shards Earned",
+                value: shardText || "None"
+              }
+            )
+            .setFooter({
+              text: cleanupFailures
+                ? `Rewards saved. Album cleanup failed for ${cleanupFailures} cards; check logs.`
+                : "Favorites and cards collected after confirmation were kept safe."
+            })
+            .setTimestamp();
+
+          await interaction.editReply({
+            content: "",
+            embeds: [result],
+            components: []
+          });
+        } catch (error) {
+          console.error("[MULTIBURN]", error);
+
+          const content = committed
+            ? "✅ Multi burn and rewards were saved, but the display could not update. Check your collection, balance and inventory."
+            : "❌ Multi burn failed. Check your collection and bot logs before retrying.";
+
+          if (interaction.deferred) {
+            await interaction.editReply({
+              content,
+              embeds: [],
+              components: []
+            }).catch(() => {});
+          } else {
+            await interaction.reply({
+              content,
+              ephemeral: true
+            }).catch(() => {});
+          }
+        } finally {
+          if (locked) release();
+        }
+      });
+
+      collector.on("end", async (_, reason) => {
+        if (reason === "processing") return;
+
+        release();
+
+        await menu.edit({
+          content: "⌛ Multi burn confirmation expired.",
+          embeds: [],
+          components: []
+        }).catch(() => {});
+      });
+    } catch (error) {
+      release();
+      console.error("[MULTIBURN] Setup:", error);
+
+      await reply(
+        "❌ Could not open multi burn confirmation. Nothing was burned."
+      ).catch(() => {});
+    }
   }
 };
+
+module.exports.executeSlash = module.exports.execute;
+module.exports.slashExecute = module.exports.execute;
+module.exports.slash = module.exports.execute;
+module.exports.run = module.exports.execute;

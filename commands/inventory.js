@@ -15,6 +15,38 @@ try {
   backgrounds = [];
 }
 
+const VIBRANIUM_EMOJI = "<:vibranium:1558406389284741150>";
+
+// Weapon quantities are stored in inventory.weapons.
+// Crafting and battle commands must use these same keys.
+const WEAPONS = {
+  web_shooter: {
+    name: "Web Shooter",
+    emoji: "<:webshooter:1558404855071113236>",
+    energy: 1
+  },
+  cap_shield: {
+    name: "Captain America's Shield",
+    emoji: "<:capshield:1558405113050177636>",
+    energy: 1
+  },
+  arc_reactor: {
+    name: "Arc Reactor",
+    emoji: "<:arc:1558405297536634940>",
+    energy: 2
+  },
+  mjolnir: {
+    name: "Mjolnir",
+    emoji: "<:mjolnir:1558405891722846318>",
+    energy: 3
+  },
+  wolverine_claws: {
+    name: "Wolverine's Claws",
+    emoji: "<:claws:1558407325256261652>",
+    energy: 2
+  }
+};
+
 function getItemEmoji(item) {
   switch (item) {
     case "space_stone":
@@ -44,7 +76,7 @@ function getItemEmoji(item) {
     case "groot_candy":
       return "<:grootcandy:1555950722816675870>";
     case "halloween_pack":
-      return "🎃";
+      return "<:halloweenpack:1555956375979425963>";
     case "token":
       return "🎟️";
     case "shard_booster":
@@ -63,7 +95,9 @@ function getItemEmoji(item) {
 }
 
 function formatItemName(item) {
-  if (item === "halloween_pack") return "Halloween Card Pack";
+  if (item === "halloween_pack") {
+    return "Halloween Card Pack";
+  }
 
   return item
     .split("_")
@@ -142,7 +176,19 @@ function makeButtons(activePage) {
       )
   );
 
-  return [row1];
+  const row2 = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId("inv_weapons")
+      .setLabel("Weapons")
+      .setEmoji("⚔️")
+      .setStyle(
+        activePage === "weapons"
+          ? ButtonStyle.Primary
+          : ButtonStyle.Secondary
+      )
+  );
+
+  return [row1, row2];
 }
 
 async function makeEmbed(message, pageType) {
@@ -154,19 +200,12 @@ async function makeEmbed(message, pageType) {
 
   const userId = message.author.id;
 
-  let inventoryDoc = await inventoryCollection.findOne({ userId });
-
-  if (!inventoryDoc) {
-    await inventoryCollection.insertOne({
+  const inventoryDoc =
+    await inventoryCollection.findOne({ userId }) || {
       userId,
-      items: {}
-    });
-
-    inventoryDoc = {
-      userId,
-      items: {}
+      items: {},
+      weapons: {}
     };
-  }
 
   const userInventory = inventoryDoc.items || {};
 
@@ -250,10 +289,38 @@ async function makeEmbed(message, pageType) {
             b => Number(b.id) === Number(bgId)
           );
 
-          if (!bg) return `Unknown Background ID: ${bgId}`;
+          if (!bg) {
+            return `Unknown Background ID: ${bgId}`;
+          }
 
           return `🖼️ **${bg.name}**`;
         })
+        .join("\n");
+    }
+  }
+
+  if (pageType === "weapons") {
+    title = "⚔️ Weapons";
+
+    const owned = inventoryDoc.weapons || {};
+
+    description = Object.entries(WEAPONS)
+      .map(([key, weapon]) =>
+        `${weapon.emoji} **${weapon.name}** × ${owned[key] || 0}\n` +
+        `└ Weapon energy: **${weapon.energy}**`
+      )
+      .join("\n\n");
+
+    // Display future weapons even before a name/emoji is configured.
+    const extra = Object.entries(owned).filter(
+      ([key]) => !WEAPONS[key]
+    );
+
+    if (extra.length) {
+      description += "\n\n" + extra
+        .map(([key, amount]) =>
+          `⚔️ **${formatItemName(key)}** × ${amount}`
+        )
         .join("\n");
     }
   }
@@ -268,6 +335,8 @@ async function makeEmbed(message, pageType) {
     }).filter(([item]) =>
       !infinityStones.includes(item) &&
       !infinityShards.includes(item) &&
+      item !== "vibranium" &&
+      item !== "weapons" &&
       item !== "album" &&
       item !== "page"
     );
@@ -287,7 +356,11 @@ async function makeEmbed(message, pageType) {
   return new EmbedBuilder()
     .setColor(0x8b5cf6)
     .setTitle(`🔐 ${message.author.username}'s Inventory`)
-    .setDescription(`### ${title}\n${description}`)
+    .setDescription(
+      `${VIBRANIUM_EMOJI} **Vibranium: ` +
+      `${Number(userInventory.vibranium || 0).toLocaleString()}**\n\n` +
+      `### ${title}\n${description}`
+    )
     .setFooter({ text: "GrootX Item System" })
     .setTimestamp();
 }
@@ -299,7 +372,7 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName("inventory")
     .setDescription(
-      "View your stones, shards, albums, backgrounds, candy, and packs."
+      "View your Vibranium, weapons, stones, shards, albums and items."
     ),
 
   async execute(message) {
@@ -326,7 +399,15 @@ module.exports = {
     });
 
     const collector = msg.createMessageComponentCollector({
-      time: 120000
+      time: 120000,
+      filter: interaction => [
+        "inv_stones",
+        "inv_shards",
+        "inv_albums",
+        "inv_bgs",
+        "inv_others",
+        "inv_weapons"
+      ].includes(interaction.customId)
     });
 
     collector.on("collect", async interaction => {
@@ -337,34 +418,53 @@ module.exports = {
         });
       }
 
-      // Acknowledge before database reads to avoid timeouts.
-      await interaction.deferUpdate();
-      collector.resetTimer();
+      try {
+        // Acknowledge before database reads to avoid timeouts.
+        await interaction.deferUpdate();
+        collector.resetTimer();
 
-      if (interaction.customId === "inv_stones") {
-        currentPage = "stones";
+        if (interaction.customId === "inv_stones") {
+          currentPage = "stones";
+        }
+
+        if (interaction.customId === "inv_shards") {
+          currentPage = "shards";
+        }
+
+        if (interaction.customId === "inv_albums") {
+          currentPage = "albums";
+        }
+
+        if (interaction.customId === "inv_bgs") {
+          currentPage = "bgs";
+        }
+
+        if (interaction.customId === "inv_weapons") {
+          currentPage = "weapons";
+        }
+
+        if (interaction.customId === "inv_others") {
+          currentPage = "others";
+        }
+
+        return await interaction.editReply({
+          embeds: [await makeEmbed(context, currentPage)],
+          components: makeButtons(currentPage)
+        });
+      } catch (error) {
+        console.error("[INVENTORY] Page update:", error);
+
+        const payload = {
+          content: "❌ Could not load inventory. Please try again.",
+          ephemeral: true
+        };
+
+        if (interaction.deferred || interaction.replied) {
+          await interaction.followUp(payload).catch(() => {});
+        } else {
+          await interaction.reply(payload).catch(() => {});
+        }
       }
-
-      if (interaction.customId === "inv_shards") {
-        currentPage = "shards";
-      }
-
-      if (interaction.customId === "inv_albums") {
-        currentPage = "albums";
-      }
-
-      if (interaction.customId === "inv_bgs") {
-        currentPage = "bgs";
-      }
-
-      if (interaction.customId === "inv_others") {
-        currentPage = "others";
-      }
-
-      return interaction.editReply({
-        embeds: [await makeEmbed(context, currentPage)],
-        components: makeButtons(currentPage)
-      });
     });
 
     collector.on("end", async () => {

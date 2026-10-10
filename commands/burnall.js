@@ -1,5 +1,40 @@
-const cards0 = require("../data/cards");
-const cards1 = require("../data/season1");
+const fs = require("fs");
+const path = require("path");
+
+// S0 uses cards.js; future seasons use season2.js, season3.js, etc.
+function getCatalog(season) {
+  if (season === null) return [];
+
+  const dataDir = path.join(__dirname, "../data");
+  const filename = season === 0
+    ? "cards.js"
+    : `season${season}.js`;
+
+  const filePath = path.join(dataDir, filename);
+
+  if (!fs.existsSync(filePath)) return [];
+
+  const catalog = require(filePath);
+
+  if (!Array.isArray(catalog)) {
+    throw new Error(`Invalid card catalog: ${filename}`);
+  }
+
+  return catalog;
+}
+
+function parseSeason(value) {
+  const match = String(value ?? 0)
+    .trim()
+    .toLowerCase()
+    .match(/^(?:s|season[ _-]*)?(\d+)$/);
+
+  if (!match) return null;
+
+  const season = Number(match[1]);
+
+  return Number.isSafeInteger(season) ? season : null;
+}
 
 const {
   EmbedBuilder,
@@ -28,6 +63,16 @@ const REWARDS = {
   legendary: [1000, 1500, 50, 100]
 };
 
+const VIBRANIUM_EMOJI = "<:vibranium:1558406389284741150>";
+
+const VIBRANIUM_REWARDS = {
+  common: [100, 150],
+  uncommon: [250, 300],
+  rare: [300, 500],
+  epic: [750, 1000],
+  legendary: [1500, 2000]
+};
+
 const SHARDS = {
   space_shard: "<:spaceshards:1504767068480995429>",
   mind_shard: "<:mindsshards:1504767348517638195>",
@@ -48,17 +93,8 @@ function rewardFor(entry) {
     entry.season ?? entry.cardSeason ?? 0
   );
 
-  const season = ["1", "s1"].includes(value)
-    ? 1
-    : ["0", "s0"].includes(value)
-      ? 0
-      : null;
-
-  const catalog = season === 1
-    ? cards1
-    : season === 0
-      ? cards0
-      : [];
+  const season = parseSeason(value);
+  const catalog = getCatalog(season);
 
   const matches = catalog.filter(card =>
     card.id != null &&
@@ -76,12 +112,17 @@ function rewardFor(entry) {
 
   const event = clean(entry.event || card?.event);
 
+  // Preserve existing Legendary coin/shard rewards for events.
   const tier = event
     ? "legendary"
     : clean(card?.tier || entry.tier);
 
+  // Vibranium follows actual rarity, including event cards.
+  const actualTier = clean(card?.tier || entry.tier);
+
   return {
     range: REWARDS[tier],
+    vibraniumRange: VIBRANIUM_REWARDS[actualTier],
     season,
     event
   };
@@ -117,6 +158,7 @@ module.exports = {
       if (!slash) return message.reply(payload);
       if (message.deferred) return message.editReply(payload);
       if (message.replied) return message.followUp(payload);
+
       return message.reply(payload);
     };
 
@@ -155,9 +197,15 @@ module.exports = {
       const col = db.collection("collections");
       const all = await col.find({ userId }).toArray();
 
-      const eligible = all.filter(
-        entry => !entry.favorite && rewardFor(entry).range
-      );
+      const eligible = all.filter(entry => {
+        const info = rewardFor(entry);
+
+        return (
+          !entry.favorite &&
+          info.range &&
+          info.vibraniumRange
+        );
+      });
 
       if (!eligible.length) {
         release();
@@ -175,42 +223,58 @@ module.exports = {
       const unknownCount =
         all.length - eligible.length - protectedCount;
 
-      const totals = {
-        s0: 0,
-        s1: 0,
-        event: 0
-      };
+      const totals = { event: 0 };
+      const seasonCounts = new Map();
 
       let minCoins = 0;
       let maxCoins = 0;
+      let minVibranium = 0;
+      let maxVibranium = 0;
 
       for (const entry of eligible) {
         const info = rewardFor(entry);
 
         if (info.event) {
           totals.event++;
-        } else if (info.season === 0) {
-          totals.s0++;
-        } else if (info.season === 1) {
-          totals.s1++;
+        } else {
+          seasonCounts.set(
+            info.season,
+            (seasonCounts.get(info.season) || 0) + 1
+          );
         }
 
         minCoins += info.range[0];
         maxCoins += info.range[1];
+
+        minVibranium += info.vibraniumRange[0];
+        maxVibranium += info.vibraniumRange[1];
       }
+
+      const seasonSummary = [...seasonCounts.entries()]
+        .sort(([a], [b]) =>
+          (a ?? Infinity) - (b ?? Infinity)
+        )
+        .map(([season, count]) =>
+          season === null
+            ? `Unknown season: **${count}**`
+            : `${SEASONS[season] || "🗓️"} S${season}: **${count}**`
+        )
+        .join("\n");
 
       const warning = new EmbedBuilder()
         .setColor(0xff5555)
         .setTitle("⚠️ Confirm Burn All")
         .setDescription(
           `Permanently burn **${eligible.length} cards**?\n\n` +
-          `${SEASONS[0]} S0: **${totals.s0}**\n` +
-          `${SEASONS[1]} S1: **${totals.s1}**\n` +
+          (seasonSummary ? `${seasonSummary}\n` : "") +
           `🎃 Events: **${totals.event}** (Legendary rewards)\n\n` +
           `⭐ Favorites protected: **${protectedCount}**\n` +
           `Unverifiable cards skipped: **${unknownCount}**\n` +
           `Coins: **${minCoins.toLocaleString()}–` +
-          `${maxCoins.toLocaleString()}**, plus shards.\n\n` +
+          `${maxCoins.toLocaleString()}**, plus shards.\n` +
+          `${VIBRANIUM_EMOJI} Vibranium: ` +
+          `**${minVibranium.toLocaleString()}–` +
+          `${maxVibranium.toLocaleString()}**.\n\n` +
           "Only cards in this confirmation can be burned. " +
           "This cannot be undone."
         );
@@ -295,6 +359,7 @@ module.exports = {
 
           let burned = [];
           let totalCoins = 0;
+          let totalVibranium = 0;
           let totalShards = {};
 
           const session = db.client.startSession();
@@ -304,6 +369,7 @@ module.exports = {
               // MongoDB may retry the transaction.
               burned = [];
               totalCoins = 0;
+              totalVibranium = 0;
               totalShards = {};
 
               const fresh = await col.find(
@@ -318,7 +384,9 @@ module.exports = {
               for (const entry of fresh) {
                 const info = rewardFor(entry);
 
-                if (!info.range) continue;
+                if (!info.range || !info.vibraniumRange) {
+                  continue;
+                }
 
                 const deletion = await col.deleteOne(
                   {
@@ -338,6 +406,11 @@ module.exports = {
                   types[random(0, types.length - 1)];
 
                 totalCoins += random(range[0], range[1]);
+
+                totalVibranium += random(
+                  info.vibraniumRange[0],
+                  info.vibraniumRange[1]
+                );
 
                 totalShards[type] =
                   (totalShards[type] || 0) +
@@ -364,6 +437,8 @@ module.exports = {
                   ]
                 )
               );
+
+              increment["items.vibranium"] = totalVibranium;
 
               await db.collection("inventory").updateOne(
                 { userId },
@@ -440,6 +515,11 @@ module.exports = {
                 value: String(
                   eligible.length - burned.length
                 ),
+                inline: true
+              },
+              {
+                name: `${VIBRANIUM_EMOJI} Vibranium Earned`,
+                value: totalVibranium.toLocaleString(),
                 inline: true
               },
               {

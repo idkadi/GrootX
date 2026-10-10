@@ -1,5 +1,6 @@
-const cards0 = require("../data/cards");
-const cards1 = require("../data/season1");
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
 
 const {
   EmbedBuilder,
@@ -11,9 +12,43 @@ const {
 
 const connectDB = require("../database");
 const { removeCardFromAlbums } = require("../utils/albumUtils");
-const crypto = require("crypto");
 
 const pendingBurns = new Map();
+
+// S0 uses cards.js; future seasons use season2.js, season3.js, etc.
+function getCatalog(season) {
+  if (season === null) return [];
+
+  const dataDir = path.join(__dirname, "../data");
+  const filename = season === 0
+    ? "cards.js"
+    : `season${season}.js`;
+
+  const filePath = path.join(dataDir, filename);
+
+  if (!fs.existsSync(filePath)) return [];
+
+  const catalog = require(filePath);
+
+  if (!Array.isArray(catalog)) {
+    throw new Error(`Invalid card catalog: ${filename}`);
+  }
+
+  return catalog;
+}
+
+function parseSeason(value) {
+  const match = String(value ?? 0)
+    .trim()
+    .toLowerCase()
+    .match(/^(?:s|season[ _-]*)?(\d+)$/);
+
+  if (!match) return null;
+
+  const season = Number(match[1]);
+
+  return Number.isSafeInteger(season) ? season : null;
+}
 
 const SEASONS = [
   "<:Season0:1555956910560256082>",
@@ -26,6 +61,16 @@ const REWARDS = {
   rare: [100, 200, 10, 15],
   epic: [250, 500, 15, 25],
   legendary: [1000, 1500, 50, 100]
+};
+
+const VIBRANIUM_EMOJI = "<:vibranium:1558406389284741150>";
+
+const VIBRANIUM_REWARDS = {
+  common: [100, 150],
+  uncommon: [250, 300],
+  rare: [300, 500],
+  epic: [750, 1000],
+  legendary: [1500, 2000]
 };
 
 const SHARDS = {
@@ -49,7 +94,7 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName("burn")
     .setDescription(
-      "Burn an owned card for coins and shards after confirmation."
+      "Burn an owned card for coins, shards and Vibranium."
     )
     .addStringOption(option =>
       option
@@ -79,6 +124,7 @@ module.exports = {
       if (!slash) return message.reply(payload);
       if (message.deferred) return message.editReply(payload);
       if (message.replied) return message.followUp(payload);
+
       return message.reply(payload);
     };
 
@@ -119,6 +165,7 @@ module.exports = {
 
       if (!entry) {
         release();
+
         return await reply(
           "❌ Card not found in your collection."
         );
@@ -126,6 +173,7 @@ module.exports = {
 
       if (entry.favorite) {
         release();
+
         return await reply(
           "⭐ Unfavorite this card before burning it."
         );
@@ -135,17 +183,8 @@ module.exports = {
         entry.season ?? entry.cardSeason ?? 0
       );
 
-      const season = ["1", "s1"].includes(seasonValue)
-        ? 1
-        : ["0", "s0"].includes(seasonValue)
-          ? 0
-          : null;
-
-      const catalog = season === 1
-        ? cards1
-        : season === 0
-          ? cards0
-          : [];
+      const season = parseSeason(seasonValue);
+      const catalog = getCatalog(season);
 
       const matches = catalog.filter(card =>
         card.id != null &&
@@ -163,16 +202,21 @@ module.exports = {
 
       const event = clean(entry.event || card?.event);
 
-      // Every event receives Legendary rewards.
+      // Preserve existing Legendary coin/shard rewards for events.
       const tier = event
         ? "legendary"
         : clean(card?.tier || entry.tier);
 
       const reward = REWARDS[tier];
 
-      // Validate rewards before deleting anything.
-      if (!reward) {
+      // Vibranium follows the card's actual tier, including events.
+      const actualTier = clean(card?.tier || entry.tier);
+      const vibraniumReward = VIBRANIUM_REWARDS[actualTier];
+
+      // Validate all rewards before deleting anything.
+      if (!reward || !vibraniumReward) {
         release();
+
         return await reply(
           "❌ This card's reward tier could not be verified. " +
           "Nothing was burned; please report its code."
@@ -181,6 +225,7 @@ module.exports = {
 
       if (!db.client?.startSession) {
         release();
+
         return await reply(
           "❌ Safe burn transactions are unavailable. " +
           "Nothing was burned; check the database connection."
@@ -193,7 +238,7 @@ module.exports = {
 
       const seasonText = season === null
         ? "Unknown season"
-        : `${SEASONS[season]} Season ${season}`;
+        : `${SEASONS[season] || "🗓️"} Season ${season}`;
 
       const eventText = event
         ? `\n🎃 ${
@@ -211,7 +256,9 @@ module.exports = {
           `\`${entry.code}\` • #${entry.serial ?? "?"}\n` +
           `${seasonText}${eventText}\n\n` +
           `Rewards: **${reward[0]}–${reward[1]} coins** and ` +
-          `**${reward[2]}–${reward[3]} random shards**.\n` +
+          `**${reward[2]}–${reward[3]} random shards**, plus\n` +
+          `${VIBRANIUM_EMOJI} ` +
+          `**${vibraniumReward[0]}–${vibraniumReward[1]} Vibranium**.\n` +
           "This permanently destroys the card."
         );
 
@@ -235,6 +282,7 @@ module.exports = {
           embeds: [confirm],
           components: [row]
         });
+
         menu = await message.fetchReply();
       } else {
         menu = await reply({
@@ -291,6 +339,11 @@ module.exports = {
           const coins = random(reward[0], reward[1]);
           const shards = random(reward[2], reward[3]);
 
+          const vibranium = random(
+            vibraniumReward[0],
+            vibraniumReward[1]
+          );
+
           const shardTypes = Object.keys(SHARDS);
           const shardType =
             shardTypes[random(0, shardTypes.length - 1)];
@@ -298,7 +351,7 @@ module.exports = {
           const session = db.client.startSession();
 
           try {
-            // Card deletion and rewards commit together.
+            // Card deletion and all rewards commit together.
             await session.withTransaction(async () => {
               const fresh = await col.findOne(
                 {
@@ -352,7 +405,8 @@ module.exports = {
                 { userId },
                 {
                   $inc: {
-                    [`items.${shardType}`]: shards
+                    [`items.${shardType}`]: shards,
+                    "items.vibranium": vibranium
                   }
                 },
                 { upsert: true, session }
@@ -411,6 +465,11 @@ module.exports = {
                 name: "✨ Shards",
                 value:
                   `${SHARDS[shardType]} ${shardName} ×${shards}`,
+                inline: true
+              },
+              {
+                name: `${VIBRANIUM_EMOJI} Vibranium`,
+                value: String(vibranium),
                 inline: true
               }
             )
