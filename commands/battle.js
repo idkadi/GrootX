@@ -2,7 +2,8 @@ const {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  AttachmentBuilder
+  AttachmentBuilder,
+  SlashCommandBuilder
 } = require("discord.js");
 
 const fs = require("fs");
@@ -685,6 +686,43 @@ async function revealIfBothLocked(interaction, battle) {
 module.exports = {
   name: "battle",
   aliases: ["fight"],
+  data: new SlashCommandBuilder()
+    .setName("battle")
+    .setDescription("Challenge another player to a six-round GrootX battle.")
+    .addUserOption(option => option.setName("opponent")
+      .setDescription("Player to challenge").setRequired(true)),
+
+  async executeSlash(interaction) {
+    if (!interaction.inGuild()) {
+      const payload = {content: "Battles must be started in a server."};
+      if (interaction.deferred || interaction.replied) return interaction.editReply(payload);
+      return interaction.reply({...payload, ephemeral: true});
+    }
+    if (!interaction.deferred && !interaction.replied) await interaction.deferReply();
+    const target = interaction.options.getUser("opponent", true);
+    let challengeSent = false;
+    const context = {
+      author: interaction.user, client: interaction.client,
+      guild: interaction.guild, guildId: interaction.guildId,
+      mentions: {users: {first: () => target}},
+      reply: payload => interaction.editReply(typeof payload === "string" ? {content: payload} : payload),
+      channel: {
+        id: interaction.channelId,
+        send: async payload => {
+          if (!challengeSent) {
+            challengeSent = true;
+            return interaction.editReply({...payload, allowedMentions: {users: [target.id]}});
+          }
+          return interaction.channel.send(payload);
+        }
+      }
+    };
+    try { return await module.exports.execute(context, []); }
+    catch (error) {
+      console.error("[BATTLE SLASH]", error);
+      await interaction.editReply({content: "Could not start the battle. Try again.", components: [], files: []}).catch(() => {});
+    }
+  },
 
   finishBattle,
 
