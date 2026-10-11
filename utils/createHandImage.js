@@ -16,9 +16,8 @@ module.exports=async function createHandImage(hand=[]){
   const card={...item.card};if(season!=null){card.season=season;owned.season=season;}if(event!=null){card.event=event;owned.event=event;}
   const x=pad+(i%columns)*(width+gap),y=pad+Math.floor(i/columns)*(height+gap);
   try{
-   const buffer=await renderCard(card,item.serial??item.entry?.serial??item.entry?.serialNumber??'?',owned);
-   const image=await loadImage(buffer);ctx.drawImage(image,x,y,width,height);
+   const image=await renderCard.thumbnail(card,item.serial??item.entry?.serial??item.entry?.serialNumber??'?',owned,width,height);ctx.drawImage(image,x,y,width,height);
   }catch(error){console.error('[HAND CARD]',item.code??item.card.id,error);ctx.fillStyle='#282a36';ctx.fillRect(x,y,width,height);}
  }
- return canvas.toBuffer('image/png');
+ return renderCard.encodePNG(canvas);
 };

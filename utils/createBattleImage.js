@@ -81,7 +81,7 @@ async function drawLocation(ctx, location, x, y, w, h) {
 
   if (fs.existsSync(imagePath)) {
     try {
-      const img = await loadImage(imagePath);
+      const img = await renderCard.loadAsset(imagePath);
 
       ctx.save();
       drawHex(ctx, x, y, w, h);
@@ -109,10 +109,11 @@ async function drawCard(ctx, item, x, y, w, h, battle) {
     return;
   }
   try {
-    const entry = { ...item, ...item.entry };
+    const entry = { ...item.entry, ...item };
+    delete entry.entry; delete entry.card;
     const season = entry.season ?? entry.cardSeason ?? item.card.season ?? 0;
-    const buffer = await renderCard({ ...item.card, season }, item.serial ?? entry.serialNumber ?? "?", { ...entry, season });
-    ctx.drawImage(await loadImage(buffer), x, y, w, h);
+    const image = await renderCard.thumbnail({ ...item.card, season }, item.serial ?? entry.serial ?? entry.serialNumber ?? "?", { ...entry, season }, w, h);
+    ctx.drawImage(image, x, y, w, h);
     if (battle.abilityState) {
       ctx.fillStyle = "rgba(0,0,0,.85)"; ctx.fillRect(x + w - 35, y + 3, 32, 18);
       ctx.fillStyle = "#ffffff"; ctx.font = font(12, true);
@@ -250,7 +251,7 @@ async function createBattleImage(battle) {
     await drawCardGrid(ctx, p2Cards, centerX, 660, battle);
   }
 
-  return canvas.toBuffer("image/png");
+  return renderCard.encodePNG(canvas);
 }
 
 module.exports = createBattleImage;
