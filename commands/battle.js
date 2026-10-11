@@ -15,7 +15,11 @@ const activeBattles = require("../data/activeBattles");
 const connectDB = require("../database");
 const createBattleImage = require("../utils/createBattleImage");
 const createHandImage = require("../utils/createHandImage");
-const { calculateBattlePower } = require("../utils/battlePower");
+const abilityEngine = require("../utils/abilityEngine");
+const abilityUI = require("../utils/abilityUI");
+const weaponUI = require("../utils/weaponUI");
+const getBattleDeck = require("../utils/getBattleDeck");
+const { resolveEntry } = require("../utils/battleCatalogue");
 const updateRanked = require("../utils/updateRanked");
 
 const SIDES = ["left", "middle", "right"];
@@ -176,63 +180,8 @@ async function ensureDeckDoc(decksCol, userId) {
 
 async function getBattleDeckFromSlot(userId, deckNo) {
   const db = await connectDB();
-
-  const decksCol = db.collection("decks");
-  const collectionsCol = db.collection("collections");
-
-  const deckDoc = await ensureDeckDoc(decksCol, userId);
-  const deck = deckDoc.decks[String(deckNo)];
-
-  if (!deck || !deck.unlocked) {
-    return {
-      ok: false,
-      reason: `Deck ${deckNo} is locked.`
-    };
-  }
-
-  const deckCodes = (deck.cards || []).map(normalizeCode);
-
-  if (deckCodes.length !== 12) {
-    return {
-      ok: false,
-      reason: `Deck ${deckNo} must have exactly 12 cards. Current: ${deckCodes.length}/12.`
-    };
-  }
-
-  const entries = await collectionsCol.find({ userId }).toArray();
-
-  const battleCards = deckCodes
-    .map(code => {
-      const entry = entries.find(e =>
-        normalizeCode(e.code) === normalizeCode(code)
-      );
-
-      if (!entry) return null;
-
-      const card = getCardData(entry.cardId);
-      if (!card) return null;
-
-      return {
-        entry,
-        card,
-        code: entry.code,
-        serial: entry.serial
-      };
-    })
-    .filter(Boolean);
-
-  if (battleCards.length !== 12) {
-    return {
-      ok: false,
-      reason: `Deck ${deckNo} has missing or invalid cards. Use \`!deck view ${deckNo}\`.`
-    };
-  }
-
-  return {
-    ok: true,
-    deckName: deck.name || `Deck ${deckNo}`,
-    cards: battleCards
-  };
+  await ensureDeckDoc(db.collection("decks"), userId);
+  return getBattleDeck(userId, deckNo);
 }
 
 function formatSelectionText(battle, userId) {
@@ -253,7 +202,9 @@ function formatSelectionText(battle, userId) {
 }
 
 function createBattleButtons(battle, finished = false) {
-  if (finished || battle.phase !== "playing") return [];
+  if (finished) return [];
+  if (battle.phase === "ability_choice") return abilityUI.boardButtons(battle);
+  if (battle.phase !== "playing") return [];
 
   return [
     new ActionRowBuilder().addComponents(
@@ -261,6 +212,17 @@ function createBattleButtons(battle, finished = false) {
         .setCustomId(`battle_open_${battle.id}`)
         .setLabel("Open Private Hand")
         .setStyle(ButtonStyle.Primary),
+
+      new ButtonBuilder()
+        .setCustomId(`battle_abintel_${battle.id}`)
+        .setLabel("Private Intel / Reveal Sue")
+        .setStyle(ButtonStyle.Secondary),
+
+      new ButtonBuilder()
+        .setCustomId(`battle_weaponopen_${battle.id}`)
+        .setLabel("Weapons")
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(battle.turn < 2),
 
       new ButtonBuilder()
         .setCustomId(`battle_forfeit_${battle.id}`)
@@ -312,7 +274,7 @@ async function makeBoardPayload(battle, content, finished = false) {
   const buffer = await createBattleImage(battle);
 
   return {
-    content,
+    content: (content + (battle.abilityState?.log.length ? "\n\n**Abilities**\n" + battle.abilityState.log.slice(-6).map(e => e.text).join("\n") : "")).slice(0, 2000),
     files: [
       new AttachmentBuilder(buffer, {
         name: `battle_turn_${battle.turn}.png`
@@ -357,9 +319,9 @@ function createCardButtons(battle, userId) {
     new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(`battle_lock_${battle.id}`)
-        .setLabel("Lock Turn")
+        .setLabel("Lock Turn / Pass")
         .setStyle(ButtonStyle.Success)
-        .setDisabled(!selected.length),
+        .setDisabled(false),
 
       new ButtonBuilder()
         .setCustomId(`battle_clear_${battle.id}`)
@@ -377,7 +339,7 @@ function createLocationButtons(battle, userId, cardIndex) {
 
   SIDES.forEach((side, i) => {
     const loc = battle.locations[i];
-    const full = isLocationFullForPlayer(battle, userId, side);
+    const full = isLocationFullForPlayer(battle, userId, side) || !abilityEngine.canPlace(battle, userId, side);
 
     row.addComponents(
       new ButtonBuilder()
@@ -412,22 +374,23 @@ async function sendPrivateHand(interaction, battle) {
 
   if (!hand.length) {
     return interaction.reply({
-      content: "You have no cards in hand.",
-      ephemeral: true
+      content: "No cards in hand. You can pass this round.",
+      ephemeral: true, components: createCardButtons(battle, userId)
     });
   }
 
   const energy = getTurnEnergy(battle);
   const remaining = getRemainingEnergy(battle, userId);
 
+  await interaction.deferReply({ ephemeral: true });
   const buffer = await createHandImage(hand);
 
-  return interaction.reply({
+  return interaction.editReply({
     content:
       `Turn ${battle.turn}/${battle.maxTurns}\n` +
       `⚡ Energy: ${remaining}/${energy} remaining\n\n` +
       `Selected:\n${formatSelectionText(battle, userId)}\n\n` +
-      `Pick a card, choose a location, then press **Lock Turn**.`,
+      (`Pick a card, choose a location, then press **Lock Turn**.\n` + abilityEngine.privateIntel(battle, userId)).slice(0, 1800),
     files: [
       new AttachmentBuilder(buffer, {
         name: "hand.png"
@@ -439,21 +402,7 @@ async function sendPrivateHand(interaction, battle) {
 }
 
 function getLocationPower(battle, side, userId) {
-  const location = battle.locations[SIDES.indexOf(side)];
-
-  const locationCards = battle.board[side].filter(
-    item => item.ownerId === userId
-  );
-
-  return locationCards.reduce((total, item) => {
-    const result = calculateBattlePower(item.card, {
-      serial: item.serial,
-      cardsAtLocation: locationCards.map(c => c.card),
-      location
-    });
-
-    return total + result.finalPower;
-  }, 0);
+  return abilityEngine.locationPower(battle, side, userId);
 }
 
 function getWinner(battle) {
@@ -501,6 +450,8 @@ async function sendNewBoardMessage(client, battle, content, finished = false) {
 }
 
 async function finishBattle(client, battle, winnerId, reason = "") {
+  if (battle.finishing) return;
+  battle.finishing = true;
   battle.finished = true;
   battle.winner = winnerId || null;
 
@@ -557,7 +508,9 @@ async function startBattleAfterDeckSelection(interaction, battle) {
   const p1DeckNo = battle.selectedDecks[battle.player1Id];
   const p2DeckNo = battle.selectedDecks[battle.player2Id];
 
-  if (!p1DeckNo || !p2DeckNo) return;
+  if (!p1DeckNo || !p2DeckNo || battle.starting || battle.phase !== "deck_select") return;
+  battle.starting = true;
+  try {
 
   const p1DeckResult = await getBattleDeckFromSlot(battle.player1Id, p1DeckNo);
   const p2DeckResult = await getBattleDeckFromSlot(battle.player2Id, p2DeckNo);
@@ -620,117 +573,113 @@ async function startBattleAfterDeckSelection(interaction, battle) {
 
   battle.finished = false;
   battle.winner = null;
-
-  return sendNewBoardMessage(
+  const db = await connectDB();
+  const collectionCandidates = {};
+  for (const userId of [battle.player1Id, battle.player2Id]) {
+    const entries = await db.collection("collections").find({ userId }).toArray();
+    collectionCandidates[userId] = entries.flatMap(entry => {
+      const record = resolveEntry(entry);
+      return record ? [{ entry: { ...entry, season: record.season, event: record.event },
+        card: { ...record.card, season: record.season, event: record.event },
+        code: entry.code, serial: entry.serial ?? entry.serialNumber }] : [];
+    });
+  }
+  abilityEngine.initBattle(battle, { locationPool: locations, collectionCandidates });
+  await weaponUI.loadInventory(battle, db);
+  return await sendNewBoardMessage(
     interaction.client,
     battle,
     `⚔️ Battle started!\n\n` +
     `<@${battle.player1Id}> chose **${p1DeckResult.deckName}**.\n` +
     `<@${battle.player2Id}> chose **${p2DeckResult.deckName}**.\n\n` +
-    `Turn 1/${battle.maxTurns}: both players have **1 Energy**.`
+    `Turn 1/${battle.maxTurns}: both players have **2 Energy**.`
   );
+  } catch (error) {
+    activeBattles.delete(battle.player1Id);
+    activeBattles.delete(battle.player2Id);
+    throw error;
+  } finally {
+    battle.starting = false;
+  }
+
+}
+
+async function completeAbilityTurn(client, battle) {
+  if (battle.finished || battle.completingTurn) return;
+  battle.completingTurn = true;
+  try {
+    abilityEngine.endTurn(battle);
+    const final = battle.turn >= battle.maxTurns;
+    if (final) return await finishBattle(client, battle, getWinner(battle), "");
+    drawCard(battle, battle.player1Id);
+    drawCard(battle, battle.player2Id);
+    battle.turn++;
+    abilityEngine.startTurn(battle);
+    if (battle.turn === battle.maxTurns) {
+      for (const userId of [battle.player1Id, battle.player2Id]) {
+        battle.hands[userId].push(...battle.decks[userId].splice(0));
+      }
+    }
+    battle.phase = "playing";
+    return await sendNewBoardMessage(client, battle,
+      `🔁 Reveal complete!\nTurn ${battle.turn}/${battle.maxTurns}: both players have **${getTurnEnergy(battle)} Energy**.` +
+      (battle.turn === battle.maxTurns ? "\n🔥 Final turn: all remaining cards drawn." : ""));
+  } finally { battle.completingTurn = false; }
+}
+
+async function resumeAbilities(client, battle, advance = true) {
+  if (battle.finished) return;
+  const request = advance ? abilityEngine.nextRequest(battle) : battle.abilityState?.request;
+  if (request) {
+    battle.phase = "ability_choice";
+    return sendNewBoardMessage(client, battle,
+      `🎯 <@${request.ownerId}>, press **Choose Ability Target** to resolve your card. Choices are private.`);
+  }
+  if (advance) return completeAbilityTurn(client, battle);
+  return sendNewBoardMessage(client, battle, "Battle board updated.");
 }
 
 async function revealIfBothLocked(interaction, battle) {
-  const p1Locked = battle.lockedPlayers[battle.player1Id];
-  const p2Locked = battle.lockedPlayers[battle.player2Id];
-
-  if (!p1Locked || !p2Locked) {
-    return sendNewBoardMessage(
-      interaction.client,
-      battle,
-      `✅ <@${interaction.user.id}> locked their turn.\nWaiting for the other player...`
-    );
+  if (!battle.lockedPlayers[battle.player1Id] || !battle.lockedPlayers[battle.player2Id]) {
+    return sendNewBoardMessage(interaction.client, battle,
+      `✅ <@${interaction.user.id}> locked their turn. Waiting for the other player...`);
   }
-
-  const revealed = [];
-
-  for (const userId of [battle.player1Id, battle.player2Id]) {
-    const moves = battle.pendingMoves[userId] || [];
-    const hand = battle.hands[userId];
-
-    const sortedMoves = [...moves].sort((a, b) => b.cardIndex - a.cardIndex);
-
-    for (const move of sortedMoves) {
-      if (!hand || !hand[move.cardIndex]) continue;
-
-      const currentCount = getBoardCountAtLocation(
-        battle,
-        userId,
-        move.side
-      );
-
-      if (currentCount >= MAX_CARDS_PER_LOCATION) {
-        revealed.push(
-          `<@${userId}> could not play a card to **${move.side}** because it is full.`
-        );
-        continue;
+  if (battle.revealing || battle.phase !== "playing") return;
+  battle.revealing = true;
+  battle.phase = "ability_choice";
+  try {
+    const queues = {};
+    for (const userId of [battle.player1Id, battle.player2Id]) {
+      const moves = battle.pendingMoves[userId] || [];
+      const hand = battle.hands[userId];
+      const planned = moves.map(move => ({ ...move, item: hand[move.cardIndex] }));
+      queues[userId] = [];
+      for (const move of planned) {
+        if (!move.item || !abilityEngine.canPlace(battle, userId, move.side)) continue;
+        const index = hand.indexOf(move.item);
+        if (index < 0) continue;
+        hand.splice(index, 1);
+        const played = move.item;
+        abilityEngine.prepareItem(battle, played, userId);
+        played.ownerId = userId; played.revealedTurn = battle.turn; played.pendingReveal = true;
+        battle.board[move.side].push(played);
+        queues[userId].push(played);
       }
-
-      const played = hand.splice(move.cardIndex, 1)[0];
-
-      battle.board[move.side].push({
-        ...played,
-        ownerId: userId,
-        revealedTurn: battle.turn
-      });
-
-      revealed.push(
-        `<@${userId}> played **${played.card.name}** to **${move.side}**.`
-      );
     }
-  }
-
-  battle.pendingMoves = {
-    [battle.player1Id]: [],
-    [battle.player2Id]: []
-  };
-
-  battle.tempSelections = {
-    [battle.player1Id]: [],
-    [battle.player2Id]: []
-  };
-
-  battle.lockedPlayers = {
-    [battle.player1Id]: false,
-    [battle.player2Id]: false
-  };
-
-  drawCard(battle, battle.player1Id);
-  drawCard(battle, battle.player2Id);
-
-  const wasFinalTurn = battle.turn >= battle.maxTurns;
-
-  if (wasFinalTurn) {
-    battle.winner = getWinner(battle);
-    return finishBattle(interaction.client, battle, battle.winner, "");
-  }
-
-  battle.turn++;
-
-  if (battle.turn === battle.maxTurns) {
-    while (battle.decks[battle.player1Id]?.length) {
-      battle.hands[battle.player1Id].push(
-        battle.decks[battle.player1Id].shift()
-      );
+    const first = battle.turn % 2 ? battle.player1Id : battle.player2Id;
+    const second = getOpponentId(battle, first);
+    const ordered = [];
+    for (let i = 0; i < Math.max(queues[first].length, queues[second].length); i++) {
+      if (queues[first][i]) ordered.push(queues[first][i]);
+      if (queues[second][i]) ordered.push(queues[second][i]);
     }
-
-    while (battle.decks[battle.player2Id]?.length) {
-      battle.hands[battle.player2Id].push(
-        battle.decks[battle.player2Id].shift()
-      );
+    for (const userId of [battle.player1Id, battle.player2Id]) {
+      battle.pendingMoves[userId] = []; battle.tempSelections[userId] = [];
+      battle.lockedPlayers[userId] = false;
     }
-  }
-
-  return sendNewBoardMessage(
-    interaction.client,
-    battle,
-    `🔁 Reveal complete!\n${revealed.join("\n") || "No cards were played."}\n\n` +
-    `Turn ${battle.turn}/${battle.maxTurns}: both players have **${getTurnEnergy(battle)} Energy**.` +
-    (battle.turn === battle.maxTurns
-      ? `\n🔥 Final Turn! All remaining cards have been drawn.`
-      : "")
-  );
+    abilityEngine.enqueueReveals(battle, ordered);
+    return await resumeAbilities(interaction.client, battle);
+  } finally { battle.revealing = false; }
 }
 
 module.exports = {
@@ -906,6 +855,10 @@ module.exports = {
       });
     }
 
+    if (battle.starting) {
+      return interaction.reply({ content: "The battle is starting. Please wait a moment.", ephemeral: true });
+    }
+
     if (interaction.customId.startsWith(`battle_pickdeck_${battle.id}_`)) {
       await interaction.deferReply({ ephemeral: true });
 
@@ -946,9 +899,27 @@ module.exports = {
       return startBattleAfterDeckSelection(interaction, battle);
     }
 
+    if (battle.weaponApplying) {
+      return interaction.reply({ content: "A weapon is resolving. Try again shortly.", ephemeral: true });
+    }
+    if (interaction.customId.startsWith("battle_weapon")) {
+      return weaponUI.handle(interaction, battle,
+        () => sendNewBoardMessage(interaction.client, battle, `Round ${battle.turn}: weapon resolved.`));
+    }
+    if (battle.completingTurn || battle.revealing) {
+      return interaction.reply({ content: "The turn is resolving. Try again shortly.", ephemeral: true });
+    }
+    if (interaction.customId.startsWith("battle_ab")) {
+      return abilityUI.handle(interaction, battle,
+        advance => resumeAbilities(interaction.client, battle, advance));
+    }
+    if (interaction.customId === `battle_forfeit_${battle.id}`) {
+      await interaction.reply({ content: "You forfeited.", ephemeral: true });
+      return finishBattle(interaction.client, battle, getOpponentId(battle, interaction.user.id), "by forfeit.");
+    }
     if (battle.phase !== "playing") {
       return interaction.reply({
-        content: "Battle has not started yet. Choose decks first.",
+        content: battle.phase === "ability_choice" ? "An ability target is being chosen. Use the latest battle buttons." : "Battle has not started yet. Choose decks first.",
         ephemeral: true
       });
     }
@@ -1004,12 +975,6 @@ module.exports = {
 
       const selected = battle.tempSelections[interaction.user.id] || [];
 
-      if (!selected.length) {
-        return interaction.reply({
-          content: "Select at least one card before locking.",
-          ephemeral: true
-        });
-      }
 
       battle.pendingMoves[interaction.user.id] = selected;
       battle.lockedPlayers[interaction.user.id] = true;
@@ -1091,9 +1056,9 @@ module.exports = {
         });
       }
 
-      if (isLocationFullForPlayer(battle, interaction.user.id, side)) {
+      if (isLocationFullForPlayer(battle, interaction.user.id, side) || !abilityEngine.canPlace(battle, interaction.user.id, side)) {
         return interaction.reply({
-          content: `❌ This location is full. Max **${MAX_CARDS_PER_LOCATION} cards** per location.`,
+          content: `❌ This location is full or blocked by an effect.`,
           ephemeral: true
         });
       }
@@ -1144,5 +1109,6 @@ module.exports = {
         components: createCardButtons(battle, interaction.user.id)
       });
     }
+    return interaction.reply({ content: "This battle button expired. Use the latest board.", ephemeral: true });
   }
 };

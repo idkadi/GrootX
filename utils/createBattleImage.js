@@ -2,6 +2,8 @@ const { createCanvas, loadImage, registerFont } = require("canvas");
 const path = require("path");
 const fs = require("fs");
 const { calculateBattlePower } = require("./battlePower");
+const renderCard = require("./renderCard");
+const abilityEngine = require("./abilityEngine");
 
 try {
   registerFont(path.join(__dirname, "..", "fonts", "DejaVuSans.ttf"), {
@@ -40,6 +42,7 @@ function getLocationObject(battle, side) {
 }
 
 function getLocationPower(battle, side, userId) {
+  if (battle.abilityState) return abilityEngine.locationPower(battle, side, userId);
   const locationCards = getLocationCards(battle, side, userId);
   const location = getLocationObject(battle, side);
 
@@ -96,19 +99,36 @@ async function drawLocation(ctx, location, x, y, w, h) {
   ctx.fill();
 }
 
-async function drawCard(ctx, item, x, y, w, h) {
-  if (!item?.card?.image) return;
-
-  const imagePath = path.join(__dirname, "..", "images", item.card.image);
-  if (!fs.existsSync(imagePath)) return;
-
+async function drawCard(ctx, item, x, y, w, h, battle) {
+  if (!item?.card) return;
+  if (item.pendingReveal || abilityEngine.isHidden(battle, item)) {
+    ctx.fillStyle = "#172338"; ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = "#9b6cff"; ctx.strokeRect(x, y, w, h);
+    ctx.fillStyle = "#ffffff"; ctx.font = font(12, true);
+    ctx.fillText("HIDDEN", x + w / 2, y + h / 2);
+    return;
+  }
   try {
-    const img = await loadImage(imagePath);
-    ctx.drawImage(img, x, y, w, h);
-  } catch {}
+    const entry = { ...item, ...item.entry };
+    const season = entry.season ?? entry.cardSeason ?? item.card.season ?? 0;
+    const buffer = await renderCard({ ...item.card, season }, item.serial ?? entry.serialNumber ?? "?", { ...entry, season });
+    ctx.drawImage(await loadImage(buffer), x, y, w, h);
+    if (battle.abilityState) {
+      ctx.fillStyle = "rgba(0,0,0,.85)"; ctx.fillRect(x + w - 35, y + 3, 32, 18);
+      ctx.fillStyle = "#ffffff"; ctx.font = font(12, true);
+      ctx.fillText(String(abilityEngine.cardPower(battle, item)), x + w - 19, y + 17);
+    }
+  } catch (error) {
+    ctx.fillStyle = "#1f2937";
+    ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = font(10);
+    ctx.fillText(shortText(item.card.name, 14), x + w / 2, y + h / 2);
+    console.error("Battle card render failed:", item.code, error.message);
+  }
 }
 
-async function drawCardGrid(ctx, cards, centerX, y) {
+async function drawCardGrid(ctx, cards, centerX, y, battle) {
   const shown = cards.slice(0, 4);
   if (!shown.length) return;
 
@@ -136,14 +156,15 @@ async function drawCardGrid(ctx, cards, centerX, y) {
       startX + pos.col * (cardW + gapX),
       y + pos.row * (cardH + gapY),
       cardW,
-      cardH
+      cardH,
+      battle
     );
   }
 }
 
 async function createBattleImage(battle) {
   const width = 1150;
-  const height = 900;
+  const height = 1000;
 
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
@@ -173,7 +194,7 @@ async function createBattleImage(battle) {
   const locH = 165;
   const startX = 95;
   const gap = 75;
-  const locY = 385;
+  const locY = 430;
 
   for (let i = 0; i < 3; i++) {
     const side = SIDES[i];
@@ -185,7 +206,7 @@ async function createBattleImage(battle) {
     const p1Cards = getLocationCards(battle, side, battle.player1Id);
     const p2Cards = getLocationCards(battle, side, battle.player2Id);
 
-    await drawCardGrid(ctx, p1Cards, centerX, 125);
+    await drawCardGrid(ctx, p1Cards, centerX, 125, battle);
 
     await drawLocation(ctx, location, x, locY, locW, locH);
 
@@ -226,7 +247,7 @@ async function createBattleImage(battle) {
     ctx.font = font(26, true);
     ctx.fillText(String(p2Power), centerX, locY + locH + 14);
 
-    await drawCardGrid(ctx, p2Cards, centerX, 620);
+    await drawCardGrid(ctx, p2Cards, centerX, 660, battle);
   }
 
   return canvas.toBuffer("image/png");

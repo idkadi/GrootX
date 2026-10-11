@@ -23,12 +23,12 @@ const WEAPONS = {
   web_shooter: {
     name: "Web Shooter",
     emoji: "<:webshooter:1558404855071113236>",
-    energy: 1
+    energy: 2
   },
   cap_shield: {
     name: "Captain America's Shield",
     emoji: "<:capshield:1558405113050177636>",
-    energy: 1
+    energy: 2
   },
   arc_reactor: {
     name: "Arc Reactor",
@@ -38,7 +38,7 @@ const WEAPONS = {
   mjolnir: {
     name: "Mjolnir",
     emoji: "<:mjolnir:1558405891722846318>",
-    energy: 3
+    energy: 2
   },
   wolverine_claws: {
     name: "Wolverine's Claws",
@@ -123,10 +123,10 @@ const infinityShards = [
   "soul_shard"
 ];
 
-function makeButtons(activePage) {
+function makeButtons(activePage, userId) {
   const row1 = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
-      .setCustomId("inv_stones")
+      .setCustomId(`inv_${userId}_stones`)
       .setLabel("Stones")
       .setEmoji("💎")
       .setStyle(
@@ -136,7 +136,7 @@ function makeButtons(activePage) {
       ),
 
     new ButtonBuilder()
-      .setCustomId("inv_shards")
+      .setCustomId(`inv_${userId}_shards`)
       .setLabel("Shards")
       .setEmoji("✨")
       .setStyle(
@@ -146,7 +146,7 @@ function makeButtons(activePage) {
       ),
 
     new ButtonBuilder()
-      .setCustomId("inv_albums")
+      .setCustomId(`inv_${userId}_albums`)
       .setLabel("Albums")
       .setEmoji("📖")
       .setStyle(
@@ -156,7 +156,7 @@ function makeButtons(activePage) {
       ),
 
     new ButtonBuilder()
-      .setCustomId("inv_bgs")
+      .setCustomId(`inv_${userId}_bgs`)
       .setLabel("BGs")
       .setEmoji("🖼️")
       .setStyle(
@@ -166,7 +166,7 @@ function makeButtons(activePage) {
       ),
 
     new ButtonBuilder()
-      .setCustomId("inv_others")
+      .setCustomId(`inv_${userId}_others`)
       .setLabel("Others")
       .setEmoji("📦")
       .setStyle(
@@ -178,7 +178,7 @@ function makeButtons(activePage) {
 
   const row2 = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
-      .setCustomId("inv_weapons")
+      .setCustomId(`inv_${userId}_weapons`)
       .setLabel("Weapons")
       .setEmoji("⚔️")
       .setStyle(
@@ -209,11 +209,10 @@ async function makeEmbed(message, pageType) {
 
   const userInventory = inventoryDoc.items || {};
 
-  const userAlbums = await albumsCollection
-    .find({ userId })
-    .toArray();
+  const userAlbums = pageType === "albums"
+    ? await albumsCollection.find({ userId }).toArray() : [];
 
-  const userData = await usersCollection.findOne({ userId });
+  const userData = pageType === "bgs" ? await usersCollection.findOne({ userId }) : null;
   const userBackgroundIds = userData?.backgrounds || [];
 
   let title = "";
@@ -359,7 +358,7 @@ async function makeEmbed(message, pageType) {
     .setDescription(
       `${VIBRANIUM_EMOJI} **Vibranium: ` +
       `${Number(userInventory.vibranium || 0).toLocaleString()}**\n\n` +
-      `### ${title}\n${description}`
+      `### ${title}\n${description}`.slice(0, 3900)
     )
     .setFooter({ text: "GrootX Item System" })
     .setTimestamp();
@@ -387,89 +386,41 @@ module.exports = {
       await message.deferReply();
     }
 
-    let currentPage = "stones";
+    try {
+    const currentPage = "stones";
 
-    const msg = await (
+    await (
       isSlash
         ? message.editReply.bind(message)
         : message.reply.bind(message)
     )({
       embeds: [await makeEmbed(context, currentPage)],
-      components: makeButtons(currentPage)
+      components: makeButtons(currentPage, user.id)
     });
 
-    const collector = msg.createMessageComponentCollector({
-      time: 120000,
-      filter: interaction => [
-        "inv_stones",
-        "inv_shards",
-        "inv_albums",
-        "inv_bgs",
-        "inv_others",
-        "inv_weapons"
-      ].includes(interaction.customId)
-    });
-
-    collector.on("collect", async interaction => {
-      if (interaction.user.id !== user.id) {
-        return interaction.reply({
-          content: "❌ This inventory is not for you.",
-          ephemeral: true
-        });
+    } catch (error) {
+      console.error("[INVENTORY] Initial load:", error);
+      const payload = { content: "Could not load inventory. Please try again.", components: [], embeds: [] };
+      if (isSlash && (message.deferred || message.replied)) {
+        await message.editReply(payload).catch(() => {});
+      } else {
+        await message.reply(payload).catch(() => {});
       }
+    }
+  },
 
-      try {
-        // Acknowledge before database reads to avoid timeouts.
-        await interaction.deferUpdate();
-        collector.resetTimer();
-
-        if (interaction.customId === "inv_stones") {
-          currentPage = "stones";
-        }
-
-        if (interaction.customId === "inv_shards") {
-          currentPage = "shards";
-        }
-
-        if (interaction.customId === "inv_albums") {
-          currentPage = "albums";
-        }
-
-        if (interaction.customId === "inv_bgs") {
-          currentPage = "bgs";
-        }
-
-        if (interaction.customId === "inv_weapons") {
-          currentPage = "weapons";
-        }
-
-        if (interaction.customId === "inv_others") {
-          currentPage = "others";
-        }
-
-        return await interaction.editReply({
-          embeds: [await makeEmbed(context, currentPage)],
-          components: makeButtons(currentPage)
-        });
-      } catch (error) {
-        console.error("[INVENTORY] Page update:", error);
-
-        const payload = {
-          content: "❌ Could not load inventory. Please try again.",
-          ephemeral: true
-        };
-
-        if (interaction.deferred || interaction.replied) {
-          await interaction.followUp(payload).catch(() => {});
-        } else {
-          await interaction.reply(payload).catch(() => {});
-        }
-      }
-    });
-
-    collector.on("end", async () => {
-      await msg.edit({ components: [] }).catch(() => {});
-    });
+  async handleButton(interaction) {
+    const match = /^inv_(\d+)_(stones|shards|albums|bgs|others|weapons)$/.exec(interaction.customId);
+    if (!match) return interaction.reply({content: "This inventory panel expired. Run inventory again.", ephemeral: true});
+    if (match[1] !== interaction.user.id) return interaction.reply({content: "This inventory belongs to another player.", ephemeral: true});
+    await interaction.deferUpdate();
+    try {
+      const embed = await makeEmbed({author: interaction.user}, match[2]);
+      await interaction.editReply({embeds: [embed], components: makeButtons(match[2], match[1])});
+    } catch (error) {
+      console.error("[INVENTORY] Page load:", error);
+      await interaction.followUp({content: "Could not load inventory. Please try again.", ephemeral: true}).catch(() => {});
+    }
   }
 };
 

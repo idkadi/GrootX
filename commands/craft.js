@@ -10,14 +10,14 @@ const WEAPONS = {
   web_shooter: {
     name: "Web Shooter",
     emoji: "<:webshooter:1558404855071113236>",
-    energy: 1,
+    energy: 2,
     aliases: ["webshooter", "web shooter", "web shooters", "web"]
   },
 
   cap_shield: {
     name: "Captain America's Shield",
     emoji: "<:capshield:1558405113050177636>",
-    energy: 1,
+    energy: 2,
     aliases: [
       "capshield",
       "cap shield",
@@ -38,7 +38,7 @@ const WEAPONS = {
   mjolnir: {
     name: "Mjolnir",
     emoji: "<:mjolnir:1558405891722846318>",
-    energy: 3,
+    energy: 2,
     aliases: ["mjolnir", "mjonir", "hammer"]
   },
 
