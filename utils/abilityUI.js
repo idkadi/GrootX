@@ -1,6 +1,7 @@
 'use strict';
 const {ActionRowBuilder,ButtonBuilder,ButtonStyle}=require('discord.js');
 const engine=require('./abilityEngine');
+const {abilityName}=require('./abilityNames');
 function choicePayload(b,page=0){
  const r=b.abilityState?.request;if(!r)return {content:'No ability needs a choice.',components:[],files:[]};
  const source=engine.find(b,r.sourceUid),options=engine.optionsFor(b,r),pages=Math.max(1,Math.ceil(options.length/20));
@@ -15,7 +16,7 @@ function choicePayload(b,page=0){
    new ButtonBuilder().setCustomId(`battle_abpage_${b.id}_${r.nonce}_${page-1}`).setLabel('Previous').setStyle(ButtonStyle.Secondary).setDisabled(page===0),
    new ButtonBuilder().setCustomId(`battle_abpage_${b.id}_${r.nonce}_${page+1}`).setLabel('Next').setStyle(ButtonStyle.Secondary).setDisabled(page===pages-1)));
  const intel=engine.privateIntel(b,r.ownerId);
- return {content:(`**${source?.card.name??'Card'} ability**\nChoose ${r.steps[r.step].replace(/([A-Z])/g,' $1').toLowerCase()} (${r.step+1}/${r.steps.length}).\n${intel}`).slice(0,1900),components:rows,files:[]};
+ return {content:(`**${abilityName(r.key)}** · ${source?.card.name??'Card'}\nChoose ${r.steps[r.step].replace(/([A-Z])/g,' $1').toLowerCase()} (${r.step+1}/${r.steps.length}).\n${intel}`).slice(0,1900),components:rows,files:[]};
 }
 function boardButtons(b){
  return [new ActionRowBuilder().addComponents(
@@ -49,11 +50,40 @@ async function handle(interaction,b,resume){
    const parts=interaction.customId.split('_'),index=Number(parts.pop()),nonce=Number(parts.pop());
    const options=engine.optionsFor(b,r),value=options[index]?.value;
    if(nonce!==r.nonce||!Number.isInteger(index)||!value){await interaction.reply({content:'This target choice expired.',ephemeral:true});return true;}
-   const result=engine.selectTarget(b,id,nonce,value);
-   if(!result.ok){await interaction.reply({content:result.error,ephemeral:true});return true;}
-   await interaction.deferUpdate();
-   await interaction.editReply(result.request?.ownerId===id?choicePayload(b):{content:'Ability resolved.',files:[],components:[]});
-   await resume(true);return true;
+   // Claim this request before awaiting acknowledgement. Duplicate clicks cannot
+   // race the second step or mutate the engine twice.
+   if(b.abilityChoosing){await interaction.reply({content:'Your ability choice is resolving. Please wait.',ephemeral:true});return true;}
+   b.abilityChoosing=true;
+   try{
+     await interaction.deferUpdate();
+     const rng=b.abilityState.rng;
+     const before=structuredClone({board:b.board,hands:b.hands,decks:b.decks,locations:b.locations,
+       abilityState:{...b.abilityState,rng:null}});
+     let result;
+     try{result=engine.selectTarget(b,id,nonce,value);}catch(error){
+       // Keep the current choice retryable if an effect fails mid-resolution.
+       Object.assign(b,before);b.abilityState.rng=rng;throw error;
+     }
+     if(!result.ok){await interaction.editReply({content:result.error,components:[]});return true;}
+     let displayError;
+     try{
+       await interaction.editReply(result.request?.ownerId===id?choicePayload(b):{content:'Ability resolved.',files:[],components:[]});
+     }catch(error){displayError=error;console.error('[ABILITY PANEL]',error);}
+     // A multi-step request remains active. Do not regenerate the board between
+     // selecting a friendly card and selecting the enemy card.
+     if(result.request===r){
+       if(displayError)await interaction.followUp({content:'The panel could not refresh. Open Choose Ability Target again to finish your choice.',ephemeral:true}).catch(()=>{});
+     }else{
+       // Continue the reveal even if editing the private panel failed.
+       await resume(true);
+     }
+   }catch(error){
+     console.error('[ABILITY CHOICE]',error);
+     if(interaction.deferred||interaction.replied){
+       await interaction.followUp({content:'Could not refresh this ability. Use the latest Choose Ability Target button.',ephemeral:true}).catch(()=>{});
+     }else await interaction.reply({content:'Could not acknowledge your choice. Open the latest ability panel and try again.',ephemeral:true}).catch(()=>{});
+   }finally{b.abilityChoosing=false;}
+   return true;
  }
  await interaction.reply({content:'This battle button is no longer available.',ephemeral:true});return true;
 }

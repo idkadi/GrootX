@@ -207,13 +207,13 @@ async function makeEmbed(message, pageType) {
       weapons: {}
     };
 
-  const userInventory = inventoryDoc.items || {};
+  const userInventory = inventoryDoc.items && typeof inventoryDoc.items === "object" ? inventoryDoc.items : {};
 
   const userAlbums = pageType === "albums"
     ? await albumsCollection.find({ userId }).toArray() : [];
 
   const userData = pageType === "bgs" ? await usersCollection.findOne({ userId }) : null;
-  const userBackgroundIds = userData?.backgrounds || [];
+  const userBackgroundIds = Array.isArray(userData?.backgrounds) ? userData.backgrounds : [];
 
   let title = "";
   let description = "";
@@ -284,7 +284,7 @@ async function makeEmbed(message, pageType) {
     } else {
       description = userBackgroundIds
         .map(bgId => {
-          const bg = backgrounds.find(
+          const bg = (Array.isArray(backgrounds) ? backgrounds : []).find(
             b => Number(b.id) === Number(bgId)
           );
 
@@ -389,7 +389,7 @@ module.exports = {
     try {
     const currentPage = "stones";
 
-    await (
+    const sent = await (
       isSlash
         ? message.editReply.bind(message)
         : message.reply.bind(message)
@@ -397,6 +397,13 @@ module.exports = {
       embeds: [await makeEmbed(context, currentPage)],
       components: makeButtons(currentPage, user.id)
     });
+    // Compatibility with older index.js versions that do not route inventory
+    // buttons. Updated index.js owns them, so only one handler acknowledges.
+    if (!message.client?.grootxInventoryRouter && typeof sent?.createMessageComponentCollector === "function") {
+      const collector = sent.createMessageComponentCollector({time: 120000, filter: i => i.customId.startsWith(`inv_${user.id}_`)});
+      collector.on("collect", i => module.exports.handleButton(i).catch(error => console.error("[INVENTORY BUTTON]", error)));
+      collector.on("end", () => sent.edit({components: []}).catch(() => {}));
+    }
 
     } catch (error) {
       console.error("[INVENTORY] Initial load:", error);
@@ -410,6 +417,10 @@ module.exports = {
   },
 
   async handleButton(interaction) {
+    // A compatibility collector and a router may see the same interaction.
+    // Claim it synchronously before the REST acknowledgement begins.
+    if (interaction.grootxInventoryHandled) return;
+    interaction.grootxInventoryHandled = true;
     const match = /^inv_(\d+)_(stones|shards|albums|bgs|others|weapons)$/.exec(interaction.customId);
     if (!match) return interaction.reply({content: "This inventory panel expired. Run inventory again.", ephemeral: true});
     if (match[1] !== interaction.user.id) return interaction.reply({content: "This inventory belongs to another player.", ephemeral: true});

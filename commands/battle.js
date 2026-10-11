@@ -899,6 +899,9 @@ module.exports = {
       return startBattleAfterDeckSelection(interaction, battle);
     }
 
+    if (battle.abilityChoosing) {
+      return interaction.reply({content: "Your ability choice is resolving. Please wait.", ephemeral: true});
+    }
     if (battle.weaponApplying) {
       return interaction.reply({ content: "A weapon is resolving. Try again shortly.", ephemeral: true });
     }

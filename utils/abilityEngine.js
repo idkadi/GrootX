@@ -1,6 +1,7 @@
 'use strict';
 const {getAbilityKey,normalize}=require('../data/abilityMappings');
 const {calculateBattlePower}=require('./battlePower');
+const {abilityName}=require('./abilityNames');
 const DEFAULT_LOCATIONS=require('../data/locations');
 const SIDES=['left','middle','right'];
 const WEAPONS=['webshooter','captain_shield','arc_reactor','wolverine_claws','mjolnir'];
@@ -258,7 +259,7 @@ function activate(b,source,key,picks=[]){
  source.ability.activated=true;const owner=source.ownerId,enemy=opponent(b,owner),side=locate(b,source);
  const a=find(b,picks[0]),z=find(b,picks[1]),own=friendly(b,source);
  if(key==='sue_storm_epic')source.ability.hiddenUntil=b.turn+1;
- log(b,isHidden(b,source)?'A hidden card activated an ability.':displayName(b,source)+' activated '+key.replace(/_/g,' ')+'.');
+ log(b,isHidden(b,source)?'A hidden card activated an ability.':displayName(b,source)+' activated **'+abilityName(key)+'**.');
  const boost=(targets,n)=>targets.forEach(t=>{t.ability.delta+=n;});
  switch(key){
  case 'iron_man_legendary':boost(own.map(r=>r.item),2);{const t=random(b,enemies(b,source).map(r=>r.item));if(t)reduce(b,source,[t],2,{individual:true});}break;
