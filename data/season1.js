@@ -8394,6 +8394,18 @@ module.exports = [
   rawImage: "raw/ramrodbnd.png"
 },
 
+{
+  id: 925,
+  name: "President Loki",
+  aka: [],
+  appearance: "Loki",
+  tier: "epic",
+  rawImage: "raw/presidentloki.png"
+},
+
+
+
+
 
 
 
