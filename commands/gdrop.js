@@ -5,6 +5,7 @@ const {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  ComponentType,
   SlashCommandBuilder,
   EmbedBuilder,
   AttachmentBuilder
@@ -15,11 +16,70 @@ const renderCard = require("../utils/renderCard");
 const crypto = require("crypto");
 
 const OWNER_ID = "859803575995727872";
+const CLAIM_TIME = 60_000;
+const CODE_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789";
+const CODE_ATTEMPTS = 25;
 
 const SEASONS = [
   "<:Season0:1555956910560256082>",
   "<:Season1:1555956879576793130>"
 ];
+
+function generateCode() {
+  let code = "";
+
+  // Match the six-character, lowercase codes used by normal drops.
+  for (let i = 0; i < 6; i++) {
+    code += CODE_CHARS[crypto.randomInt(CODE_CHARS.length)];
+  }
+
+  return code;
+}
+
+function isCodeCollision(error, code) {
+  return error?.code === 11000 && (
+    Object.prototype.hasOwnProperty.call(error.keyPattern || {}, "code") ||
+    error.keyValue?.code === code ||
+    /index:\s*code_1\s+dup key/i.test(String(error.message || ""))
+  );
+}
+
+async function saveCard(collections, ownedCard) {
+  for (let attempt = 0; attempt < CODE_ATTEMPTS; attempt++) {
+    const code = generateCode();
+
+    const exists = await collections.findOne(
+      { code },
+      { projection: { _id: 1 } }
+    );
+
+    if (exists) continue;
+
+    try {
+      await collections.insertOne({ ...ownedCard, code });
+      return code;
+    } catch (error) {
+      // Retry code collisions only; expose unrelated database failures.
+      if (!isCodeCollision(error, code)) throw error;
+    }
+  }
+
+  throw new Error("Could not allocate a unique six-character card code");
+}
+
+async function privateNotice(interaction, content) {
+  const payload = {
+    content,
+    ephemeral: true,
+    allowedMentions: { parse: [] }
+  };
+
+  if (interaction.deferred || interaction.replied) {
+    return interaction.followUp(payload);
+  }
+
+  return interaction.reply(payload);
+}
 
 module.exports = {
   name: "gdrop",
@@ -53,19 +113,16 @@ module.exports = {
     const user = slash ? message.user : message.author;
 
     const reply = payload => {
-      if (typeof payload === "string") {
-        payload = { content: payload };
-      }
-
-      payload.allowedMentions = {
-        parse: [],
-        repliedUser: false
+      const data = {
+        ...(typeof payload === "string" ? { content: payload } : payload),
+        allowedMentions: { parse: [], repliedUser: false }
       };
 
-      if (!slash) return message.reply(payload);
-      if (message.deferred) return message.editReply(payload);
-      if (message.replied) return message.followUp(payload);
-      return message.reply(payload);
+      if (!slash) return message.reply(data);
+      if (message.deferred) return message.editReply(data);
+      if (message.replied) return message.followUp(data);
+
+      return message.reply(data);
     };
 
     try {
@@ -81,11 +138,13 @@ module.exports = {
         slash
           ? message.options.getString("season", true)
           : args[0] || ""
-      ).toLowerCase();
+      ).trim().toLowerCase();
 
-      const idArg = slash
-        ? String(message.options.getInteger("id", true))
-        : String(args[1] || "");
+      const idArg = String(
+        slash
+          ? message.options.getInteger("id", true)
+          : args[1] ?? ""
+      ).trim();
 
       if (
         !["s0", "s1"].includes(seasonArg) ||
@@ -122,10 +181,10 @@ module.exports = {
       }
 
       const card = matches[0];
+      const cardName = String(card.name).slice(0, 150);
       const event = card.event || null;
 
-      // Render before posting so missing art or frames cannot
-      // create a broken giveaway.
+      // Finish rendering before posting a giveaway with live controls.
       const buffer = await renderCard(
         { ...card, season },
         "?",
@@ -136,8 +195,8 @@ module.exports = {
       const collections = db.collection("collections");
       const serials = db.collection("serials");
 
-      const buttonId =
-        `gdrop_${crypto.randomBytes(8).toString("hex")}`;
+      // This private component ID is separate from the owned card's code.
+      const buttonId = `gdrop_${crypto.randomBytes(8).toString("hex")}`;
 
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
@@ -148,16 +207,12 @@ module.exports = {
       );
 
       const embed = new EmbedBuilder()
-        .setColor(
-          event === "halloween2026" ? 0xf28c28 : 0x57f287
-        )
+        .setColor(event === "halloween2026" ? 0xf28c28 : 0x57f287)
         .setTitle("🎁 Giveaway Drop")
         .setDescription(
-          `${SEASONS[season]} **${String(card.name).slice(0, 150)}**\n` +
+          `${SEASONS[season]} **${cardName}**\n` +
           `Season ${season} • Card ID: ${cardId}` +
-          (event === "halloween2026"
-            ? "\n🎃 Halloween 26"
-            : "") +
+          (event === "halloween2026" ? "\n🎃 Halloween 26" : "") +
           "\n\nClick below to claim!"
         )
         .setImage("attachment://giveaway.png")
@@ -176,117 +231,115 @@ module.exports = {
         allowedMentions: { parse: [] }
       });
 
-      await reply(
-        `✅ Posted the ${seasonArg.toUpperCase()} giveaway ` +
-        `for card ID **${cardId}**.`
-      );
-
       let processing = false;
       let claimed = false;
       let expired = false;
+      let assignedSerial = null;
+      let claimedCode = null;
+      let claimedPayload = null;
 
-      const collector =
-        giveaway.createMessageComponentCollector({
-          time: 60000,
-          filter: interaction =>
-            interaction.customId === buttonId
-        });
+      // Attach the collector before sending the owner's confirmation.
+      // A missing reply permission or a slow reply must not break claiming.
+      const collector = giveaway.createMessageComponentCollector({
+        componentType: ComponentType.Button,
+        time: CLAIM_TIME,
+        filter: interaction =>
+          interaction.customId === buttonId && !interaction.user.bot
+      });
+
+      const expireGiveaway = () => giveaway.edit({
+        content: "❌ Giveaway expired.",
+        embeds: [
+          EmbedBuilder.from(embed)
+            .setTitle("🎁 Giveaway Expired")
+            .setDescription(
+              `${SEASONS[season]} **${cardName}**\nNobody claimed this card.`
+            )
+            .setFooter({
+              text: "This giveaway has ended."
+            })
+        ],
+        components: [],
+        allowedMentions: { parse: [] }
+      }).catch(error =>
+        console.error("[GDROP] Expiry display:", error)
+      );
 
       collector.on("collect", async interaction => {
         let locked = false;
+        let displayUpdated = false;
 
         try {
           if (processing || claimed || expired) {
-            return await interaction.reply({
-              content:
-                "⏳ This giveaway is being claimed or has ended.",
-              ephemeral: true
-            });
+            return await privateNotice(
+              interaction,
+              "⏳ This giveaway is being claimed or has ended."
+            );
           }
 
+          // Lock before the first await so simultaneous clicks
+          // cannot both award this giveaway.
           processing = true;
           locked = true;
 
-          // Acknowledge before database work.
-          await interaction.deferUpdate();
-
-          // S0 includes legacy counters without a season.
-          // S1 uses its own season-specific counter.
-          const serialFilter = season === 0
-            ? {
-                cardId,
-                $or: [
-                  { season: 0 },
-                  { season: { $exists: false } }
-                ]
-              }
-            : {
-                cardId,
-                season: 1
-              };
-
-          const result = await serials.findOneAndUpdate(
-            serialFilter,
-            {
-              $inc: { serial: 1 },
-              $setOnInsert: {
-                cardId,
-                season
-              }
-            },
-            {
-              upsert: true,
-              returnDocument: "after"
-            }
-          );
-
-          // Supports MongoDB drivers returning either
-          // the document directly or a result.value wrapper.
-          const serialDoc = result?.serial != null
-            ? result
-            : result?.value;
-
-          if (!serialDoc?.serial) {
-            throw new Error("Serial allocation failed");
+          if (!interaction.deferred && !interaction.replied) {
+            await interaction.deferUpdate();
           }
 
-          let code;
-          let inserted = false;
+          if (assignedSerial === null) {
+            // Legacy S0 counters may omit season; never use those for S1.
+            const serialFilter = season === 0
+              ? {
+                  cardId,
+                  $or: [
+                    { season: 0 },
+                    { season: { $exists: false } }
+                  ]
+                }
+              : {
+                  cardId,
+                  season: 1
+                };
 
-          for (let attempt = 0; attempt < 10; attempt++) {
-            code = crypto.randomBytes(4).toString("hex");
-
-            const exists = await collections.findOne(
-              { code },
-              { projection: { _id: 1 } }
+            const result = await serials.findOneAndUpdate(
+              serialFilter,
+              {
+                $inc: { serial: 1 },
+                $setOnInsert: { cardId, season }
+              },
+              {
+                upsert: true,
+                returnDocument: "after"
+              }
             );
 
-            if (exists) continue;
+            // MongoDB drivers can return a document or a value wrapper.
+            const serialDoc = result?.serial != null
+              ? result
+              : result?.value;
 
-            try {
-              await collections.insertOne({
-                userId: interaction.user.id,
-                cardId,
-                season,
-                serial: serialDoc.serial,
-                code,
-                tag: null,
-                favorite: false,
-                obtainedAt: new Date(),
-                ...(event ? { event } : {})
-              });
+            const serial = Number(serialDoc?.serial);
 
-              inserted = true;
-              break;
-            } catch (error) {
-              if (error.code !== 11000) throw error;
+            if (!Number.isSafeInteger(serial) || serial < 1) {
+              throw new Error("Serial allocation failed");
             }
+
+            // Reuse the allocation if a failed claim is retried.
+            assignedSerial = serial;
           }
 
-          if (!inserted) {
-            throw new Error("Could not allocate a unique card code");
-          }
+          claimedCode = await saveCard(collections, {
+            userId: interaction.user.id,
+            cardId,
+            season,
+            serial: assignedSerial,
+            tag: null,
+            favorite: false,
+            obtainedAt: new Date(),
+            ...(event ? { event } : {})
+          });
 
+          // Once saved, display failures must never reopen the giveaway.
           claimed = true;
 
           row.components[0]
@@ -294,45 +347,57 @@ module.exports = {
             .setStyle(ButtonStyle.Secondary)
             .setLabel("Claimed");
 
-          collector.stop("claimed");
-
-          await interaction.editReply({
+          claimedPayload = {
             content:
-              `🎉 <@${interaction.user.id}> claimed ` +
-              `**${String(card.name).slice(0, 150)}**\n` +
-              `${SEASONS[season]} #${serialDoc.serial} • \`${code}\``,
+              `🎉 <@${interaction.user.id}> claimed **${cardName}**\n` +
+              `${SEASONS[season]} #${assignedSerial} • \`${claimedCode}\``,
+            embeds: [
+              EmbedBuilder.from(embed)
+                .setTitle("🎁 Giveaway Claimed")
+                .setDescription(
+                  `${SEASONS[season]} **${cardName}**\n` +
+                  `Season ${season} • Card ID: ${cardId}\n` +
+                  `Serial: **#${assignedSerial}** • Code: \`${claimedCode}\``
+                )
+                .setFooter({
+                  text: "Card saved to the winner's collection."
+                })
+            ],
             components: [row],
             allowedMentions: { parse: [] }
-          });
+          };
+
+          collector.stop("claimed");
+
+          // Edit the giveaway directly, including when a router
+          // has already acknowledged the button interaction.
+          await giveaway.edit(claimedPayload);
+          displayUpdated = true;
         } catch (error) {
           console.error("[GDROP] Claim:", error);
 
-          const notice = {
-            content: claimed
-              ? "✅ Your card was saved, but the giveaway display could not update. Check your collection."
-              : "❌ Claim failed. Try again if the giveaway is still active.",
-            ephemeral: true
-          };
+          if (!locked) return;
 
-          if (interaction.deferred || interaction.replied) {
-            await interaction.followUp(notice).catch(() => {});
-          } else {
-            await interaction.reply(notice).catch(() => {});
-          }
+          await privateNotice(
+            interaction,
+            claimed
+              ? `✅ Your card was saved: **${cardName}** ` +
+                `#${assignedSerial} • \`${claimedCode}\`. Check your collection.`
+              : expired
+                ? "❌ Claim failed and this giveaway has expired."
+                : "❌ Claim failed. Try again while the giveaway is active."
+          ).catch(() => {});
         } finally {
-          if (locked) processing = false;
+          if (locked) {
+            processing = false;
 
-          if (expired && !claimed) {
-            await giveaway.edit({
-              content: "❌ Giveaway expired.",
-              components: []
-            }).catch(() => {});
-          }
-
-          if (claimed) {
-            await giveaway.edit({
-              components: [row]
-            }).catch(() => {});
+            if (claimed && !displayUpdated && claimedPayload) {
+              await giveaway.edit(claimedPayload).catch(error =>
+                console.error("[GDROP] Claim display retry:", error)
+              );
+            } else if (expired && !claimed) {
+              await expireGiveaway();
+            }
           }
         }
       });
@@ -340,19 +405,25 @@ module.exports = {
       collector.on("end", async () => {
         expired = true;
 
+        // Let a claim accepted before expiry finish its database work.
         if (processing || claimed) return;
 
-        await giveaway.edit({
-          content: "❌ Giveaway expired.",
-          components: []
-        }).catch(() => {});
+        await expireGiveaway();
       });
+
+      // Claiming is already live even if this confirmation fails.
+      await reply(
+        `✅ Posted the ${seasonArg.toUpperCase()} giveaway ` +
+        `for card ID **${cardId}**.`
+      ).catch(error =>
+        console.error("[GDROP] Confirmation:", error)
+      );
     } catch (error) {
       console.error("[GDROP]", error);
 
       await reply(
         "❌ Could not create the giveaway. " +
-        "Check the image/frame files and bot logs."
+        "Check the image/frame files, channel permissions, and bot logs."
       ).catch(() => {});
     }
   }

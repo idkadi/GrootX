@@ -8259,6 +8259,165 @@ module.exports = [
   event: "halloween2026"
 },
 
+{
+  id: 910,
+  name: "Spider-Man",
+  aka: ["Peter Parker"],
+  appearance: "Spider-Man: Brand New Day",
+  tier: "legendary",
+  rawImage: "raw/spidermanbnd.png"
+},
+
+{
+  id: 911,
+  name: "Hulk",
+  aka: ["Bruce Banner"],
+  appearance: "Spider-Man: Brand New Day",
+  tier: "legendary",
+  rawImage: "raw/hulkbnd.png"
+},
+
+{
+  id: 912,
+  name: "Punisher",
+  aka: ["Frank Castle"],
+  appearance: "Spider-Man: Brand New Day",
+  tier: "epic",
+  rawImage: "raw/punisherbnd.png"
+},
+
+{
+  id: 913,
+  name: "Jean Grey",
+  aka: ["Frank Castle"],
+  appearance: "Spider-Man: Brand New Day",
+  tier: "epic",
+  rawImage: "raw/jeangreybnd.png"
+},
+
+{
+  id: 914,
+  name: "Yelena Belova",
+  aka: [],
+  appearance: "Spider-Man: Brand New Day",
+  tier: "rare",
+  rawImage: "raw/yelenabnd.png"
+},
+
+{
+  id: 915,
+  name: "Scorpion",
+  aka: [],
+  appearance: "Spider-Man: Brand New Day",
+  tier: "rare",
+  rawImage: "raw/scorpionbnd.png"
+},
+
+{
+  id: 916,
+  name: "Ned Leeds",
+  aka: [],
+  appearance: "Spider-Man: Brand New Day",
+  tier: "rare",
+  rawImage: "raw/nedbnd.png"
+},
+
+{
+  id: 917,
+  name: "MJ",
+  aka: [],
+  appearance: "Spider-Man: Brand New Day",
+  tier: "rare",
+  rawImage: "raw/mjbnd.png"
+},
+
+{
+  id: 918,
+  name: "Tombstone",
+  aka: [],
+  appearance: "Spider-Man: Brand New Day",
+  tier: "uncommon",
+  rawImage: "raw/tombstonebnd.png"
+},
+
+{
+  id: 919,
+  name: "William Metzger",
+  aka: [],
+  appearance: "Spider-Man: Brand New Day",
+  tier: "rare",
+  rawImage: "raw/williambnd.png"
+},
+
+{
+  id: 920,
+  name: "Jean DeWolff",
+  aka: [],
+  appearance: "Spider-Man: Brand New Day",
+  tier: "uncommon",
+  rawImage: "raw/jeandewolffbnd.png"
+},
+
+{
+  id: 921,
+  name: "Sara Grey",
+  aka: [],
+  appearance: "Spider-Man: Brand New Day",
+  tier: "uncommon",
+  rawImage: "raw/saragreybnd.png"
+},
+
+{
+  id: 922,
+  name: "Tarantula",
+  aka: [],
+  appearance: "Spider-Man: Brand New Day",
+  tier: "common",
+  rawImage: "raw/tarantulabnd.png"
+},
+
+{
+  id: 923,
+  name: "Bomerang",
+  aka: [],
+  appearance: "Spider-Man: Brand New Day",
+  tier: "common",
+  rawImage: "raw/bomerangbnd.png"
+},
+
+{
+  id: 924,
+  name: "Ramrod",
+  aka: [],
+  appearance: "Spider-Man: Brand New Day",
+  tier: "common",
+  rawImage: "raw/ramrodbnd.png"
+},
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
